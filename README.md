@@ -19,6 +19,8 @@ related_documents:
 
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
+![repo-banner](assets/repo-banner.jpg)
+
 > A monorepo of browser-based games rebuilding classics from the wireframe and early-graphics era, each with one modern mechanical twist.
 
 Every game in this collection takes a recognizable classic (Asteroids, Lunar Lander, BattleZone, and others from the Atari, CGA/EGA, and early arcade era), faithfully reconstructs its core loop, then adds one mechanical twist that couldn't have existed on the original hardware. The aesthetic stays within the wireframe/vector tradition, but uses modern rendering for visual polish: colored thrust flames, smooth fracture lines, particle effects, glow.
