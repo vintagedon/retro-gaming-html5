@@ -21,8 +21,8 @@ Agents working on this repository should load context in this order:
 - All games must serve as static files compatible with Azure Static Web Apps. No server-side rendering, no dynamic backends, no build steps requiring server infrastructure. Relative asset paths only.
 - Each game is a self-contained directory. No cross-game code dependencies. Shared code (in `shared/`) is opt-in and only extracted when duplication becomes a maintenance burden.
 - Wireframe and vector aesthetics are the default. Games use Canvas 2D or Phaser 4 on a per-game basis. Phaser is only introduced when a game genuinely needs physics, input abstraction, or scene management.
-- Game assets in `game/assets/` directories are gitignored. They come from `/opt/agents/game-asset-packs/` on ML01 or are generated procedurally.
-- Each game's `publish.sh` is idempotent: wipe destination, copy `game/` contents. Target: `/opt/agents/www/<game-name>/`.
+- Game assets in `game/assets/` directories are gitignored. They come from the shared library at `/opt/agents/repos/libraries/game-asset-packs/` on ML01, from a game's own staging packs and base templates under `asset-game/`, or are generated procedurally.
+- Each game's `publish.sh` is idempotent and publishes under the shared preview umbrella. Target: `/opt/agents/www/retrogaming/<game>/`, served at `https://retrogaming.donfather.site/<game>/`. The script wipes only the game's own subfolder before copying `game/` contents, never the `retrogaming/` root. Older games served from their own subdomain (for example `eobclone`) predate this convention and migrate to the umbrella over time.
 - No multiplayer, no networking, no server-side logic. These are single-player browser games.
 - Games that outgrow the "one or two specs" model graduate to their own repository.
 
