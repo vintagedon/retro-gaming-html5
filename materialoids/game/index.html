@@ -507,7 +507,65 @@ const CONFIG = {
     rotateSpeedMax: 1.0,
     /* How irregular the polygon shape is. 0 = perfect circle, 0.4 = jagged. */
     vertexJitter: 0.32,
-    color: '#00ff66',
+    color: '#00ff66',                /* template fallback; per-instance material color wins */
+    /* Material-properties twist (spec-02). Each asteroid picks one material at
+       construction (weighted random); split children inherit the parent's
+       material, so colour propagates down the fracture chain and stays readable.
+       Material never changes per-size score; it only tunes stroke colour, drift
+       speed, fracture behaviour, and density (density feeds cloud knockback). */
+    knockback: 520,                  /* shove force on an invulnerable ship, scaled by density */
+    materials: {
+      rock: {
+        label: 'Rock', color: '#c2ccd4', density: 1.0, driftMul: 1.00,
+        splitCount: 2, childSpeedMul: 1.00, spread: 0.90, parentVel: 0.40,
+        hesitation: 0,    flash: false, shatter: false, vjMul: 1.00, weight: 3,
+      },
+      ice: {
+        label: 'Ice', color: '#8fe6ff', density: 0.6, driftMul: 1.65,
+        splitCount: 3, childSpeedMul: 1.35, spread: 1.55, parentVel: 0.30,
+        hesitation: 0,    flash: false, shatter: true,  vjMul: 0.85, weight: 2,
+      },
+      metal: {
+        label: 'Metal', color: '#ff9a3c', density: 1.8, driftMul: 0.50,
+        splitCount: 2, childSpeedMul: 0.80, spread: 0.45, parentVel: 0.65,
+        hesitation: 0.12, flash: false, shatter: false, vjMul: 0.90, weight: 2,
+      },
+      crystal: {
+        label: 'Crystal', color: '#ff5cf0', density: 1.0, driftMul: 1.00,
+        splitCount: 2, childSpeedMul: 1.00, spread: 1.00, parentVel: 0.40,
+        hesitation: 0,    flash: true,  shatter: false, vjMul: 1.35, weight: 2,
+      },
+    },
+  },
+
+  /* Molecular clouds (spec-02): the only filled geometry in the game. Slow
+     drifting nebula gas drawn under every game object. Never affects collision;
+     asteroids overlapping a blob render dimmer, the ship and bullets never dim. */
+  clouds: {
+    countMin: 3, countMax: 5,
+    blobsPerCloudMin: 5, blobsPerCloudMax: 9,
+    blobRadiusMin: 55, blobRadiusMax: 130,
+    driftMin: 3, driftMax: 9,          /* px/s, far slower than the slowest asteroid */
+    alphaMin: 0.05, alphaMax: 0.13,
+    /* Muted deep nebula hues chosen to sit under the phosphor palette. */
+    hues: [215, 258, 190, 235, 275],   /* blue, indigo, teal, blue-violet, violet */
+    satMin: 55, satMax: 75,
+    lightMin: 28, lightMax: 42,
+    asteroidDim: 0.40,                 /* minimum stroke brightness deep inside a blob (fair, never invisible) */
+  },
+
+  /* Illumination (spec-02): additive glow that lights nearby cloud gas when
+     player bullets pass through and when fractures occur. Scoped to player
+     bullets; built on globalCompositeOperation 'lighter' over the cloud layer. */
+  illumination: {
+    bulletRadiusMul: 5.0,              /* trail glow radius = mul * bullet radius */
+    bulletLife: 0.4,                   /* seconds for a bullet's gas-trail glow to fade */
+    bulletSpawnEvery: 0.04,            /* throttle: one trail glow per bullet per interval */
+    fractureRadiusMul: 2.2,            /* cloud fracture flash radius = mul * asteroid radius */
+    fractureLife: 0.85,
+    crystalFlashRadiusMul: 1.7,        /* crystal fracture-line flash (always fires on split) */
+    crystalFlashLife: 0.45,
+    maxEvents: 90,                     /* hard cap on concurrent glow events for perf */
   },
 
   /* Hostile bullet variants. The 'kind' picked at fire time controls
@@ -624,6 +682,16 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const rand = (a, b) => a + Math.random() * (b - a);
 const randi = (a, b) => Math.floor(rand(a, b + 1));
 const fmtScore = (n) => Math.round(n).toLocaleString('en-US');
+
+/* Convert a #rgb / #rrggbb colour to an rgba() string with the given alpha.
+   Used by the illumination pass so hex material/bullet colours can feed
+   radial-gradient stops and the additive 'lighter' composite. */
+function hexA(hex, a) {
+  let h = String(hex).replace('#', '');
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  const n = parseInt(h, 16);
+  return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+}
 
 /* Wrap a point into the world rect (used by all moving objects). */
 function wrap(p) {
@@ -1088,6 +1156,174 @@ const Particles = (() => {
 })();
 
 /* =============================================================
+   SECTION 9B — MOLECULAR CLOUDS + ILLUMINATION
+   The twist layer's rendering systems. Clouds are the only filled
+   geometry in the game: slow-drifting nebula gas drawn beneath every
+   object. Illumination is an additive 'lighter' pass that brightens
+   nearby cloud gas when player bullets pass through and when fractures
+   occur. Neither affects collision. Both reuse wrap()/wrapDelta() and
+   the existing glow conventions; no new dependencies.
+   ============================================================= */
+
+const Clouds = (() => {
+  let clouds = [];
+
+  /* Build a fresh field of 3-5 procedurally distinct clouds. Called once per
+     run (and once at construction so the menu has drifting nebula behind it).
+     Clouds persist across wave transitions within a run. */
+  function generate() {
+    const C = CONFIG.clouds;
+    const W = CONFIG.world.w, H = CONFIG.world.h;
+    const n = randi(C.countMin, C.countMax);
+    clouds = [];
+    for (let i = 0; i < n; i++) {
+      const hue = C.hues[randi(0, C.hues.length - 1)] + rand(-8, 8);
+      const sat = rand(C.satMin, C.satMax);
+      const light = rand(C.lightMin, C.lightMax);
+      const ang = rand(0, TAU);
+      const sp = rand(C.driftMin, C.driftMax);
+      const blobCount = randi(C.blobsPerCloudMin, C.blobsPerCloudMax);
+      const blobs = [];
+      let maxR = 0;
+      for (let b = 0; b < blobCount; b++) {
+        const ba = rand(0, TAU);
+        const bd = rand(0, 60);
+        const br = rand(C.blobRadiusMin, C.blobRadiusMax);
+        blobs.push({
+          ox: Math.cos(ba) * bd, oy: Math.sin(ba) * bd, r: br,
+          alpha: rand(C.alphaMin, C.alphaMax),
+          hue: hue + rand(-6, 6), sat, light,
+        });
+        maxR = Math.max(maxR, bd + br);
+      }
+      clouds.push({
+        x: rand(0, W), y: rand(0, H),
+        vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+        hue, blobs, maxR,
+      });
+    }
+  }
+
+  function update(dt) {
+    for (const c of clouds) {
+      c.x += c.vx * dt;
+      c.y += c.vy * dt;
+      wrap(c);
+    }
+  }
+
+  /* Render one cloud translated by (ox,oy); used for the seamless torus copies
+     a cloud needs when its bulk crosses a screen edge. */
+  function drawCloud(g, c, ox, oy) {
+    for (const b of c.blobs) {
+      const bx = c.x + ox + b.ox;
+      const by = c.y + oy + b.oy;
+      const r = b.r;
+      const grad = g.createRadialGradient(bx, by, 0, bx, by, r);
+      grad.addColorStop(0,   'hsla(' + b.hue + ',' + b.sat + '%,' + b.light + '%,' + b.alpha + ')');
+      grad.addColorStop(0.6, 'hsla(' + b.hue + ',' + b.sat + '%,' + b.light + '%,' + (b.alpha * 0.45) + ')');
+      grad.addColorStop(1,   'hsla(' + b.hue + ',' + b.sat + '%,' + b.light + '%,0)');
+      g.fillStyle = grad;
+      g.beginPath();
+      g.arc(bx, by, r, 0, TAU);
+      g.fill();
+    }
+  }
+
+  function draw(g) {
+    if (clouds.length === 0) return;
+    const W = CONFIG.world.w, H = CONFIG.world.h;
+    g.save();
+    for (const c of clouds) {
+      drawCloud(g, c, 0, 0);
+      /* If the cloud's bulk is crossing an edge, draw wrapped copies so the gas
+         drifts on/off screen seamlessly instead of popping. */
+      const nearL = c.x < c.maxR, nearR = c.x > W - c.maxR;
+      const nearT = c.y < c.maxR, nearB = c.y > H - c.maxR;
+      if (nearL) drawCloud(g, c, W, 0);
+      else if (nearR) drawCloud(g, c, -W, 0);
+      if (nearT) drawCloud(g, c, 0, H);
+      else if (nearB) drawCloud(g, c, 0, -H);
+      if ((nearL || nearR) && (nearT || nearB)) {
+        drawCloud(g, c, nearL ? W : -W, nearT ? H : -H);
+      }
+    }
+    g.restore();
+  }
+
+  /* How deeply a world point sits inside any cloud blob, accounting for
+     wraparound via wrapDelta. 0 = outside, up to 1 = at a blob centre. Used for
+     both the asteroid-dim check and the bullet/fracture illumination gating. */
+  function penetration(x, y, pad) {
+    pad = pad || 0;
+    let best = 0;
+    for (const c of clouds) {
+      for (const b of c.blobs) {
+        const [dx, dy] = wrapDelta(x, y, c.x + b.ox, c.y + b.oy);
+        const d = Math.hypot(dx, dy);
+        const eff = b.r + pad;
+        if (d < eff) {
+          const p = (eff - d) / eff;
+          if (p > best) best = p;
+        }
+      }
+    }
+    return best;
+  }
+
+  /* True when (x,y) sits inside any blob (plus an optional pad radius). */
+  function encloses(x, y, pad) { return penetration(x, y, pad) > 0; }
+
+  /* Stroke-brightness multiplier for an asteroid at (x,y): 1.0 in clear space,
+     ramping down to CONFIG.clouds.asteroidDim deep inside a blob. */
+  function dimAt(x, y) {
+    const p = penetration(x, y, 0);
+    if (p <= 0) return 1;
+    return lerp(1, CONFIG.clouds.asteroidDim, clamp(p, 0, 1));
+  }
+
+  return { generate, update, draw, encloses, dimAt };
+})();
+
+/* Additive glow events. Bullet-through-cloud spawns short-lived trail glows
+   (throttled per bullet); fractures inside/near a cloud and crystal splits
+   spawn larger flashes. Drawn with globalCompositeOperation 'lighter' so they
+   brighten the cloud gas beneath without obscuring the game objects above. */
+const Illumination = (() => {
+  const events = [];
+
+  function spawn(x, y, r, color, life) {
+    if (events.length >= CONFIG.illumination.maxEvents) events.shift();
+    events.push({ x, y, r, color, life, max: life });
+  }
+  function update(dt) {
+    for (let i = events.length - 1; i >= 0; i--) {
+      events[i].life -= dt;
+      if (events[i].life <= 0) events.splice(i, 1);
+    }
+  }
+  function draw(g) {
+    if (events.length === 0) return;
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    for (const e of events) {
+      const a = clamp(e.life / e.max, 0, 1);
+      const grad = g.createRadialGradient(e.x, e.y, 0, e.x, e.y, e.r);
+      grad.addColorStop(0,   hexA(e.color, 0.55 * a));
+      grad.addColorStop(0.5, hexA(e.color, 0.22 * a));
+      grad.addColorStop(1,   hexA(e.color, 0));
+      g.fillStyle = grad;
+      g.beginPath();
+      g.arc(e.x, e.y, e.r, 0, TAU);
+      g.fill();
+    }
+    g.restore();
+  }
+  function clear() { events.length = 0; }
+  return { spawn, update, draw, clear };
+})();
+
+/* =============================================================
    SECTION 10 — BULLET
    ============================================================= */
 
@@ -1280,44 +1516,84 @@ class Ship {
    SECTION 12 — ASTEROID
    ============================================================= */
 
+/* Weighted-random material pick. Used for initial wave asteroids; split
+   children inherit the parent's material instead, so colour propagates down
+   the fracture chain and stays readable. */
+function pickMaterial() {
+  const mats = CONFIG.asteroid.materials;
+  const keys = Object.keys(mats);
+  let total = 0;
+  for (const k of keys) total += mats[k].weight;
+  let r = Math.random() * total;
+  for (const k of keys) { r -= mats[k].weight; if (r <= 0) return mats[k]; }
+  return mats[keys[0]];
+}
+/* Pick a material other than `excl` (used to guarantee no single-material wave). */
+function pickMaterialExclude(excl) {
+  const mats = CONFIG.asteroid.materials;
+  const keys = Object.keys(mats).filter((k) => mats[k] !== excl);
+  let total = 0;
+  for (const k of keys) total += mats[k].weight;
+  let r = Math.random() * total;
+  for (const k of keys) { r -= mats[k].weight; if (r <= 0) return mats[k]; }
+  return mats[keys[0]];
+}
+
 class Asteroid {
-  constructor(x, y, sizeKey) {
+  constructor(x, y, sizeKey, material) {
     this.x = x; this.y = y;
     this.sizeKey = sizeKey;
     const cfg = CONFIG.asteroid.sizes[sizeKey];
     this.r = cfg.radius;
-    this.points = cfg.points;
+    this.points = cfg.points;             /* per-size scoring is unchanged */
     this.vertexCount = cfg.vertexCount;
     this.splitsTo = cfg.splitsTo;
+    /* Material is inherited from the parent on split, otherwise weighted-random. */
+    this.material = material || pickMaterial();
+    const mat = this.material;
+    this.color = mat.color;               /* overrides the template's single colour */
     const ang = rand(0, TAU);
-    const sp = rand(cfg.speedMin, cfg.speedMax);
+    /* Density/weight expresses as drift speed: metal (dense) is slow, ice is fast. */
+    const sp = rand(cfg.speedMin, cfg.speedMax) * mat.driftMul;
     this.vx = Math.cos(ang) * sp;
     this.vy = Math.sin(ang) * sp;
     this.angle = rand(0, TAU);
     this.angVel = rand(-CONFIG.asteroid.rotateSpeedMax, CONFIG.asteroid.rotateSpeedMax);
-    /* Generate jagged vertex offsets from a base radius. */
+    /* Generate jagged vertex offsets; crystal is more angular (higher jitter). */
     this.vertices = [];
     for (let i = 0; i < this.vertexCount; i++) {
       const a = (i / this.vertexCount) * TAU;
-      const jitter = 1 - CONFIG.asteroid.vertexJitter * Math.random();
+      const jitter = 1 - CONFIG.asteroid.vertexJitter * mat.vjMul * Math.random();
       this.vertices.push({ a, r: this.r * jitter });
     }
+    /* Metal split-hesitation hold (set on children by splitInto, not here). */
+    this.hesitate = 0;
+    this._holdVx = 0; this._holdVy = 0;
     this.dead = false;
   }
   update(dt) {
+    if (this.hesitate > 0) {
+      /* Brief freeze after a metal fracture, then release the held velocity. */
+      this.hesitate -= dt;
+      if (this.hesitate <= 0) { this.vx = this._holdVx; this.vy = this._holdVy; }
+    } else {
+      this.angle += this.angVel * dt;
+    }
     this.x += this.vx * dt;
     this.y += this.vy * dt;
-    this.angle += this.angVel * dt;
     wrap(this);
   }
   draw(g) {
     if (this.dead) return;
+    /* Dim the stroke where the asteroid overlaps a cloud blob (soft challenge). */
+    const dim = Clouds.dimAt(this.x, this.y);
     g.save();
+    g.globalAlpha = dim;
     g.translate(this.x, this.y);
     g.rotate(this.angle);
-    g.strokeStyle = CONFIG.asteroid.color;
+    g.strokeStyle = this.color;
     g.lineWidth = 1.5;
-    withGlow(g, CONFIG.asteroid.color, 8, () => {
+    withGlow(g, this.color, 8, () => {
       g.beginPath();
       for (let i = 0; i < this.vertices.length; i++) {
         const v = this.vertices[i];
@@ -1332,15 +1608,33 @@ class Asteroid {
     g.restore();
   }
   splitInto() {
-    /* Returns 0-N new asteroids of the smaller size. */
+    /* Returns 0-N children of the smaller size, behaviour driven by material. */
     if (!this.splitsTo) return [];
+    const mat = this.material;
     const out = [];
-    for (let i = 0; i < CONFIG.asteroid.splitCount; i++) {
-      const a = new Asteroid(this.x, this.y, this.splitsTo);
-      /* Inherit some velocity bias from parent for visual continuity. */
-      a.vx += this.vx * 0.4;
-      a.vy += this.vy * 0.4;
-      out.push(a);
+    const n = mat.splitCount;
+    const childCfg = CONFIG.asteroid.sizes[this.splitsTo];
+    for (let i = 0; i < n; i++) {
+      const child = new Asteroid(this.x, this.y, this.splitsTo, mat);
+      /* Distribute children around the fracture, spread widens the jitter.
+         Ice scatters wide and fast; metal stays tight and heavy. */
+      const base = (i / n) * TAU + rand(-0.3, 0.3);
+      const ang = base + rand(-0.6, 0.6) * mat.spread;
+      const sp = rand(childCfg.speedMin, childCfg.speedMax) * mat.driftMul * mat.childSpeedMul;
+      child.vx = Math.cos(ang) * sp + this.vx * mat.parentVel;
+      child.vy = Math.sin(ang) * sp + this.vy * mat.parentVel;
+      /* Metal children hesitate before drifting off (heavy-mass feel). */
+      if (mat.hesitation > 0) {
+        child._holdVx = child.vx; child._holdVy = child.vy;
+        child.vx = 0; child.vy = 0;
+        child.hesitate = mat.hesitation;
+      }
+      out.push(child);
+    }
+    /* Crystal signature: a visible fracture-line flash fires on every split. */
+    if (mat.flash) {
+      Illumination.spawn(this.x, this.y, this.r * CONFIG.illumination.crystalFlashRadiusMul,
+                         mat.color, CONFIG.illumination.crystalFlashLife);
     }
     return out;
   }
@@ -1883,6 +2177,9 @@ class Game {
     this.scale = 1;
     this.canvasCssRect = { x: 0, y: 0, w: 1, h: 1 };
     this.thrustWasOn = false;
+    /* Seed a cloud field so the menu has drifting nebula behind it. startRun()
+       reseeds per run; clouds persist across wave transitions within a run. */
+    Clouds.generate();
     this.resize();
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('orientationchange', () => setTimeout(() => this.resize(), 200));
@@ -1934,6 +2231,8 @@ class Game {
     this.enemies = [];
     this.enemySpawnT = pickEnemySpawnInterval(this.level);
     Particles.clear();
+    Clouds.generate();           /* fresh nebula per run; persists across waves */
+    Illumination.clear();
     this.spawnShip();
     this.spawnLevel();
     this.state = STATE.PLAYING;
@@ -1949,6 +2248,7 @@ class Game {
       CONFIG.level.asteroidsBase + (this.level - 1) * CONFIG.level.asteroidsPerLevel,
       CONFIG.level.asteroidsMax
     );
+    const fresh = [];
     for (let i = 0; i < count; i++) {
       /* Spawn around the edges, away from center. */
       let x, y;
@@ -1957,8 +2257,17 @@ class Game {
       else if (side === 1) { x = rand(0, this.W); y = rand(this.H - 80, this.H); }
       else if (side === 2) { x = rand(0, 80); y = rand(0, this.H); }
       else                 { x = rand(this.W - 80, this.W); y = rand(0, this.H); }
-      this.asteroids.push(new Asteroid(x, y, 'large'));
+      fresh.push(new Asteroid(x, y, 'large'));
     }
+    /* Guarantee every wave draws from more than one material. */
+    if (fresh.length >= 3) {
+      const seen = new Set(fresh.map((a) => a.material));
+      if (seen.size === 1) {
+        fresh[0].material = pickMaterialExclude(fresh[0].material);
+        fresh[0].color = fresh[0].material.color;
+      }
+    }
+    for (const a of fresh) this.asteroids.push(a);
   }
   pause() {
     if (this.state !== STATE.PLAYING && this.state !== STATE.RESPAWN && this.state !== STATE.LEVEL_TRANSITION) return;
@@ -2001,12 +2310,22 @@ class Game {
   destroyAsteroid(a) {
     a.dead = true;
     this.score += a.points;
-    if (a.sizeKey === 'large')        { Audio.explodeLarge();  Stats.inc('asteroidsLarge', 1); Particles.debris(a.x, a.y, '#80ffaa', 22, [6, 14]); this.shake(0.18, 4); }
-    else if (a.sizeKey === 'medium')  { Audio.explodeMedium(); Stats.inc('asteroidsMedium', 1); Particles.debris(a.x, a.y, '#80ffaa', 14, [4, 10]); this.shake(0.10, 2); }
-    else                              { Audio.explodeSmall();  Stats.inc('asteroidsSmall', 1); Particles.debris(a.x, a.y, '#80ffaa', 9, [3, 7]); }
-    /* Split */
+    /* Debris takes the material's colour so fracture matches the wireframe. */
+    if (a.sizeKey === 'large')        { Audio.explodeLarge();  Stats.inc('asteroidsLarge', 1); Particles.debris(a.x, a.y, a.color, 22, [6, 14]); this.shake(0.18, 4); }
+    else if (a.sizeKey === 'medium')  { Audio.explodeMedium(); Stats.inc('asteroidsMedium', 1); Particles.debris(a.x, a.y, a.color, 14, [4, 10]); this.shake(0.10, 2); }
+    else                              { Audio.explodeSmall();  Stats.inc('asteroidsSmall', 1); Particles.debris(a.x, a.y, a.color, 9, [3, 7]); }
+    /* Ice: a brief shatter of fine line-fragments on the smallest tier. */
+    if (a.material.shatter && a.sizeKey === 'small') {
+      Particles.debris(a.x, a.y, a.color, 14, [2, 5]);
+    }
+    /* Split (children inherit the material; crystal flashes inside splitInto). */
     const children = a.splitInto();
     for (const c of children) this.asteroids.push(c);
+    /* Fractures inside/near a cloud flash in the material's colour (additive). */
+    if (Clouds.encloses(a.x, a.y, a.r)) {
+      Illumination.spawn(a.x, a.y, a.r * CONFIG.illumination.fractureRadiusMul,
+                         a.color, CONFIG.illumination.fractureLife);
+    }
     UI.refreshHud(this);
     UI.flashBlock('score');
     /* Extra life check */
@@ -2074,6 +2393,10 @@ class Game {
       if (this.state === STATE.PLAYING || this.state === STATE.RESPAWN || this.state === STATE.LEVEL_TRANSITION) this.pause();
       else if (this.state === STATE.PAUSED) this.resume();
     }
+    /* Clouds drift and illumination fades on every frame, including menu and
+       pause, for ambient motion. Neither touches gameplay state. */
+    Clouds.update(dt);
+    Illumination.update(dt);
     if (this.state === STATE.MENU || this.state === STATE.GAME_OVER || this.state === STATE.HS_ENTRY || this.state === STATE.PAUSED) return;
 
     /* Hyperspace */
@@ -2095,6 +2418,20 @@ class Game {
 
     for (const b of this.bullets) b.update(dt);
     this.bullets = this.bullets.filter(b => !b.dead);
+
+    /* Player bullets travelling through a cloud leave a fading additive glow
+       trail (scoped to player bullets; enemy bullets are optional polish). */
+    for (const b of this.bullets) {
+      if (b.hostile) continue;
+      if (Clouds.encloses(b.x, b.y, 0)) {
+        b._illumT = (b._illumT || 0) - dt;
+        if (b._illumT <= 0) {
+          b._illumT = CONFIG.illumination.bulletSpawnEvery;
+          Illumination.spawn(b.x, b.y, b.r * CONFIG.illumination.bulletRadiusMul,
+                             b.color, CONFIG.illumination.bulletLife);
+        }
+      }
+    }
 
     for (const a of this.asteroids) a.update(dt);
     this.asteroids = this.asteroids.filter(a => !a.dead);
@@ -2185,6 +2522,21 @@ class Game {
         }
       }
     }
+    /* Density-driven knockback during the invulnerability window: a denser
+       material (metal) shoves the ship harder than a light one (ice). Scaled by
+       dt and never lethal; ship.update() still clamps to maxSpeed. */
+    if (this.ship && this.ship.alive && this.ship.invuln > 0) {
+      for (const a of this.asteroids) {
+        if (a.dead) continue;
+        if (this.circleHits(this.ship.x, this.ship.y, this.ship.r, a.x, a.y, a.r * 0.85)) {
+          const [dx, dy] = wrapDelta(this.ship.x, this.ship.y, a.x, a.y);
+          const dist = Math.hypot(dx, dy) || 1;
+          const f = CONFIG.asteroid.knockback * a.material.density * dt;
+          this.ship.vx -= (dx / dist) * f;
+          this.ship.vy -= (dy / dist) * f;
+        }
+      }
+    }
     /* Enemy body vs ship */
     if (this.ship && this.ship.alive && this.ship.invuln <= 0) {
       for (const e of this.enemies){
@@ -2271,6 +2623,11 @@ class Game {
     for (let x = 0; x < this.W; x += gridStep) { g.moveTo(x, 0); g.lineTo(x, this.H); }
     for (let y = 0; y < this.H; y += gridStep) { g.moveTo(0, y); g.lineTo(this.W, y); }
     g.stroke();
+
+    /* Molecular clouds: the gas layer sits between background and game objects. */
+    Clouds.draw(g);
+    /* Illumination: additive glow over the clouds (bullet trails + fractures). */
+    Illumination.draw(g);
 
     /* Particles under entities */
     Particles.draw(g);

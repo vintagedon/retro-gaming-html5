@@ -42,7 +42,7 @@ The three-layer formula for each game: **skeleton** (faithfully reconstructed cl
 | Area | Status | Description |
 |------|--------|-------------|
 | Repository scaffold | ✅ Complete | Monorepo structure, documentation standards, tagging strategy |
-| Materialoids | 🟡 In Progress | Base asteroids game adopted and reskinned; material-properties twist pending (spec-02) |
+| Materialoids | 🟢 Twist Layer Complete | Base asteroids game plus material properties, molecular clouds, and illumination (spec-02) |
 | CargoLander | ⬜ Planned | Lunar Lander with cargo delivery and space storms |
 | Tank Commander | ⬜ Planned | BattleZone with EMP weapon mechanic |
 
@@ -95,7 +95,7 @@ Game directories follow a consistent internal structure:
 
 | Game | Source Inspiration | Twist | Status |
 |------|--------------------|-------|--------|
-| [Materialoids](materialoids/) | Asteroids | Material properties affecting fracture, density, momentum | Base complete |
+| [Materialoids](materialoids/) | Asteroids | Material properties affecting fracture, density, momentum; molecular clouds + illumination | Twist layer complete |
 | CargoLander | Lunar Lander | Cargo delivery to variable pads, space storms as wind vectors | Planned |
 | Tank Commander | BattleZone | EMP weapon with charge-up vulnerability tradeoff | Planned |
 
