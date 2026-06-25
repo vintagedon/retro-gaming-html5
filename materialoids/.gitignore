@@ -1,0 +1,9 @@
+# Materialoids per-game ignores.
+#
+# The adopted Blastemoids template is a single self-contained index.html with
+# no external assets, so nothing template-specific is excluded by default.
+#
+# External assets (materials, clouds, illumination art from spec-02 onward)
+# land in game/assets/ when later specs introduce them. Ignored here so
+# sourced asset packs are never committed.
+game/assets/
