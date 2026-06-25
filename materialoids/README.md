@@ -1,19 +1,20 @@
 <!--
 ---
 title: "Materialoids"
-description: "Wireframe asteroids game on the adopted Blastemoids Canvas template"
+description: "Wireframe asteroids game on the adopted Blastemoids Canvas template, wrapped in a vendored GameUI neon shell"
 author: "VintageDon (https://github.com/vintagedon/)"
-date: "2026-06-24"
-version: "1.0"
+date: "2026-06-25"
+version: "1.1"
 status: "Active"
 tags:
   - type: directory-readme
   - domain: implementation
-  - tech: [javascript, html5, canvas]
+  - tech: [javascript, html5, canvas, css, es-modules]
   - game: materialoids
 related_documents:
   - "[Repository README](../README.md)"
   - "[Game AGENTS](AGENTS.md)"
+  - "[Vendored GameUI](game/ui/README.md)"
   - "[Blastemoids Template Readme](../asset-game/materialoids/blastemoids-html-game-template-free/readme.md)"
 ---
 -->
@@ -36,7 +37,9 @@ materialoids/
 ├── README.md             # This overview
 ├── publish.sh            # Copies game/ into /opt/agents/www/retrogaming/materialoids/
 └── game/
-    └── index.html        # The whole game (adopted Blastemoids template)
+    ├── index.html        # The whole game (engine + GameUI neon-shell module)
+    └── ui/               # Vendored GameUI: tokens, neon preset, component families
+        └── README.md     # Vendor provenance, pinned hash, network posture
 ```
 
 ---
@@ -97,9 +100,21 @@ Player bullets travelling through a cloud brighten the gas around them (radius s
 
 ---
 
-## 5. Local Run
+## 5. GameUI Neon Shell
 
-Open `game/index.html` directly in any modern browser, or serve the folder over HTTP:
+Materialoids is the GameUI **neon showcase**. A pinned, pruned copy of the GameUI framework is vendored into `game/ui/` (neon preset only; dark-fantasy, the gallery, the test harness, and unused families are omitted). The page is composed as a GameUI shell:
+
+- A **left neon sidebar** of live, read-only telemetry built from the GameUI `metrics` `createStatRows` factory: Score, Wave, Ships, then a live **asteroid census** by size (Large / Medium / Small) and by material (Rock / Ice / Metal / Crystal). The sidebar only reads engine state through a small bridge (`window.Materialoids`); it writes no gameplay state. It updates as asteroids spawn, split, and are destroyed.
+- The **game canvas** fills the shell's main region and keeps resizing with the window, exactly as the template's canvas-sizing always did.
+- The **settings** and **game-over** screens are reskinned as GameUI modals under the neon preset. Settings controls are bound to the existing `materialoids_settings_v1` store (no new key); the game-over modal shows final score and wave with a restart control, and the template's AAA-initials high-score entry still fires when a score qualifies.
+
+The shell introduces no new runtime network requests: the neon preset is image-free, uses the OS UI font stack, and ships no `@font-face`, `@import`, or external hosts. Because the shell loads the GameUI factories as ES modules, the game must be served over HTTP (opening `index.html` over `file://` no longer works); see Local Run below.
+
+---
+
+## 6. Local Run
+
+Serve the folder over HTTP (required — the GameUI shell loads ES modules, which browsers refuse over `file://`):
 
 ```bash
 cd materialoids/game

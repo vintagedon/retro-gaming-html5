@@ -27,7 +27,10 @@ html, body {
   user-select: none; -webkit-user-select: none;
   touch-action: none;
 }
-#stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+/* spec-03: #stage now fills the GameUI shell main region (the canvas's
+   parent). It was position:fixed; inset:0 over the whole viewport; it is now
+   a positioned flex child so the canvas resize() reads the main region. */
+#stage { position: relative; flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; }
 #game {
   display: block; position: absolute;
   background: #000;
@@ -294,7 +297,59 @@ html, body {
 @media (max-width: 700px), (pointer: coarse) {
   .mobile-only { display: inline; }
 }
+
+/* =============================================================
+   GameUI NEON SHELL — integration glue (spec-03)
+   --------------------------------------------------------------
+   Layout wiring only for composing the vendored GameUI shell around the
+   existing canvas. Every visible value flows through the neon preset tokens
+   (var(--gui-*)); no GameUI component is reskinned here and no palette color
+   is hardcoded. Analogous to the framework gallery's own gallery.css.
+   ============================================================= */
+#mat-shell { height: 100%; }
+/* The sidebar column scrolls independently of the game viewport. */
+.mat-sidebar {
+  flex: 1 1 auto; min-height: 0; overflow: auto;
+  display: flex; flex-direction: column; gap: var(--gui-space-md);
+}
+.mat-sidebar .gui-panel { padding: var(--gui-space-md); gap: var(--gui-space-sm); }
+.mat-sidebar .gui-stat-panel { gap: var(--gui-space-xs); }
+.mat-header { display: flex; flex-direction: column; gap: 2px; }
+.mat-header__title {
+  font-family: var(--gui-font-display); font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--gui-accent-primary);
+  text-shadow: 0 0 var(--gui-glow-blur) rgba(var(--gui-accent-primary-rgb), var(--gui-glow-alpha));
+}
+.mat-header__sub {
+  font-family: var(--gui-font-body); font-size: var(--gui-font-size-sm);
+  color: var(--gui-text-muted); letter-spacing: 0.08em; text-transform: uppercase;
+}
+/* Game-over modal score/wave readouts. */
+.mat-go-stats { display: flex; gap: var(--gui-space-xl); justify-content: center; }
+.mat-go-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.mat-go-stat__lbl {
+  font-family: var(--gui-font-display); font-size: var(--gui-font-size-sm);
+  color: var(--gui-text-muted); text-transform: uppercase; letter-spacing: 0.10em;
+}
+.mat-go-stat__val {
+  font-family: var(--gui-font-mono); font-size: var(--gui-font-size-xl);
+  font-weight: 700; color: var(--gui-accent-warning);
+}
+.mat-settings-list { display: flex; flex-direction: column; gap: var(--gui-space-sm); }
 </style>
+
+<!-- GameUI neon shell (spec-03): contract, preset, then only the component
+     families this game consumes. Vendored under ui/. -->
+<link rel="stylesheet" href="ui/tokens/tokens.css">
+<link rel="stylesheet" href="ui/themes/neon.css">
+<link rel="stylesheet" href="ui/components/layout/layout.css">
+<link rel="stylesheet" href="ui/components/panels/panels.css">
+<link rel="stylesheet" href="ui/components/metrics/metrics.css">
+<link rel="stylesheet" href="ui/components/stat-displays/stat-displays.css">
+<link rel="stylesheet" href="ui/components/modals/modals.css">
+<link rel="stylesheet" href="ui/components/settings/settings.css">
+<link rel="stylesheet" href="ui/components/buttons/buttons.css">
 </head>
 <body>
 
@@ -2776,12 +2831,26 @@ const UI = (() => {
     $('overlay-stats').classList.add('show');
   }
   function showSettings(returnTo) {
-    hideAll(); syncSettingsUI();
+    syncSettingsUI();
+    /* spec-03: the neon shell module registers openSettings to surface a
+       GameUI modal; until it does (or if the module is absent), the template
+       overlay is the fallback. */
+    if (window.Materialoids && typeof window.Materialoids.openSettings === 'function') {
+      window.Materialoids.openSettings(returnTo || 'menu');
+      return;
+    }
+    hideAll();
     const el = $('overlay-settings'); el.classList.add('show');
     el.dataset.return = returnTo || 'menu';
   }
   function showPause() { hideAll(); $('overlay-pause').classList.add('show'); }
   function showGameOver(game) {
+    /* spec-03: prefer the GameUI game-over modal; fall back to the template
+       overlay if the neon shell module is not registered. */
+    if (window.Materialoids && typeof window.Materialoids.openGameOver === 'function') {
+      window.Materialoids.openGameOver({ score: game.score, wave: game.level });
+      return;
+    }
     hideAll();
     $('go-final').textContent = 'Final score: ' + fmtScore(game.score) + ' · Wave ' + game.level;
     $('overlay-gameover').classList.add('show');
@@ -2803,6 +2872,68 @@ const UI = (() => {
     showSettings, showPause, showGameOver, syncSettingsUI,
   };
 })();
+
+/* =============================================================
+   GAMEUI BRIDGE (spec-03)
+   --------------------------------------------------------------
+   Read-only engine surface for the vendored GameUI neon shell. The sidebar
+   polls getState(); the settings modal reads/writes the existing
+   materialoids_settings_v1 store via getSettings/setSetting. openSettings
+   and openGameOver are assigned by the neon-shell module to supersede the
+   template overlays; the template overlays remain the fallback until then.
+   This bridge writes no gameplay state — it only reads live engine values
+   and forwards settings to the existing Settings store.
+   ============================================================= */
+const Materialoids = (() => {
+  function getState() {
+    const g = window._game;
+    /* Before the engine boots, return a zeroed snapshot so the sidebar can
+       render its structure before the first frame. */
+    if (!g) {
+      return {
+        score: 0, wave: 1, lives: 0, state: 0, asteroids: 0,
+        bySize: { large: 0, medium: 0, small: 0 }, byMaterial: {},
+      };
+    }
+    /* Asteroid census: count live rocks by size and by material label. The
+       material set is the spec-02 set (rock/ice/metal/crystal); labels come
+       from the material config the Asteroid class already carries. */
+    const bySize = { large: 0, medium: 0, small: 0 };
+    const byMaterial = {};
+    for (const a of g.asteroids) {
+      if (!a || a.dead) continue;
+      if (bySize[a.sizeKey] != null) bySize[a.sizeKey]++;
+      const label = a.material ? a.material.label : null;
+      if (label) byMaterial[label] = (byMaterial[label] || 0) + 1;
+    }
+    return {
+      score: g.score || 0, wave: g.level || 1, lives: g.lives || 0,
+      state: g.state, asteroids: g.asteroids.length, bySize, byMaterial,
+    };
+  }
+  /* Side effects that the template's settings overlay applied and that the
+     GameUI settings modal must keep applying through the same store. */
+  function applySideEffect(key) {
+    if (key === 'scanlines') {
+      const sl = document.getElementById('scanlines');
+      if (sl) sl.classList.toggle('off', !Settings.get('scanlines'));
+    }
+    if (key === 'volume' || key === 'sfx') Audio.ensure();
+  }
+  const hooks = { openSettings: null, openGameOver: null };
+  return {
+    getState,
+    getSettings: () => Settings.all(),
+    setSetting: (k, v) => { Settings.set(k, v); applySideEffect(k); },
+    /* Return from the settings modal to the surface that opened it. */
+    returnFromSettings(ret) { UI.hideAll(); if (ret === 'pause') UI.showPause(); else UI.showMenu(); },
+    get openSettings() { return hooks.openSettings; },
+    set openSettings(fn) { hooks.openSettings = typeof fn === 'function' ? fn : null; },
+    get openGameOver() { return hooks.openGameOver; },
+    set openGameOver(fn) { hooks.openGameOver = typeof fn === 'function' ? fn : null; },
+  };
+})();
+window.Materialoids = Materialoids;
 
 /* ---------- Bootstrap ---------- */
 let game;
@@ -2871,6 +3002,12 @@ function init() {
   window._game = game;
   UI.showMenu();
 
+  /* spec-03: the canvas now lives inside the GameUI shell main region.
+     Re-measure after first paint and on load so the aspect-fit sizing is
+     correct once the shell layout and stylesheets have settled. */
+  requestAnimationFrame(() => game.resize());
+  window.addEventListener('load', () => game.resize());
+
   let last = performance.now() / 1000;
   function loop() {
     const now = performance.now() / 1000;
@@ -2885,6 +3022,187 @@ function init() {
   requestAnimationFrame(loop);
 }
 window.addEventListener('DOMContentLoaded', init);
+</script>
+
+<script type="module">
+/* =============================================================
+   MATERIALOIDS — GameUI Neon Shell (spec-03)
+   --------------------------------------------------------------
+   Composes the vendored GameUI shell around the existing canvas: a left neon
+   sidebar of read-only stat-row panels and the game viewport as the main
+   region, then reskins the settings and game-over screens as GameUI modals.
+   The shell only READS engine state (window.Materialoids) and writes settings
+   back through the existing materialoids_settings_v1 store; it introduces no
+   gameplay state. Loaded as an ES module, so it executes after the classic
+   engine script (which exposes window.Materialoids) and before DOMContentLoaded.
+   ============================================================= */
+import { createShell } from "./ui/components/layout/layout.js";
+import { createStatRows } from "./ui/components/metrics/metrics.js";
+import { createModal } from "./ui/components/modals/modals.js";
+import { createSelect, createSwitch } from "./ui/components/settings/settings.js";
+
+const M = window.Materialoids;
+const MATERIAL_LABELS = ["Rock", "Ice", "Metal", "Crystal"];
+
+if (!M) {
+  console.warn("[materialoids] GameUI bridge missing; neon shell disabled");
+} else {
+
+  /* ---- Sidebar: three stat-row panels under the neon preset ---- */
+  function statPanel(modifier, title, rowLabels) {
+    const panel = document.createElement("div");
+    panel.className = `gui-panel gui-panel--${modifier}`;
+    const header = document.createElement("div");
+    header.className = "gui-panel__header";
+    const t = document.createElement("div");
+    t.className = "gui-panel__title";
+    t.textContent = title;
+    header.appendChild(t);
+    panel.appendChild(header);
+    const body = document.createElement("div");
+    body.className = "gui-panel__body";
+    const stats = createStatRows({ rows: rowLabels.map((label) => ({ label })) });
+    body.appendChild(stats.el);
+    panel.appendChild(body);
+    return { panel, stats };
+  }
+
+  const core = statPanel("primary", "Telemetry", ["Score", "Wave", "Ships"]);
+  const bySize = statPanel("info", "Field Census", ["Large", "Medium", "Small"]);
+  const byMat = statPanel("magic", "Materials", MATERIAL_LABELS);
+
+  const sidebar = document.createElement("div");
+  sidebar.className = "mat-sidebar";
+  sidebar.append(core.panel, bySize.panel, byMat.panel);
+
+  /* ---- Shell header (neon showcase banner) ---- */
+  const headerEl = document.createElement("div");
+  headerEl.className = "mat-header";
+  const titleEl = document.createElement("span");
+  titleEl.className = "mat-header__title";
+  titleEl.textContent = "Materialoids";
+  const subEl = document.createElement("span");
+  subEl.className = "mat-header__sub";
+  subEl.textContent = "Neon shell · wireframe asteroids";
+  headerEl.append(titleEl, subEl);
+
+  /* ---- Compose the shell around the existing stage ---- */
+  const stage = document.getElementById("stage");
+  const shell = createShell({
+    side: "left",
+    sideWidth: "280px",
+    sideLabel: "Live telemetry",
+    header: headerEl,
+    sideContent: sidebar,
+    mainContent: stage,
+  });
+  shell.el.id = "mat-shell";
+  document.body.appendChild(shell.el);
+
+  /* ---- Settings modal: GameUI controls bound to the existing store ---- */
+  const settingsList = document.createElement("div");
+  settingsList.className = "mat-settings-list";
+
+  const volumeSel = createSelect({
+    label: "Volume",
+    options: [
+      { value: "0", label: "Off" }, { value: "0.3", label: "Low" },
+      { value: "0.6", label: "Med" }, { value: "1", label: "Hi" },
+    ],
+    onChange: (v) => M.setSetting("volume", parseFloat(v)),
+  });
+  const sfxSw = createSwitch({ label: "SFX", accent: "success", onChange: (on) => M.setSetting("sfx", on ? 1 : 0) });
+  const scanlinesSw = createSwitch({ label: "Scanlines", accent: "info", onChange: (on) => M.setSetting("scanlines", on ? 1 : 0) });
+  const glowSel = createSelect({
+    label: "Glow",
+    options: [{ value: "0", label: "Off" }, { value: "0.5", label: "Low" }, { value: "1", label: "Full" }],
+    onChange: (v) => M.setSetting("glow", parseFloat(v)),
+  });
+  const particlesSel = createSelect({
+    label: "Particles",
+    options: [{ value: "0", label: "Off" }, { value: "0.5", label: "Low" }, { value: "1", label: "Full" }],
+    onChange: (v) => M.setSetting("particles", parseFloat(v)),
+  });
+  const mobileSw = createSwitch({ label: "Mobile Controls", accent: "magic", onChange: (on) => M.setSetting("mobile", on ? 1 : 0) });
+  settingsList.append(volumeSel.el, sfxSw.el, scanlinesSw.el, glowSel.el, particlesSel.el, mobileSw.el);
+
+  function syncSettings() {
+    const s = M.getSettings();
+    volumeSel.setValue(String(s.volume));
+    sfxSw.setChecked(!!s.sfx);
+    scanlinesSw.setChecked(!!s.scanlines);
+    glowSel.setValue(String(s.glow));
+    particlesSel.setValue(String(s.particles));
+    mobileSw.setChecked(!!s.mobile);
+  }
+
+  let settingsReturn = "menu";
+  const settingsModal = createModal({
+    title: "Settings",
+    body: settingsList,
+    buttons: [{ label: "Done", accent: "primary" }],
+  });
+  settingsModal.onClose(() => M.returnFromSettings(settingsReturn));
+  document.body.appendChild(settingsModal.el);
+  M.openSettings = (ret) => { settingsReturn = ret || "menu"; syncSettings(); settingsModal.open(); };
+
+  /* ---- Game-over modal ---- */
+  function goStat(labelText, valEl) {
+    const wrap = document.createElement("div");
+    wrap.className = "mat-go-stat";
+    const l = document.createElement("span");
+    l.className = "mat-go-stat__lbl";
+    l.textContent = labelText;
+    wrap.append(l, valEl);
+    return wrap;
+  }
+  const goScore = document.createElement("span"); goScore.className = "mat-go-stat__val";
+  const goWave = document.createElement("span"); goWave.className = "mat-go-stat__val";
+  const goBody = document.createElement("div"); goBody.className = "mat-go-stats";
+  goBody.append(goStat("Final Score", goScore), goStat("Wave Reached", goWave));
+
+  const gameOverModal = createModal({
+    title: "Signal Lost",
+    accent: "danger",
+    closable: false,
+    body: goBody,
+    buttons: [
+      { label: "Try Again", accent: "success", onClick: (close) => { close(); if (window._game) window._game.startRun(); } },
+      { label: "Menu", accent: "ghost", onClick: (close) => { close(); if (window._game) window._game.quitToMenu(); } },
+    ],
+  });
+  document.body.appendChild(gameOverModal.el);
+  M.openGameOver = ({ score, wave }) => {
+    goScore.textContent = Number(score).toLocaleString("en-US");
+    goWave.textContent = String(wave);
+    gameOverModal.open();
+  };
+
+  /* ---- Sidebar polling: read-only snapshot, throttled to ~15 Hz ---- */
+  function updateSidebar() {
+    const s = M.getState();
+    core.stats.set("Score", s.score);
+    core.stats.set("Wave", s.wave);
+    core.stats.set("Ships", s.lives);
+    bySize.stats.set("Large", s.bySize.large);
+    bySize.stats.set("Medium", s.bySize.medium);
+    bySize.stats.set("Small", s.bySize.small);
+    for (const lbl of MATERIAL_LABELS) byMat.stats.set(lbl, s.byMaterial[lbl] || 0);
+  }
+  let lastPoll = 0;
+  function poll(ts) {
+    if (ts - lastPoll >= 66) { lastPoll = ts; updateSidebar(); }
+    requestAnimationFrame(poll);
+  }
+  updateSidebar();
+  requestAnimationFrame(poll);
+
+  /* The engine boots on DOMContentLoaded (after this module); re-measure the
+     canvas once the shell layout has settled. */
+  function nudge() { if (window._game && window._game.resize) window._game.resize(); }
+  window.addEventListener("DOMContentLoaded", nudge);
+  window.addEventListener("load", nudge);
+}
 </script>
 </body>
 </html>
