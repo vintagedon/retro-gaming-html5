@@ -1,10 +1,10 @@
 <!--
 ---
 title: "Documentation"
-description: "Documentation standards and shared references for the retro gaming monorepo"
+description: "Specifications and documentation standards for the retro gaming monorepo"
 author: "VintageDon (https://github.com/vintagedon/)"
-date: "2026-05-18"
-version: "1.3"
+date: "2026-08-14"
+version: "2.0"
 status: "Active"
 tags:
   - type: directory-readme
@@ -14,7 +14,7 @@ tags:
 
 # Documentation
 
-Documentation standards and shared references for the retro gaming monorepo. The `documentation-standards/` subdirectory contains the templates and writing rules used by game specs, work logs, one-pagers, and directory READMEs.
+Specifications and documentation standards for the retro gaming monorepo. `specs/` holds the public specifications that are the unit of work; `documentation-standards/` holds the templates and writing rules used by specs and directory READMEs.
 
 ---
 
@@ -22,37 +22,27 @@ Documentation standards and shared references for the retro gaming monorepo. The
 
 ```
 docs/
+├── specs/                          # Public specifications, the unit of work
+│   └── README.md
 ├── documentation-standards/        # Template library and guidelines
-│   ├── README.md
-│   ├── code-commenting-dual-audience.md
-│   ├── general-kb-template.md
-│   ├── interior-readme-template.md
-│   ├── one-pager-template.md
-│   ├── primary-readme-template.md
-│   ├── project-charter-template.md
-│   ├── script-header-powershell.md
-│   ├── script-header-python.md
-│   ├── script-header-shell.md
-│   ├── tagging-strategy.md
-│   ├── worklog-readme-template.md
-│   └── writing-style-guide.md
+│   └── README.md
 └── README.md                       # This file
 ```
 
 ---
 
-## 3. Subdirectories
+## 2. Subdirectories
 
 | Directory | Description |
 |-----------|-------------|
-| [documentation-standards/](documentation-standards/README.md) | Template library for READMEs, KB articles, charters, one-pagers, script headers, and guidelines |
+| [specs/](specs/README.md) | Public specifications; each is implemented on a branch and closed by a pull request |
+| [documentation-standards/](documentation-standards/README.md) | Templates and the tagging and writing-style guides |
 
 ---
 
-## 4. Related
+## 3. Related
 
 | Document | Relationship |
 |----------|--------------|
 | [Repository Root](../README.md) | Parent directory |
-| [AGENTS.md](../AGENTS.md) | Agent context loading references these docs |
-| [Project One-Pager](../internal-files/one-pager-retro-gaming-html5.md) | Design philosophy that informs documentation scope |
+| [AGENTS.md](../AGENTS.md) | Working model and conventions |

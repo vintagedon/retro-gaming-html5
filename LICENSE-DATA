@@ -24,14 +24,29 @@ measures that legally restrict others from doing anything the license permits.
 
 ---
 
-SCOPE: This license applies to all non-code content in this repository,
-including but not limited to:
+SCOPE: This license applies to ORIGINAL non-code content authored for this
+repository, including but not limited to:
 
-- Documentation (.md, .txt, .rst files)
-- Configuration examples (.yaml, .json, .toml, .env.example files)
+- Documentation (.md, .txt files)
+- Configuration examples
 - Templates and boilerplate text
-- Datasets and data files
-- Images, diagrams, and other media
-- Research outputs and analysis results
+- Original diagrams and media authored for this repository
 
 For source code, see LICENSE (MIT).
+
+---
+
+THIRD-PARTY MATERIAL CARVEOUT
+
+This license does NOT apply to third-party assets. Sprite-arc games may include
+curated, license-cleared finished-game assets (sprites, tiles, audio, fonts)
+that originate from purchased or licensed asset packs. Those assets remain under
+their own licenses and are NOT relicensed under CC BY 4.0 by inclusion here.
+
+Each asset-backed game records the source, content hash, transformation,
+applicable license, and required attribution for every third-party asset in
+that game's `game/assets/MANIFEST.md`. Where a third-party license and this
+repository license conflict for a given file, the third-party license governs
+that file. Nothing in this repository grants redistribution rights to raw asset
+packs; only the specific curated assets committed to a game, under the terms
+recorded in that game's manifest.
