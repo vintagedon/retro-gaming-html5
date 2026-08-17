@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vector Vortex - Mechanics Slice</title>
+  <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+  <div class="game-container">
+    <header>
+      <h1>Vector Vortex</h1>
+      <div id="viewport-warning" class="viewport-warning" role="alert">
+        Larger play area recommended (960×540 minimum)
+      </div>
+    </header>
+
+    <main class="main-layout">
+      <div class="canvas-wrapper">
+        <canvas id="game-canvas" role="img" aria-label="Vector Vortex tube shooter gameplay area: 24 circular rails with player claw at rim firing inward at approaching crawlers" tabindex="0"></canvas>
+      </div>
+
+      <aside class="sidebar">
+        <!-- Status & Telemetry Surface -->
+        <section class="panel" aria-labelledby="status-heading">
+          <h2 id="status-heading">Flight Telemetry</h2>
+          <div class="status-grid">
+            <div class="status-item">
+              <span class="status-label">Status</span>
+              <span id="stat-status" class="status-value">READY</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Lives</span>
+              <span id="stat-lives" class="status-value">3</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Score</span>
+              <span id="stat-score" class="status-value">0</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Time</span>
+              <span id="stat-time" class="status-value">05:00</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Kills</span>
+              <span id="stat-kills" class="status-value">0</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Accuracy</span>
+              <span id="stat-accuracy" class="status-value">ACC --</span>
+            </div>
+          </div>
+          <!-- Live region for critical outcome/life updates -->
+          <div id="live-announcements" class="sr-only" aria-live="polite"></div>
+        </section>
+
+        <!-- Objective & Controls Surface -->
+        <section class="panel" aria-labelledby="mission-heading">
+          <h2 id="mission-heading">Objective & Controls</h2>
+          <p style="font-size: 0.85rem; margin-bottom: 0.75rem; color: var(--text-muted);">
+            Survive the 5-minute vortex descent. Ride the 24-lane rim and destroy approaching Crawlers before they reach the rim.
+          </p>
+          <ul class="controls-list">
+            <li><kbd>←</kbd> / <kbd>A</kbd> Move Left</li>
+            <li><kbd>→</kbd> / <kbd>D</kbd> Move Right</li>
+            <li><kbd>Space</kbd> Fire Inward</li>
+            <li><kbd>Esc</kbd> / <kbd>P</kbd> Pause / Resume</li>
+          </ul>
+        </section>
+
+        <!-- Semantic DOM Actions -->
+        <section class="panel" aria-labelledby="actions-heading">
+          <h2 id="actions-heading">Operations</h2>
+          <div class="actions">
+            <button id="btn-pause" type="button">Pause</button>
+            <button id="btn-restart" type="button" disabled>Restart</button>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
