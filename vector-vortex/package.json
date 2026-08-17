@@ -1,0 +1,14 @@
+{
+  "name": "vector-vortex",
+  "version": "0.1.0",
+  "description": "Deterministic 24-lane Canvas tube shooter mechanics slice",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/unit/**/*.test.js",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0"
+  }
+}

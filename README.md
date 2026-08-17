@@ -65,7 +65,7 @@ A custom 3D wireframe game is the eventual capstone and graduates to a Three.js 
 | Area | Status | Description |
 |------|--------|-------------|
 | Repository | ✅ Active | Repo-mode lifecycle, spec-driven, tracked tests, public review |
-| Vector Vortex (rung 1) | 🟢 Specified | Tempest-inspired 24-lane tube shooter: a fixed-step Canvas 2D core, a scheduled topology shift, and a wireframe app shell. Two specs, MVP then twist |
+| Vector Vortex (rung 1) | 🟢 In Development | Tempest-inspired 24-lane tube shooter: pure deterministic 60-tick/s Canvas 2D mechanics slice playable (Spec 01), wireframe shell (Spec 02) and topology shift (Spec 03) planned |
 | Lunar Lander (rung 2) | ⬜ Planned | Chosen after Vector Vortex ships |
 
 An earlier experiment, Materialoids, exists in the tree from before this cadence. Its green-monochrome visual language is not a precedent; new games establish their own palette from first principles.
