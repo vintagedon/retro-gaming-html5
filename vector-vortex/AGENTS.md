@@ -31,8 +31,8 @@ Vector Vortex is a 24-lane circular tube shooter inspired by classic wireframe v
 3. **Depth:** Normalized `0` at rim (player), `1` at vortex center (far end).
 4. **Shots:** Travel inward `0 -> 1` at `+0.025` depth/tick. Max active shots = 6. Fire cooldown = 8 ticks.
 5. **Crawlers:** Spawn at `1`, travel outward `1 -> 0` at `-0.0015` depth/tick. 1 HP. 100 points.
-6. **Breaches:** Reaching depth `<= 0` removes 1 life and triggers 30 ticks of damage grace. All breaching enemies in the tick are removed.
-7. **Survival:** Reaching 18,000 ticks (300 seconds) with `lives > 0` produces `survived` with a +5,000 survival bonus and `round(2000 * hits / shotsSpawned)` accuracy bonus.
+6. **Breaches:** Reaching depth `<= 0` removes 1 life and triggers 30 ticks of damage grace. All breaching enemies in the tick are removed. A breach on the final tick (tick 17,999) is resolved before survival evaluation and is lethal if lives reach zero.
+7. **Survival:** If the player holds at least one life after tick 17,999 has fully resolved, the run ends `survived` with a +5,000 survival bonus and `round(2000 * hits / shotsSpawned)` accuracy bonus. Zero lives at any tick ends in `lost`.
 
 ## Pure Core Invariants
 

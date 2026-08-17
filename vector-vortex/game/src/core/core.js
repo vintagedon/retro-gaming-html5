@@ -58,13 +58,13 @@ export class VectorVortexCore {
    *
    * Authoritative order:
    * 1. Drain input
-   * 2. Resolve 300-second (18000 ticks) boundary
-   * 3. Advance shots
-   * 4. Advance enemies
-   * 5. Resolve shot-enemy collisions
-   * 6. Resolve rim breaches and life loss
-   * 7. Update director and spawn
-   * 8. Advance elapsed ticks
+   * 2. Advance shots
+   * 3. Advance enemies
+   * 4. Resolve shot-enemy collisions
+   * 5. Resolve rim breaches and life loss
+   * 6. Update director and spawn
+   * 7. Advance elapsed ticks
+   * 8. Resolve 300-second (18000 ticks) boundary and outcomes
    * 9. Emit semantic events
    * 10. Publish serializable snapshot
    *
@@ -113,27 +113,7 @@ export class VectorVortexCore {
       }
     }
 
-    // 2. Resolve 300-second boundary (18000 ticks)
-    if (this.elapsedTicks >= CONSTANTS.RUN_LENGTH_TICKS) {
-      if (this.lives > 0) {
-        this.status = 'survived';
-        // Calculate survival cash-out
-        const accuracyBonus = this.shotsSpawned > 0
-          ? Math.round(CONSTANTS.ACCURACY_BONUS_MAX * (this.shotsHit / this.shotsSpawned))
-          : 0;
-        this.score += CONSTANTS.SURVIVAL_BONUS + accuracyBonus;
-        this.events.push({
-          type: 'run-ended',
-          outcome: 'survived',
-          finalScore: this.score,
-          accuracyBonus,
-          survivalBonus: CONSTANTS.SURVIVAL_BONUS,
-        });
-        return this.getSnapshot();
-      }
-    }
-
-    // 3. Advance shots
+    // 2. Advance shots
     for (let i = this.shots.length - 1; i >= 0; i--) {
       const shot = this.shots[i];
       shot.prevDepth = shot.depth;
@@ -144,13 +124,13 @@ export class VectorVortexCore {
       }
     }
 
-    // 4. Advance enemies
+    // 3. Advance enemies
     for (const enemy of this.enemies) {
       enemy.prevDepth = enemy.depth;
       enemy.depth -= CONSTANTS.CRAWLER_SPEED;
     }
 
-    // 5. Resolve shot-enemy collisions
+    // 4. Resolve shot-enemy collisions
     // Swept collision: same lane, overlapping [min(prev, next), max(prev, next)] intervals
     // Candidate ordering: ascending stable enemy ID.
     // Shot is consumed by first resolved hit.
@@ -200,7 +180,7 @@ export class VectorVortexCore {
       this.enemies = this.enemies.filter(e => !deadEnemyIds.has(e.id));
     }
 
-    // 6. Resolve rim breaches and life loss
+    // 5. Resolve rim breaches and life loss
     if (this.damageGraceTimer > 0) {
       this.damageGraceTimer--;
     }
@@ -235,52 +215,40 @@ export class VectorVortexCore {
       }
     }
 
-    // If game ended due to loss, return snapshot
-    if (this.status !== 'active') {
-      return this.getSnapshot();
-    }
+    // 6. Update director and spawn (only while active)
+    if (this.status === 'active') {
+      const currentBand = DIRECTOR_BANDS.find(
+        b => this.elapsedTicks >= b.startTick && this.elapsedTicks <= b.endTick
+      );
 
-    // 7. Update director and spawn
-    // Spawning interval check: first spawn is one full interval after band begins
-    // Let's implement spawnTimer logic according to director bands.
-    // Spec: "with the first spawn one full interval after the band begins"
-    // Intervals:
-    // 0:00-0:59.999 (0-3599): 60 ticks. First spawn at tick 60, then 120, 180...
-    // 1:00-2:59.999 (3600-10799): 48 ticks. Band begins at 3600. First spawn at 3600+48=3648, then +48...
-    // 3:00-3:59.999 (10800-14399): 36 ticks. Band begins at 10800. First spawn at 10800+36=10836...
-    // 4:00-4:59.999 (14400-17999): 27 ticks. Band begins at 14400. First spawn at 14400+27=14427...
-    const currentBand = DIRECTOR_BANDS.find(
-      b => this.elapsedTicks >= b.startTick && this.elapsedTicks <= b.endTick
-    );
-
-    if (currentBand) {
-      const ticksIntoBand = this.elapsedTicks - currentBand.startTick;
-      if (ticksIntoBand > 0 && ticksIntoBand % currentBand.interval === 0) {
-        // Spawn crawler
-        const spawnLane = this.rng.nextInt(0, CONSTANTS.LANE_COUNT - 1);
-        const enemyId = this.nextEntityId++;
-        const enemy = {
-          id: enemyId,
-          type: 'crawler',
-          lane: spawnLane,
-          depth: CONSTANTS.DEPTH_FAR,
-          prevDepth: CONSTANTS.DEPTH_FAR,
-          hp: CONSTANTS.CRAWLER_HP,
-        };
-        this.enemies.push(enemy);
-        this.events.push({
-          type: 'enemy-spawned',
-          id: enemyId,
-          lane: spawnLane,
-        });
+      if (currentBand) {
+        const ticksIntoBand = this.elapsedTicks - currentBand.startTick;
+        if (ticksIntoBand > 0 && ticksIntoBand % currentBand.interval === 0) {
+          // Spawn crawler
+          const spawnLane = this.rng.nextInt(0, CONSTANTS.LANE_COUNT - 1);
+          const enemyId = this.nextEntityId++;
+          const enemy = {
+            id: enemyId,
+            type: 'crawler',
+            lane: spawnLane,
+            depth: CONSTANTS.DEPTH_FAR,
+            prevDepth: CONSTANTS.DEPTH_FAR,
+            hp: CONSTANTS.CRAWLER_HP,
+          };
+          this.enemies.push(enemy);
+          this.events.push({
+            type: 'enemy-spawned',
+            id: enemyId,
+            lane: spawnLane,
+          });
+        }
       }
     }
 
-    // 8. Advance elapsed ticks
+    // 7. Advance elapsed ticks
     this.elapsedTicks++;
 
-    // Check again if we just reached 18000 ticks at end of tick
-    // Note: Spec says check 300s boundary before movement or breach. Reaching it with at least 1 life produces survived.
+    // 8. Resolve 300-second boundary (18,000 ticks: indices 0..17,999) and outcomes
     if (this.elapsedTicks >= CONSTANTS.RUN_LENGTH_TICKS && this.status === 'active') {
       this.status = 'survived';
       const accuracyBonus = this.shotsSpawned > 0

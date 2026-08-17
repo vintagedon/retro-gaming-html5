@@ -24,10 +24,10 @@ This directory currently holds the **Spec 01 Deterministic Core Playable** mecha
 
 ## Objective & Rules
 
-- **Objective:** Survive the 5-minute (300 seconds / 18,000 ticks) vortex descent.
+- **Objective:** Survive the 5-minute (300 seconds / 18,000 ticks: indices 0..17,999) vortex descent.
 - **Enemies:** Crawlers spawn at the vortex center (depth 1.0) and crawl toward the rim (depth 0.0).
-- **Lives:** 3 starting lives. An enemy reaching the rim costs 1 life and grants 30 ticks of damage grace.
-- **Scoring:** 100 pts per Crawler. Surviving the full 5 minutes awards a +5,000 survival bonus plus up to +2,000 accuracy bonus.
+- **Lives:** 3 starting lives. An enemy reaching the rim costs 1 life and grants 30 ticks of damage grace. A rim breach on the final tick is resolved before survival evaluation.
+- **Scoring:** 100 pts per Crawler. Surviving all 18,000 ticks with at least one life awards a +5,000 survival bonus plus up to +2,000 accuracy bonus. Zero lives at any tick results in loss.
 
 ## Action Map & Controls
 

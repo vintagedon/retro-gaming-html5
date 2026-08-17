@@ -1,6 +1,7 @@
 import { VectorVortexCore } from './core/core.js';
 import { VectorRenderer } from './render/renderer.js';
 import { InputAdapter } from './ui/input.js';
+import { FixedStepRunner } from './core/runner.js';
 import { CONSTANTS } from './core/constants.js';
 
 class VectorVortexApp {
@@ -22,16 +23,13 @@ class VectorVortexApp {
     this.isPaused = false;
     this.initialSeed = 12345;
     this.core = new VectorVortexCore({ seed: this.initialSeed });
+    this.runner = new FixedStepRunner({ core: this.core, maxFrameDeltaMs: 250 });
 
     this.inputAdapter = new InputAdapter({
       onPauseToggle: () => this.togglePause(),
     });
 
-    // Timing accumulator for fixed-step loop
-    this.tickDurationMs = 1000 / CONSTANTS.TICKS_PER_SECOND; // 16.666ms
-    this.accumulatorMs = 0;
     this.lastFrameTime = performance.now();
-    this.maxFrameDeltaMs = 250; // Cap to prevent unbounded catch-up burst
 
     this.bindDOMEvents();
     this.handleResize();
@@ -76,11 +74,11 @@ class VectorVortexApp {
       if (document.hidden) {
         // Pauses or freezes time advance during hidden tab
         this.lastFrameTime = performance.now();
-        this.accumulatorMs = 0;
+        this.runner.reset();
         this.inputAdapter.clearHeld();
       } else {
         this.lastFrameTime = performance.now();
-        this.accumulatorMs = 0;
+        this.runner.reset();
       }
     });
   }
@@ -100,12 +98,13 @@ class VectorVortexApp {
     this.btnPause.textContent = this.isPaused ? 'Resume' : 'Pause';
     this.inputAdapter.clearHeld();
     this.lastFrameTime = performance.now();
-    this.accumulatorMs = 0;
+    this.runner.reset();
     this.updateUI(snap);
   }
 
   restart() {
     this.core = new VectorVortexCore({ seed: this.initialSeed });
+    this.runner = new FixedStepRunner({ core: this.core, maxFrameDeltaMs: 250 });
     if (window.__VECTOR_VORTEX_SEAM__) {
       window.__VECTOR_VORTEX_SEAM__.core = this.core;
     }
@@ -115,7 +114,6 @@ class VectorVortexApp {
     this.btnRestart.disabled = true;
     this.inputAdapter.clearHeld();
     this.lastFrameTime = performance.now();
-    this.accumulatorMs = 0;
     const snap = this.core.getSnapshot();
     this.updateUI(snap);
     this.announce('Game restarted');
@@ -173,23 +171,11 @@ class VectorVortexApp {
   }
 
   loop(currentTime) {
-    let delta = currentTime - this.lastFrameTime;
+    const delta = currentTime - this.lastFrameTime;
     this.lastFrameTime = currentTime;
 
-    // Cap delta to prevent unbounded catch-up burst
-    if (delta > this.maxFrameDeltaMs) {
-      delta = this.maxFrameDeltaMs;
-    }
-
     if (!this.isPaused && !document.hidden) {
-      this.accumulatorMs += delta;
-
-      // Drain input once per tick
-      while (this.accumulatorMs >= this.tickDurationMs) {
-        const input = this.inputAdapter.poll();
-        this.core.step(input);
-        this.accumulatorMs -= this.tickDurationMs;
-      }
+      this.runner.processFrame(delta, () => this.inputAdapter.poll());
     }
 
     const snapshot = this.core.getSnapshot();
