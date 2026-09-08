@@ -1,17 +1,21 @@
 import { applyMovement } from './lanes.js';
 import {
-  tryFireShot,
-  advanceShots,
-  expireShotsAtFar,
-  tickCooldown,
-  SHOT_COOLDOWN_TICKS
+  tryFireShotWithEvent,
+  advanceShotsWithDepth,
+  expireShotsAtFarWithEvents,
+  tickCooldown
 } from './shots.js';
-import { advanceEnemies, resolveRimBreaches, CRAWLER_SPEED } from './enemies.js';
+import { advanceEnemiesWithDepth } from './enemies.js';
+import { resolveCollisions } from './collision.js';
+import { resolveBreaches } from './breach.js';
+import { createDirector, bandForTick, shouldSpawnOnTick } from './director.js';
+import { computeAccuracyBonus, SURVIVAL_BONUS } from './scoring.js';
 
 export const TICK_HZ = 60;
 export const RUN_LENGTH_TICKS = 18000;
 export const STARTING_LIVES = 3;
 export const DAMAGE_GRACE_TICKS = 30;
+export const CRAWLER_SCORE = 100;
 
 export function initialState(seed) {
   return {
@@ -25,20 +29,29 @@ export function initialState(seed) {
     enemies: [],
     breaches: [],
     damageGraceRemaining: 0,
+    shotsSpawned: 0,
+    hits: 0,
     nextShotId: 1,
     nextEnemyId: 1,
     heldInput: { left: false, right: false, fire: false },
     recentEvents: [],
     paused: false,
-    outcome: null
+    outcome: null,
+    rngState: null
   };
 }
 
 export function createCore({ seed = 1, initialState: provided } = {}) {
   let state = provided ?? initialState(seed);
+  const director = createDirector({ seed });
 
-  function emit(event) {
-    state = { ...state, recentEvents: [...state.recentEvents, event] };
+  const pendingEvents = [];
+  function emit(event) { pendingEvents.push(event); }
+  function flushEvents() {
+    if (pendingEvents.length === 0) return state;
+    const merged = [...state.recentEvents, ...pendingEvents];
+    state = { ...state, recentEvents: merged.length > 200 ? merged.slice(-200) : merged };
+    pendingEvents.length = 0;
   }
 
   function dispatch(action) {
@@ -65,10 +78,9 @@ export function createCore({ seed = 1, initialState: provided } = {}) {
       case 'pause':
         state = { ...state, paused: !state.paused };
         break;
-      case 'restart': {
+      case 'restart':
         state = initialState(state.seed);
         break;
-      }
       case 'blur':
       case 'visibility':
         state = {
@@ -83,47 +95,96 @@ export function createCore({ seed = 1, initialState: provided } = {}) {
 
   function tick() {
     if (state.paused || state.outcome) return;
-    // 1. drain input
+    // 1. drain input + fire attempt
     state = applyMovement(state);
     if (state.heldInput.fire) {
-      state = tryFireShot(state);
-    }
-    state = tickCooldown(state);
-    // 2. advance shots
-    state = advanceShots(state);
-    // 3. advance enemies
-    state = advanceEnemies(state);
-    // 4. resolve shot-enemy collisions (D2 — placeholder; no-op for D1)
-    // 5. expire shots at/past far depth
-    state = expireShotsAtFar(state);
-    // 6. resolve rim breaches & life loss (D2 — basic for D1: first life-cost)
-    const breachResult = resolveRimBreaches(state);
-    state = breachResult;
-    if (breachResult.breaches.length > 0) {
-      // D2 adds grace handling; D1 just costs one life per breach cluster.
-      if (state.damageGraceRemaining <= 0 && state.lives > 0) {
-        state = { ...state, lives: state.lives - 1 };
+      const r = tryFireShotWithEvent(state);
+      state = r.state;
+      if (r.event) {
+        state = { ...state, shotsSpawned: state.shotsSpawned + 1 };
+        emit(r.event);
       }
     }
-    if (state.damageGraceRemaining > 0) {
-      state = { ...state, damageGraceRemaining: state.damageGraceRemaining - 1 };
+    state = tickCooldown(state);
+    // 2. advance shots (carries prev/next for swept collision)
+    const shotAdv = advanceShotsWithDepth(state);
+    state = shotAdv.state;
+    const shotForCollision = shotAdv.shots;
+    // 3. advance enemies (carries prev/next)
+    const enemyAdv = advanceEnemiesWithDepth(state);
+    state = enemyAdv.state;
+    const enemyForCollision = enemyAdv.enemies;
+    // 4. resolve swept collisions (ascending stable enemy ID)
+    const coll = resolveCollisions({
+      shots: shotForCollision,
+      enemies: enemyForCollision,
+      score: state.score,
+      hits: state.hits
+    });
+    state = {
+      ...state,
+      shots: coll.newShots,
+      enemies: coll.newEnemies,
+      score: coll.score,
+      hits: coll.hits
+    };
+    for (const k of coll.kills) {
+      emit({ type: 'enemy-destroyed', enemyId: k.enemyId, shotId: k.shotId, tick: state.elapsedTicks });
     }
-    // 7. director/spawn (D2)
-    // 8. advance elapsed
-    state = { ...state, elapsedTicks: state.elapsedTicks + 1 };
-    // 9. evaluate run boundary
-    if (state.lives <= 0 && state.outcome === null) {
+    // 5. expire shots at/past far (AFTER collision so the final sweep participates)
+    const exp = expireShotsAtFarWithEvents(state);
+    state = exp.state;
+    for (const e of exp.expired) {
+      emit({ type: 'shot-expired-at-far', shotId: e.id, lane: e.lane, tick: state.elapsedTicks });
+    }
+    // 6. resolve rim breaches & life loss (ascending ID; grace handling)
+    const br = resolveBreaches(state);
+    state = br.state;
+    if (br.breaches.length > 0) {
+      state = { ...state, breaches: [...state.breaches, ...br.breaches] };
+      for (const e of br.breaches) {
+        emit({ type: 'breach', enemyId: e.id, lane: e.lane, tick: state.elapsedTicks });
+      }
+    }
+    if (br.lifeLost) {
+      emit({ type: 'life-lost', lives: state.lives, tick: state.elapsedTicks });
+    }
+    // 7. director/spawn (deterministic lane via injected seeded RNG)
+    const band = bandForTick(state.elapsedTicks);
+    if (shouldSpawnOnTick(state.elapsedTicks, band)) {
+      const spawn = director.tickSpawned(state);
+      if (spawn) {
+        const id = state.nextEnemyId;
+        const enemy = { id, lane: spawn.lane, depth: 1, hp: 1 };
+        state = { ...state, enemies: [...state.enemies, enemy], nextEnemyId: id + 1 };
+        emit({ type: 'director-spawn', enemyId: id, lane: spawn.lane, tick: state.elapsedTicks });
+      }
+    }
+    // 8. evaluate run boundary.
+    // The "lost" check fires immediately when breach empties lives (any tick).
+    // The "survived" check fires after elapsedTicks is incremented to 17999,
+    // which is the post-increment state of the final tick.
+    if (state.outcome === null && state.lives <= 0) {
       state = { ...state, outcome: 'lost' };
-      emit({ type: 'run-ended', outcome: 'lost' });
-    } else if (state.elapsedTicks >= RUN_LENGTH_TICKS && state.outcome === null) {
-      state = { ...state, outcome: 'survived' };
-      emit({ type: 'run-ended', outcome: 'survived' });
+      emit({ type: 'run-ended', outcome: 'lost', tick: state.elapsedTicks });
     }
-    // 10. emit tick event
+    // 9. advance elapsed
+    const finalTickIndex = state.elapsedTicks;
+    state = { ...state, elapsedTicks: state.elapsedTicks + 1 };
+    // After the final tick has been fully processed (elapsedTicks now equals
+    // RUN_LENGTH_TICKS) and the player is still alive, the run survived.
+    if (state.outcome === null && state.elapsedTicks === RUN_LENGTH_TICKS) {
+      const bonus = computeAccuracyBonus(state.hits, state.shotsSpawned);
+      state = {
+        ...state,
+        score: state.score + SURVIVAL_BONUS + bonus,
+        outcome: 'survived'
+      };
+      emit({ type: 'run-ended', outcome: 'survived', tick: finalTickIndex });
+    }
+    // 10. emit tick event and flush
     emit({ type: 'tick', index: state.elapsedTicks });
-    if (state.recentEvents.length > 200) {
-      state = { ...state, recentEvents: state.recentEvents.slice(-200) };
-    }
+    flushEvents();
   }
 
   function advance(n) {
@@ -145,17 +206,14 @@ export function createCore({ seed = 1, initialState: provided } = {}) {
       enemies: state.enemies.map(e => ({ id: e.id, lane: e.lane, depth: e.depth, hp: e.hp })),
       breaches: state.breaches.map(b => ({ id: b.id, lane: b.lane })),
       damageGraceRemaining: state.damageGraceRemaining,
+      shotsSpawned: state.shotsSpawned,
+      hits: state.hits,
       recentEvents: state.recentEvents.slice()
     };
   }
 
-  function getState() {
-    return state;
-  }
-
-  function setState(next) {
-    state = next;
-  }
+  function getState() { return state; }
+  function setState(next) { state = next; }
 
   return { dispatch, tick, advance, snapshot, getState, setState };
 }
@@ -163,7 +221,6 @@ export function createCore({ seed = 1, initialState: provided } = {}) {
 export function serializeState(state) {
   return JSON.stringify(state);
 }
-
 export function deserializeState(json) {
   return JSON.parse(json);
 }

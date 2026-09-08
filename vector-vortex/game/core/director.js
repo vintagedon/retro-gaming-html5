@@ -15,7 +15,7 @@ export function bandForTick(tick) {
   for (const b of BANDS) {
     if (tick >= b.start && tick <= b.end) return b;
   }
-  throw new Error(`tick ${tick} outside run window`);
+  throw new Error(`tick ${tick} outside run bounds`);
 }
 
 export function shouldSpawnOnTick(tick, band) {

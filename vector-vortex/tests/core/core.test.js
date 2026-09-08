@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createCore, serializeState, deserializeState } from '../../game/core/core.js';
+import { computeAccuracyPercent, SURVIVAL_BONUS } from '../../game/core/scoring.js';
 
 function snapshotDigest(core) {
   return JSON.stringify(core.snapshot());
@@ -184,4 +185,136 @@ test('render-coupled time is forbidden: core does not read wall clock', () => {
   assert.equal(typeof core.advance, 'function');
   assert.equal(typeof core.tick, 'function');
   assert.equal(typeof core.dispatch, 'function');
+});
+
+test('shot-fired event is emitted after commit', () => {
+  const core = createCore({ seed: 1 });
+  core.dispatch({ type: 'fire-down' });
+  core.tick();
+  const events = core.snapshot().recentEvents;
+  const e = events.find(x => x.type === 'shot-fired');
+  assert.ok(e, 'expected shot-fired event');
+  assert.equal(e.lane, 0);
+  assert.equal(e.tick, 0);
+});
+
+test('two same-tick breaches cost one life, all breachers clear', () => {
+  const core = createCore({ seed: 1 });
+  const s0 = core.getState();
+  s0.enemies = [
+    { id: 1, lane: 0, depth: 0.0015, hp: 1 },
+    { id: 2, lane: 1, depth: 0.0015, hp: 1 }
+  ];
+  core.setState(s0);
+  core.tick();
+  const s = core.snapshot();
+  assert.equal(s.lives, 2);
+  assert.equal(s.enemies.length, 0);
+});
+
+test('breach inside 30-tick grace costs no life', () => {
+  const core = createCore({ seed: 1 });
+  const s0 = core.getState();
+  s0.enemies = [{ id: 1, lane: 0, depth: 0.0015, hp: 1 }];
+  core.setState(s0);
+  core.tick();
+  assert.equal(core.snapshot().lives, 2);
+  assert.equal(core.snapshot().damageGraceRemaining, 30);
+  const s1 = core.getState();
+  s1.enemies = [{ id: 2, lane: 0, depth: 0.0015, hp: 1 }];
+  core.setState(s1);
+  core.tick();
+  assert.equal(core.snapshot().lives, 2);
+});
+
+test('breach on tick where grace reaches zero (grace=1) costs a life', () => {
+  const core = createCore({ seed: 1 });
+  const s0 = core.getState();
+  s0.lives = 2;
+  s0.damageGraceRemaining = 1;
+  s0.enemies = [{ id: 1, lane: 0, depth: 0.0015, hp: 1 }];
+  core.setState(s0);
+  core.tick();
+  assert.equal(core.snapshot().lives, 1);
+  assert.equal(core.snapshot().damageGraceRemaining, 30);
+});
+
+test('breach on the immediately preceding tick (grace=2) costs none', () => {
+  const core = createCore({ seed: 1 });
+  const s0 = core.getState();
+  s0.lives = 2;
+  s0.damageGraceRemaining = 2;
+  s0.enemies = [{ id: 1, lane: 0, depth: 0.0015, hp: 1 }];
+  core.setState(s0);
+  core.tick();
+  assert.equal(core.snapshot().lives, 2);
+});
+
+test('accuracy 7/10 -> 70% display (helper proves the math)', () => {
+  const r = computeAccuracyPercent(7, 10);
+  assert.equal(r.display, '70%');
+});
+
+test('zero shots -> ACC --', () => {
+  const r = computeAccuracyPercent(0, 0);
+  assert.equal(r.display, 'ACC --');
+});
+
+test('final-tick breach with one life asserts lost (stepped, not assigned)', () => {
+  const core = createCore({ seed: 1 });
+  // Advance 17999 real ticks (state.elapsedTicks becomes 17999 after). Set
+  // up an enemy that breaches on the next (18000th, final) tick.
+  const s0 = core.getState();
+  s0.lives = 999;
+  core.setState(s0);
+  core.advance(17999);
+  assert.equal(core.snapshot().elapsedTicks, 17999);
+  const s1 = core.getState();
+  s1.lives = 1;
+  s1.damageGraceRemaining = 0;
+  s1.enemies = [{ id: 1, lane: 0, depth: 0.0015, hp: 1 }];
+  core.setState(s1);
+  core.tick();
+  const s = core.snapshot();
+  assert.equal(s.outcome, 'lost');
+  assert.equal(s.lives, 0);
+  assert.equal(s.elapsedTicks, 18000);
+});
+
+test('survived final tick: kills + 5000 + accuracy bonus', () => {
+  const core = createCore({ seed: 1 });
+  const s0 = core.getState();
+  s0.lives = 999;
+  core.setState(s0);
+  core.advance(17999);
+  const s1 = core.getState();
+  s1.score = 5 * 100;
+  s1.hits = 7;
+  s1.shotsSpawned = 10;
+  s1.lives = 1;
+  s1.damageGraceRemaining = 0;
+  s1.enemies = [];
+  core.setState(s1);
+  core.tick();
+  const s = core.snapshot();
+  assert.equal(s.outcome, 'survived');
+  assert.equal(s.score, 500 + SURVIVAL_BONUS + Math.round(2000 * 7 / 10));
+  assert.equal(s.elapsedTicks, 18000);
+});
+
+test('run-ended event emitted after survival', () => {
+  const core = createCore({ seed: 1 });
+  const s0 = core.getState();
+  s0.lives = 999;
+  core.setState(s0);
+  core.advance(17999);
+  const s1 = core.getState();
+  s1.lives = 1;
+  s1.damageGraceRemaining = 0;
+  core.setState(s1);
+  core.tick();
+  const s = core.snapshot();
+  const e = s.recentEvents.find(x => x.type === 'run-ended');
+  assert.ok(e, 'run-ended event expected');
+  assert.equal(e.outcome, 'survived');
 });

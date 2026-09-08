@@ -39,11 +39,11 @@ export function advanceShots(state) {
 }
 
 export function advanceShotsWithDepth(state) {
-  const shots = state.shots.map(s => ({ ...s, prev: s.depth, next: s.depth + SHOT_SPEED }));
-  return {
-    state: { ...state, shots: shots.map(s => ({ ...s, depth: s.next })) },
-    shots
-  };
+  const shots = state.shots.map(s => {
+    const next = s.depth + SHOT_SPEED;
+    return { ...s, prev: s.depth, next, depth: next };
+  });
+  return { state: { ...state, shots }, shots };
 }
 
 export function expireShotsAtFar(state) {

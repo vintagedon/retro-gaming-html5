@@ -18,11 +18,11 @@ export function advanceEnemies(state) {
 }
 
 export function advanceEnemiesWithDepth(state) {
-  const enemies = state.enemies.map(e => ({ ...e, prev: e.depth, next: e.depth - CRAWLER_SPEED }));
-  return {
-    state: { ...state, enemies: enemies.map(e => ({ ...e, depth: e.next })) },
-    enemies
-  };
+  const enemies = state.enemies.map(e => {
+    const next = e.depth - CRAWLER_SPEED;
+    return { ...e, prev: e.depth, next, depth: next };
+  });
+  return { state: { ...state, enemies }, enemies };
 }
 
 export function resolveRimBreaches(state) {

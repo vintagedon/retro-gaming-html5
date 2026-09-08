@@ -39,20 +39,23 @@ function replay(seed, schedule, frames) {
   const core = createCore({ seed });
   const clock = createClock();
   const log = actionLog();
+  // Track which log entries have been dispatched by tick index.
+  const dispatched = new Set();
+  function dispatchUpTo(tickIndex) {
+    for (const a of log) {
+      if (!dispatched.has(a.tick) && a.tick <= tickIndex) {
+        core.dispatch({ type: a.type });
+        dispatched.add(a.tick);
+      }
+    }
+  }
   for (let i = 0; i < frames; i++) {
     clock.pushDelta(schedule(i));
-    // Dispatch any actions whose tick index <= number of ticks drained so far
+    // Drain pending ticks; dispatch any actions whose tick has been reached.
     let ticksDrained = 0;
     while (clock.run(core)) ticksDrained++;
-    // Note: for simplicity in this D1 test we apply actions scheduled at i
-    // BEFORE the tick that would consume them, using setState to model
-    // pre-tick input. This avoids rate-dependent action placement.
-    // (D2 will formalize the input queue.)
     if (ticksDrained > 0) {
-      for (const a of log) {
-        if (a.tick === i) core.dispatch({ type: a.type });
-      }
-      // run any additional ticks now that input was applied
+      dispatchUpTo(core.snapshot().elapsedTicks);
       while (clock.run(core)) {}
     }
   }
@@ -78,12 +81,21 @@ test('same action log at 30 Hz, 60 Hz, and 144 Hz produces identical digest', ()
   const cCore = createCore({ seed: 0xC0FFEE });
   const cClock = createClock();
   const log = actionLog();
+  const cDispatched = new Set();
   for (let i = 0; i < 288; i++) {
-    for (const a of log) {
-      if (a.tick === i) cCore.dispatch({ type: a.type });
-    }
     cClock.pushDelta(1 / 144);
-    while (cClock.run(cCore)) {}
+    let drained = 0;
+    while (cClock.run(cCore)) drained++;
+    if (drained > 0) {
+      const elapsed = cCore.snapshot().elapsedTicks;
+      for (const a of log) {
+        if (!cDispatched.has(a.tick) && a.tick <= elapsed) {
+          cCore.dispatch({ type: a.type });
+          cDispatched.add(a.tick);
+        }
+      }
+      while (cClock.run(cCore)) {}
+    }
   }
   // Pad to align ticks at 120.
   cClock.pushDelta(1 / 60);

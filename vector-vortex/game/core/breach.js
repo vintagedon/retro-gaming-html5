@@ -22,7 +22,7 @@ export function resolveBreaches(state) {
     if (preGrace <= 1) {
       // The breach happens on the tick where grace reaches zero (or grace is
       // already zero). Take a life and restart grace at 30. Do NOT decrement
-      // on this same tick (the grace window begins on this tick).
+      // on this same tick (the grace period begins on this tick).
       lives = Math.max(0, lives - 1);
       grace = DAMAGE_GRACE_TICKS;
       lifeLost = true;
