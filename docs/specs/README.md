@@ -28,8 +28,7 @@ Specs are named `spec-NN-<slug>.md`. `NN` is a running per-repository counter th
 
 | Spec | Series | Status | Description |
 |------|--------|--------|-------------|
-| [spec-01-vector-vortex-mvp-and-shell](spec-01-vector-vortex-mvp-and-shell.md) | vector-vortex | Draft | Playable MVP: fixed-step tube-shooter core, DOM wireframe HUD and shell |
-| [spec-02-vector-vortex-topology-shift-and-polish](spec-02-vector-vortex-topology-shift-and-polish.md) | vector-vortex | Draft | The topology-shift twist, stun mechanic, enemy roster, and vector-FX polish |
+| [spec-01-vector-vortex-core-playable](spec-01-vector-vortex-core-playable.md) | vector-vortex | Draft | Deterministic core playable: fixed-step 60-tick/s simulation, 24-lane tube shooter, Crawler enemy, five-minute director, three lives, swept collision, accuracy bonus, semantic DOM controls. Supersedes the retired spec-01-vector-vortex-mvp-and-shell and spec-02-vector-vortex-topology-shift-and-polish pair. |
 
 ---
 
