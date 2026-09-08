@@ -1,21 +1,22 @@
-import { defineConfig, devices as _devices } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/browser',
-  fullyParallel: true,
+  fullyParallel: false,
   retries: 0,
+  workers: 1,
   reporter: 'list',
   use: {
-    baseURL: 'http://127.0.0.1:8080',
+    baseURL: 'http://127.0.0.1:8123',
     trace: 'off'
   },
   webServer: {
-    command: 'python3 -m http.server 8080 --directory game',
-    url: 'http://127.0.0.1:8080/index.html',
+    command: 'npx --no-install http-server game -p 8123 --silent',
+    port: 8123,
     reuseExistingServer: !process.env.CI,
-    timeout: 30_000
+    timeout: 30000
   },
   projects: [
-    { name: 'chromium', use: { ..._devices['Desktop Chrome'] } }
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } }
   ]
 });

@@ -31,6 +31,7 @@ export function initialState(seed) {
     damageGraceRemaining: 0,
     shotsSpawned: 0,
     hits: 0,
+    kills: 0,
     nextShotId: 1,
     nextEnemyId: 1,
     heldInput: { left: false, right: false, fire: false },
@@ -126,7 +127,8 @@ export function createCore({ seed = 1, initialState: provided } = {}) {
       shots: coll.newShots,
       enemies: coll.newEnemies,
       score: coll.score,
-      hits: coll.hits
+      hits: coll.hits,
+      kills: state.kills + coll.kills.length
     };
     for (const k of coll.kills) {
       emit({ type: 'enemy-destroyed', enemyId: k.enemyId, shotId: k.shotId, tick: state.elapsedTicks });
@@ -208,6 +210,7 @@ export function createCore({ seed = 1, initialState: provided } = {}) {
       damageGraceRemaining: state.damageGraceRemaining,
       shotsSpawned: state.shotsSpawned,
       hits: state.hits,
+      kills: state.kills,
       recentEvents: state.recentEvents.slice()
     };
   }

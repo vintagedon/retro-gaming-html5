@@ -281,6 +281,18 @@ test('final-tick breach with one life asserts lost (stepped, not assigned)', () 
   assert.equal(s.elapsedTicks, 18000);
 });
 
+test('snapshot.kills increments after a collision', () => {
+  const core = createCore({ seed: 1 });
+  const s0 = core.getState();
+  s0.shots = [{ id: 1, lane: 0, depth: 0.05, prev: 0.025, next: 0.05 }];
+  s0.enemies = [{ id: 1, lane: 0, depth: 0.05, prev: 0.0515, next: 0.05, hp: 1 }];
+  core.setState(s0);
+  core.tick();
+  const s = core.snapshot();
+  assert.equal(s.kills, 1);
+  assert.equal(s.score, 100);
+});
+
 test('survived final tick: kills + 5000 + accuracy bonus', () => {
   const core = createCore({ seed: 1 });
   const s0 = core.getState();
