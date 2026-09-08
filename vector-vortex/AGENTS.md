@@ -22,7 +22,7 @@ related_documents:
 
 # Vector Vortex Agent Context
 
-Vector Vortex is rung 1 of the wireframe arc: a 24-lane Canvas 2D tube shooter with a fixed-step deterministic core, three lives, one Crawler enemy, and a five-minute director. The twist (topology morph) ships in a later spec. This game directory currently implements Deliverables 1 and 2 of the Spec 01 mechanics slice: the pure deterministic core plus the director, swept collision, scoring, lives, and outcome semantics. Deliverable 3 ships the playable HTML and minimal semantic DOM surface; Deliverable 4 closes the pull request and writes docs.
+Vector Vortex is rung 1 of the wireframe arc: a 24-lane Canvas 2D tube shooter with a fixed-step deterministic core, three lives, one Crawler enemy, and a five-minute director. The twist (topology morph) ships in a later spec. This game directory currently implements Deliverables 1, 2, and 3 of Spec 01: the pure deterministic core, the director, swept collision, scoring, lives, and outcome semantics, the playable HTML slice, the focus-aware input adapter, the balanced Canvas renderer, and the Playwright suite that proves every Deliverable 3 validation box with a named mutation. Deliverable 4 closes the pull request and writes docs.
 
 ## Architecture
 
@@ -30,9 +30,17 @@ The simulation is authoritative. The renderer is presentation-only and never adv
 
 | Layer | Path | Responsibility |
 |---|---|---|
-| Pure core | `game/core/*.js` | State, RNG, lane wrap, shots, Crawlers, fixed-step tick, snapshots, events, JSON round-trip, director bands, swept collision, scoring, breach |
+| Pure core | `game/core/*.js` | State, RNG, lane wrap, shots, Crawlers, fixed-step tick, snapshots, events, JSON round-trip, director bands, swept collision, scoring, breach, `kills` counter |
 | Accumulators | `game/core/clock.js` | Fixed 60 Hz accumulator with frame-delta cap, pause, hidden-tab suppression |
-| Tests | `tests/core/*.test.js` | Unit and integration tests with named mutations proving every Deliverable 1 and 2 validation box |
+| Page | `game/index.html` | Canvas with `aria-label` + `role="img"`, semantic DOM status grid, objective, controls, pause and restart buttons |
+| Styles | `game/styles.css` | Grid layout, focus rings, viewport warning below 960x540 |
+| Renderer | `game/runtime/renderer.js` | Canvas 2D draw, balanced `save`/`restore`, DPR scaling, tracked counters |
+| Input | `game/runtime/input.js` | Focus-aware keyboard adapter, blur and visibilitychange clearing |
+| Frame runner | `game/runtime/frame-runner.js` | rAF loop, fixed-step clock, `replaceCore`, deterministic test seam |
+| DOM projector | `game/runtime/dom.js` | Pure projection of the snapshot to the semantic DOM (no computation) |
+| Orchestrator | `game/runtime/main.js` | Wires core + renderer + input + runner; exposes `window.__vv` |
+| Unit tests | `tests/core/*.test.js` | Unit and integration tests with named mutations |
+| Browser tests | `tests/browser/*.spec.js` | Playwright suite, one test per Deliverable 3 validation box with named mutations |
 | Plans | `docs/superpowers/plans/2026-09-08-vector-vortex-deliverable-*.md` | TDD task plans |
 
 ### Per-tick order (frozen by spec)
@@ -89,10 +97,13 @@ A band's first spawn = `bandStart + (interval - 1)`. Band 2's first spawn of 3,6
 ```bash
 cd vector-vortex
 npm install
-npm test
+npm test                 # unit tests (node --test with explicit file list)
+npm run test:e2e         # Playwright browser suite (boots its own http-server)
+npm run test:e2e:install # one-time Chromium headless install
+npm run serve            # serve game/ on port 8123 for manual play
 ```
 
-The test script invokes `node --test` with an explicit file list. No shell glob expansion.
+The test script invokes `node --test` with an explicit file list. No shell glob expansion. The Playwright suite launches `npx --no-install http-server game -p 8123 --silent` via the config's `webServer` and reads `use.baseURL = 'http://127.0.0.1:8123'`. Removing `use.baseURL` fails the suite rather than skipping it; that is the named mutation for the config validation box.
 
 ## Frozen Balance Constants
 
@@ -116,7 +127,7 @@ The test script invokes `node --test` with an explicit file list. No shell glob 
 
 - Deliverable 1 (toolchain + deterministic core): complete.
 - Deliverable 2 (director, collision, scoring, lives, outcomes): complete.
-- Deliverable 3 (Canvas slice + semantic DOM): pending.
+- Deliverable 3 (Canvas slice + semantic DOM + Playwright suite): complete.
 - Deliverable 4 (documentation + pull request): pending.
 
 ## Scope Boundaries

@@ -4,12 +4,12 @@ title: "Vector Vortex"
 description: "Browser-based 24-lane wireframe tube shooter with a deterministic fixed-step core"
 author: "VintageDon (https://github.com/vintagedon/)"
 date: "2026-09-08"
-version: "0.2.0"
+version: "0.3.0"
 status: "Active"
 tags:
   - type: project-root
   - domain: game-design
-  - tech: [javascript, html5, canvas-2d, es-modules]
+  - tech: [javascript, html5, canvas-2d, es-modules, playwright]
   - game: vector-vortex
   - series: vector-vortex
 related_documents:
@@ -17,13 +17,14 @@ related_documents:
   - "[Spec 01: Deterministic Core Playable](/opt/agents/repos/spec/2026-09-08-retrohtml5-spec-01-vector-vortex-core-playable.md)"
   - "[Deliverable 1 Plan](docs/superpowers/plans/2026-09-08-vector-vortex-deliverable-1.md)"
   - "[Deliverable 2 Plan](docs/superpowers/plans/2026-09-08-vector-vortex-deliverable-2.md)"
+  - "[Deliverable 3 Plan](docs/superpowers/plans/2026-09-08-vector-vortex-deliverable-3.md)"
 ---
 
 # Vector Vortex
 
 Rung 1 of the wireframe arc: a 24-lane wireframe tube shooter built on a fixed-step, deterministic core. The player rides the rim of a fixed circular tube, fires inward along the current lane, and destroys outward-advancing Crawlers before they reach the rim. A run lasts five minutes with three lives and a survival cash-out.
 
-This directory currently implements Deliverables 1 and 2 of Spec 01: the toolchain, the pure deterministic core, and the director, swept collision, scoring, lives, and outcome semantics. The playable Canvas slice arrives in Deliverable 3; documentation and pull request closeout arrive in Deliverable 4.
+This directory implements Deliverables 1, 2, and 3 of Spec 01: the toolchain, the pure deterministic core, the director and scoring, and the playable Canvas slice with semantic DOM controls and a Playwright suite. Deliverable 4 owns documentation, the pull request, and closeout.
 
 ## Status
 
@@ -31,7 +32,7 @@ This directory currently implements Deliverables 1 and 2 of Spec 01: the toolcha
 |---|---|
 | 1. Toolchain + pure deterministic core | Complete |
 | 2. Director, collision, scoring, lives, outcomes | Complete |
-| 3. Playable Canvas slice + minimal semantic DOM | Pending |
+| 3. Playable Canvas slice + minimal semantic DOM | Complete |
 | 4. Documentation, pull request, closeout | Pending |
 
 ## Quick Start
@@ -62,6 +63,43 @@ game/core/
 ├── clock.js        fixed-step accumulator with frame-delta cap
 └── core.js         state factory, per-tick order, JSON round-trip, semantic events
 ```
+
+## Runtime (Deliverable 3)
+
+```
+game/
+├── index.html            canvas + semantic DOM (status grid, objective, controls, pause/restart)
+├── styles.css            grid layout, focus rings, "larger play area" message below 960x540
+└── runtime/
+    ├── renderer.js       Canvas 2D: two rings, 24 lane rails, player marker, shots, Crawlers
+    ├── input.js          focus-aware keydown/keyup, blur and visibilitychange clearing
+    ├── frame-runner.js   rAF loop, fixed-step clock, core rebind, exact-tick test seam
+    ├── dom.js            pure projection of core snapshot to semantic DOM
+    └── main.js           wires everything; exposes window.__vv for Playwright
+```
+
+### Supported viewports
+
+`1024x576`, `1280x720`, `1440x900`, `1920x1080`. Below `960x540` the controls remain readable and a non-blocking "larger play area recommended" message appears.
+
+### Test seam: `window.__vv`
+
+| Method | Purpose |
+|---|---|
+| `advanceTicks(n)` | Advance the core by `n` fixed-step ticks and re-publish the snapshot |
+| `reset(seed)` | Rebind every consumer of the core to a fresh `createCore({ seed })` |
+| `getSnapshot()` | Return the current core snapshot |
+| `getKeyCounters()` | Return `{ saveCount, restoreCount }` for the most recent frame |
+| `setLeft/Right/Fire(boolean)` | Drive the core's held input directly (test-only) |
+| `setState(next)` | Replace the core's state (test-only) |
+
+Mutation toggles the runtime honors (all default to falsy, never enabled in production):
+
+- `window.__vv.disableKeydown` — input adapter no-ops on `keydown`/`keyup`
+- `window.__vv.preventSpaceAtWindow` — input adapter calls `preventDefault` on Space at the window level
+- `window.__vv.skipFrameRunnerRebind` — `reset(seed)` does NOT rebind the frame runner
+- `window.__vv.skipOneRestore` — renderer drops one matching `restore()` on the first lane rail
+- `window.__vv.pauseRaf` — frame runner's rAF loop skips the clock push (used by tests that drive ticks via the seam)
 
 ## Director Bands
 
@@ -94,10 +132,12 @@ A breach on the final tick is lethal like any other tick.
 
 | Command | Purpose |
 |---|---|
-| `npm install` | Install tracked toolchain (no runtime deps for D1/D2) |
+| `npm install` | Install tracked toolchain (unit + Playwright) |
 | `npm test` | Run all unit tests via `node --test` with explicit file list |
-| `node --test tests/core/<file>.test.js` | Run one test file |
-| `python3 -m http.server 8080 --directory game` | Serve the placeholder page (D1 ships no playable yet) |
+| `npm run test:e2e` | Run the Playwright browser suite (boots its own `http-server` on port 8123) |
+| `npm run test:e2e:install` | One-time install of the Chromium headless binary |
+| `npm run serve` | Serve `game/` on port 8123 for manual play |
+| `node --test tests/core/<file>.test.js` | Run one unit test file |
 
 ## Constraints
 

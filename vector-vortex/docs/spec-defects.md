@@ -52,3 +52,11 @@ The D1 replay test dispatched actions when the frame index `i` matched the actio
 ## Purity regex matches comments (Deliverable 2)
 
 The purity test regex `\bwindow\b` matches the substring "window" inside comments. Deliverable 2's first draft of `breach.js` and `director.js` triggered the regex from comments that used the word "window" in a non-API sense (e.g., "grace window", "run window"). Reworded the comments to use "grace period" and "run bounds" respectively.
+
+## Spec text references a "served `game/` tree" but the Playwright config uses port 8123 (Deliverable 3)
+
+The Deliverable 3 plan text mentions "a fixed port fallback `http://127.0.0.1:8123`" and the validation box requires the suite to start its own server. The implementation chose port 8123 for the `webServer` and `use.baseURL`. The plan's "1024x576 ... 1920x1080" viewport list is the spec's playable desktop contract; the CSS additionally shows a warning below 960x540 (a spec-mandated non-blocking message). The spec does not name the port, so the choice is non-conflicting.
+
+## Mutation harness uses `addInitScript` and `window.__vv` flag preservation (Deliverable 3)
+
+The plan text suggests either monkey-patching `window.__vv` from a separate `input.mutation.js` or using early-return guards. The implementation chose the early-return guard approach: each toggle is a small branch that the input adapter, frame runner, or renderer consults. The orchestrator (`main.js`) preserves any properties a test set via `addInitScript` by merging `window.__vv` with the seam object (`Object.assign(seam, preserved)`). This avoids a separate test-only ES module and keeps the mutations discoverable from the runtime source.
