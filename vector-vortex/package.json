@@ -1,14 +1,14 @@
 {
   "name": "vector-vortex",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Vector Vortex deterministic core and Canvas slice (Deliverable 1)",
+  "description": "Vector Vortex deterministic core, director, scoring, lives, outcomes (Deliverables 1+2)",
   "type": "module",
   "engines": {
     "node": "22.23.2"
   },
   "scripts": {
     "test": "npm run test:unit",
-    "test:unit": "node --test tests/core/rng.test.js tests/core/lanes.test.js tests/core/shots.test.js tests/core/enemies.test.js tests/core/core.test.js tests/core/clock.test.js tests/core/purity.test.js tests/core/replay.test.js tests/core/discovery.test.js"
+    "test:unit": "node --test tests/core/rng.test.js tests/core/lanes.test.js tests/core/shots.test.js tests/core/enemies.test.js tests/core/core.test.js tests/core/clock.test.js tests/core/purity.test.js tests/core/replay.test.js tests/core/discovery.test.js tests/core/director.test.js tests/core/collision.test.js tests/core/scoring.test.js tests/core/breach.test.js tests/core/integration.test.js"
   }
 }

@@ -4,7 +4,7 @@ title: "Vector Vortex Agent Context"
 description: "Game-specific agent instructions for Vector Vortex"
 author: "VintageDon (https://github.com/vintagedon/)"
 date: "2026-09-08"
-version: "1.0"
+version: "1.1"
 status: "Active"
 tags:
   - type: guide
@@ -17,11 +17,12 @@ related_documents:
   - "[Game README](README.md)"
   - "[Vector Vortex Spec 01](/opt/agents/repos/spec/2026-09-08-retrohtml5-spec-01-vector-vortex-core-playable.md)"
   - "[Deliverable 1 Plan](docs/superpowers/plans/2026-09-08-vector-vortex-deliverable-1.md)"
+  - "[Deliverable 2 Plan](docs/superpowers/plans/2026-09-08-vector-vortex-deliverable-2.md)"
 ---
 
 # Vector Vortex Agent Context
 
-Vector Vortex is rung 1 of the wireframe arc: a 24-lane Canvas 2D tube shooter with a fixed-step deterministic core, three lives, one Crawler enemy, and a five-minute director. The twist (topology morph) ships in a later spec. This game directory currently implements Deliverable 1 of the Spec 01 mechanics slice: the pure deterministic core and tracked toolchain. Deliverable 2 adds the director, collision, scoring, and outcome; Deliverable 3 ships the playable HTML and minimal semantic DOM surface; Deliverable 4 closes the pull request and writes docs.
+Vector Vortex is rung 1 of the wireframe arc: a 24-lane Canvas 2D tube shooter with a fixed-step deterministic core, three lives, one Crawler enemy, and a five-minute director. The twist (topology morph) ships in a later spec. This game directory currently implements Deliverables 1 and 2 of the Spec 01 mechanics slice: the pure deterministic core plus the director, swept collision, scoring, lives, and outcome semantics. Deliverable 3 ships the playable HTML and minimal semantic DOM surface; Deliverable 4 closes the pull request and writes docs.
 
 ## Architecture
 
@@ -29,12 +30,49 @@ The simulation is authoritative. The renderer is presentation-only and never adv
 
 | Layer | Path | Responsibility |
 |---|---|---|
-| Pure core | `game/core/*.js` | State, RNG, lane wrap, shots, Crawlers, fixed-step tick, snapshots, JSON round-trip |
+| Pure core | `game/core/*.js` | State, RNG, lane wrap, shots, Crawlers, fixed-step tick, snapshots, events, JSON round-trip, director bands, swept collision, scoring, breach |
 | Accumulators | `game/core/clock.js` | Fixed 60 Hz accumulator with frame-delta cap, pause, hidden-tab suppression |
-| Tests | `tests/core/*.test.js` | Unit tests with named mutations proving every Deliverable 1 validation box |
-| Plan | `docs/superpowers/plans/2026-09-08-vector-vortex-deliverable-1.md` | TDD task plan for Deliverable 1 |
+| Tests | `tests/core/*.test.js` | Unit and integration tests with named mutations proving every Deliverable 1 and 2 validation box |
+| Plans | `docs/superpowers/plans/2026-09-08-vector-vortex-deliverable-*.md` | TDD task plans |
 
-Per-tick order is total and frozen by spec: drain input → advance shots → advance enemies → resolve collisions → expire shots at/past far → resolve breaches → director/spawn → advance elapsed → evaluate boundary → emit events → publish snapshot.
+### Per-tick order (frozen by spec)
+
+1. drain input → fire attempt (`shot-fired` event after commit)
+2. advance shots (carries prev/next for swept collision)
+3. advance enemies (carries prev/next)
+4. resolve swept collisions (ascending stable enemy ID; first-hit projectile consumption; `enemy-destroyed` event after commit)
+5. expire shots at/past far depth (after collision so the final sweep participates; `shot-expired-at-far` event after commit)
+6. resolve rim breaches & life loss (ascending enemy ID; grace handling; `breach` and `life-lost` events after commit)
+7. director/spawn (deterministic lane via injected seeded RNG; `director-spawn` event after commit)
+8. evaluate run boundary (`run-ended` event after commit)
+9. advance elapsed
+10. emit tick event and flush
+
+### Director bands
+
+| Band | Elapsed ticks | Interval | First spawn tick | Second spawn tick |
+|---|---|---:|---:|---:|
+| 1 | 0..3,599 | 60 | 59 | 119 |
+| 2 | 3,600..10,799 | 48 | 3,659 | 3,707 |
+| 3 | 10,800..14,399 | 36 | 10,835 | 10,871 |
+| 4 | 14,400..17,999 | 27 | 14,426 | 14,453 |
+
+A band's first spawn = `bandStart + (interval - 1)`. Band 2's first spawn of 3,659 is the spec's explicit value and is documented in `docs/spec-defects.md` as a spec wording inconsistency: the construction would yield 3,647 by uniform rule, but the spec pins 3,659 and the validation box explicitly references that index. See the defect note.
+
+### Scoring
+
+- Base kill = 100.
+- Survival bonus = 5,000.
+- Accuracy bonus = `round(2000 * hits / shotsSpawned)`, zero when no shot spawned.
+- Accuracy display: `ACC --` until first shot spawns, then nearest whole percent.
+- A cooldown-blocked fire request is NOT a shot; the denominator never changes for blocked requests.
+
+### Outcome semantics
+
+- The run simulates all 18,000 ticks (indices 0 through 17,999).
+- On every tick, breach and life loss are resolved first. If `lives <= 0`, the run ends `lost`.
+- After all 18,000 ticks fully resolve and `lives >= 1`, the run ends `survived` and the survival and accuracy cash-out are applied.
+- Breach on the final tick is lethal like any other tick. There is no pre-movement survival grant and no pre-boundary outcome branch.
 
 ## Action Map
 
@@ -43,7 +81,7 @@ Per-tick order is total and frozen by spec: drain input → advance shots → ad
 | Move left | Left Arrow or A | Hold; one lane step per tick with wrap |
 | Move right | Right Arrow or D | Hold; one lane step per tick with wrap; cancels simultaneous left |
 | Fire | Space | Hold-to-fire; 8 tick cooldown, max 6 active shots |
-| Pause | Escape or P | Mechanics-slice pause only (D2 owns the final pause surface) |
+| Pause | Escape or P | Mechanics-slice pause only (D3 owns the final pause surface) |
 | Restart | DOM button | Available after an outcome; restores initial seed |
 
 ## Commands
@@ -77,7 +115,7 @@ The test script invokes `node --test` with an explicit file list. No shell glob 
 ## Current Spec Status
 
 - Deliverable 1 (toolchain + deterministic core): complete.
-- Deliverable 2 (director, collision, scoring, lives, outcomes): pending.
+- Deliverable 2 (director, collision, scoring, lives, outcomes): complete.
 - Deliverable 3 (Canvas slice + semantic DOM): pending.
 - Deliverable 4 (documentation + pull request): pending.
 
@@ -86,3 +124,4 @@ The test script invokes `node --test` with an explicit file list. No shell glob 
 - Do not add topology morphs, additional enemy types, stun, particles, hitstop, score popups, persistence, publishing, raster, or sampled audio. Spec 02 and later specs own those.
 - The shared browser-game UI framework is vendored in a later spec, not in this directory yet.
 - `publish.sh` does not exist in this directory yet; Deliverable 4 introduces it.
+- The rules modules under `game/core/` MUST NOT import `window`, `document`, `HTMLCanvasElement`, `OffscreenCanvas`, `Audio*`, `Math.random`, `Date.now`, or `performance.now`. The purity check enforces this and excludes the `-mutation.js` test helper files.
