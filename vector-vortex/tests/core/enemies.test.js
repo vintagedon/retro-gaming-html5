@@ -4,6 +4,7 @@ import {
   spawnCrawler,
   advanceEnemies,
   resolveRimBreaches,
+  advanceEnemiesWithDepth,
   CRAWLER_SPEED,
   CRAWLER_HP,
   CRAWLER_SCORE
@@ -52,4 +53,12 @@ test('MUTATION stable-id ordering: insertion-order breach resolution changes sur
   // If resolved in insertion order, breaches would be [3,1] and the surviving
   // enemy would still be id=2, so this mutation is detected by the assertion
   // above (breaches order) rather than by survivor identity.
+});
+
+test('advanceEnemiesWithDepth carries prev and next depths for swept collision', () => {
+  const s0 = { enemies: [{ id: 1, lane: 0, depth: 0.5, hp: 1 }] };
+  const r = advanceEnemiesWithDepth(s0);
+  assert.equal(r.enemies[0].prev, 0.5);
+  assert.equal(r.enemies[0].next, 0.5 - CRAWLER_SPEED);
+  assert.equal(r.state.enemies[0].depth, 0.5 - CRAWLER_SPEED);
 });

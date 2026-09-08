@@ -4,6 +4,9 @@ import {
   tryFireShot,
   advanceShots,
   expireShotsAtFar,
+  tryFireShotWithEvent,
+  advanceShotsWithDepth,
+  expireShotsAtFarWithEvents,
   SHOT_COOLDOWN_TICKS,
   MAX_ACTIVE_SHOTS,
   SHOT_SPEED,
@@ -83,4 +86,45 @@ test('expireShotsAtFar removes shots at or past depth FAR_DEPTH', () => {
   s = expireShotsAtFar(s);
   assert.equal(s.shots.length, 1);
   assert.equal(s.shots[0].id, 1);
+});
+
+test('tryFireShotWithEvent returns shot-fired event after commit', () => {
+  const s0 = { ...freshState(), lane: 4, elapsedTicks: 7 };
+  const r = tryFireShotWithEvent(s0);
+  assert.equal(r.state.shots.length, 1);
+  assert.deepEqual(r.event, { type: 'shot-fired', shotId: 1, lane: 4, tick: 7 });
+});
+
+test('tryFireShotWithEvent silently blocks on cooldown', () => {
+  const s0 = { ...freshState(), lane: 4, cooldown: 3, elapsedTicks: 0 };
+  const r = tryFireShotWithEvent(s0);
+  assert.equal(r.event, null);
+  assert.equal(r.state.shots.length, 0);
+});
+
+test('tryFireShotWithEvent silently blocks when cap is reached', () => {
+  const s0 = { ...freshState(), cooldown: 0, shots: Array.from({ length: 6 }, (_, i) => ({ id: 100 + i, lane: 0, depth: 0.1 })) };
+  const r = tryFireShotWithEvent(s0);
+  assert.equal(r.event, null);
+  assert.equal(r.state.shots.length, 6);
+});
+
+test('advanceShotsWithDepth returns prev/next depths and updates state', () => {
+  const s0 = { shots: [{ id: 1, lane: 0, depth: 0.05 }] };
+  const r = advanceShotsWithDepth(s0);
+  assert.equal(r.shots[0].prev, 0.05);
+  assert.ok(Math.abs(r.shots[0].next - 0.075) < 1e-12);
+  assert.ok(Math.abs(r.state.shots[0].depth - 0.075) < 1e-12);
+});
+
+test('expireShotsAtFarWithEvents returns expired list and surviving shots', () => {
+  const s0 = { shots: [
+    { id: 1, lane: 0, depth: 0.9, prev: 0.875, next: 0.9 },
+    { id: 2, lane: 0, depth: 1.0, prev: 0.975, next: 1.0 },
+    { id: 3, lane: 0, depth: 1.001, prev: 0.976, next: 1.001 }
+  ]};
+  const r = expireShotsAtFarWithEvents(s0);
+  assert.equal(r.state.shots.length, 1);
+  assert.equal(r.state.shots[0].id, 1);
+  assert.deepEqual(r.expired.map(e => e.id), [2, 3]);
 });

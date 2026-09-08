@@ -17,6 +17,14 @@ export function advanceEnemies(state) {
   };
 }
 
+export function advanceEnemiesWithDepth(state) {
+  const enemies = state.enemies.map(e => ({ ...e, prev: e.depth, next: e.depth - CRAWLER_SPEED }));
+  return {
+    state: { ...state, enemies: enemies.map(e => ({ ...e, depth: e.next })) },
+    enemies
+  };
+}
+
 export function resolveRimBreaches(state) {
   const breaching = state.enemies
     .filter(e => e.depth <= 0)
