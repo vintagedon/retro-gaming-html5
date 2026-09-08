@@ -1,14 +1,21 @@
 {
   "name": "vector-vortex",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "Vector Vortex deterministic core, director, scoring, lives, outcomes (Deliverables 1+2)",
+  "description": "Vector Vortex playable Canvas slice, semantic DOM, Playwright suite (Deliverables 1+2+3)",
   "type": "module",
   "engines": {
     "node": "22.23.2"
   },
   "scripts": {
     "test": "npm run test:unit",
-    "test:unit": "node --test tests/core/rng.test.js tests/core/lanes.test.js tests/core/shots.test.js tests/core/enemies.test.js tests/core/core.test.js tests/core/clock.test.js tests/core/purity.test.js tests/core/replay.test.js tests/core/discovery.test.js tests/core/director.test.js tests/core/collision.test.js tests/core/scoring.test.js tests/core/breach.test.js tests/core/integration.test.js"
+    "test:unit": "node --test tests/core/rng.test.js tests/core/lanes.test.js tests/core/shots.test.js tests/core/enemies.test.js tests/core/core.test.js tests/core/clock.test.js tests/core/purity.test.js tests/core/replay.test.js tests/core/discovery.test.js tests/core/director.test.js tests/core/collision.test.js tests/core/scoring.test.js tests/core/breach.test.js tests/core/integration.test.js",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium",
+    "serve": "http-server game -p 8123 --silent"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0",
+    "http-server": "^14.1.1"
   }
 }
