@@ -1,62 +1,77 @@
-# Vector Vortex Spec 01 — Spec Defects Observed
+<!--
+---
+title: "Vector Vortex Spec Defects Observed"
+description: "Spec defects observed while implementing Vector Vortex Spec 01 and the 01b amendment"
+author: "VintageDon (https://github.com/vintagedon/)"
+date: "2026-09-09"
+version: "0.4.0"
+status: "Active"
+tags:
+  - type: defect-log
+  - domain: documentation
+  - tech: [markdown]
+  - game: vector-vortex
+  - series: vector-vortex
+related_documents:
+  - "[Spec 01: Deterministic Core Playable](../../docs/specs/spec-01-vector-vortex-core-playable.md)"
+  - "[Game README](../README.md)"
+  - "Central Spec Defect Register (in central spec queue)"
+-->
 
-These items are observations made while implementing Deliverables 1 and 2. They are not yet incorporated into the spec; the formal defect-register writeup arrives in Deliverable 4.
+# Vector Vortex Spec 01 and 01b: Spec Defects Observed
 
-## Director band 2 first-spawn index (Deliverable 2)
+These items are observations made while implementing Deliverables 1 through 4 of Spec 01 and the Spec 01b amendment. The two Spec 01 defects corrected by 01b are also recorded in the central spec defect register with spec attribution.
 
-The spec's frozen game contract states (lines 142–143 of the authoritative spec):
+## Director band 2 first-spawn index (Spec 01 v3.0, corrected by Spec 01b D1.1)
 
-> A band's first spawn occurs after exactly one full interval of that band has been completed. Band 1's first spawn is on the tick with index 59, its second on index 119. Band 2 begins at index 3,600 and its first spawn is on index 3,659. The same construction applies to bands 3 and 4.
+Spec 01 v3.0 stated the construction "A band's first spawn occurs after exactly one full interval of that band has been completed" and then pinned band 2's first spawn at 3,659 by an explicit `firstSpawn` table. The construction uniformly yields 3,647 for band 2. The construction is authoritative; band 2's first spawn is 3,647.
 
-For band 1, interval 60 → first spawn 59 = `bandStart + (interval - 1)`. The construction applies uniformly to bands 1, 3, and 4:
+This defect was found by the executing occupant's own analysis (not by external review). The Spec 01b amendment adopts the corrected value and removes the per-band explicit `firstSpawn` field. The director computes the first spawn uniformly as `bandStart + (interval - 1)`.
 
-| Band | Interval | `bandStart + (interval - 1)` | Spec explicit value |
-|---|---:|---:|---:|
-| 1 | 60 | 59 | 59 (matches) |
-| 2 | 48 | 3,647 | **3,659** (spec pins; construction would yield 3,647) |
-| 3 | 36 | 10,835 | 10,835 (matches) |
-| 4 | 27 | 14,426 | 14,426 (matches) |
+## Unsatisfiable retirement rule (Spec 01 v3.0, corrected by Spec 01b D1)
 
-The validation box for Deliverable 2 explicitly references both "index 59 for band 1 and index 3,659 for band 2," so band 2's first spawn is authoritative at 3,659 rather than 3,647. The implementation in `vector-vortex/game/core/director.js` therefore carries an explicit `firstSpawn` per band (rather than computing uniformly), with a comment that flags this as a documented spec wording inconsistency. The validation box is satisfied against the explicit values.
+Spec 01 v3.0's retirement rule required a `recycle-bin/` addition in the same commit as a deletion, and `recycle-bin/` is gitignored, so no such addition can appear in a commit. The rule also contradicts the target `AGENTS.md`, which states that a superseded spec is marked `deprecated` with a pointer to its replacement.
 
-**Status:** Implemented per the explicit spec values; flagged here for the maintainer. A future spec amendment should either (a) align band 2 to the construction (3,647) or (b) restate the construction in a way that yields 3,659 for band 2 specifically.
+The corrected rule: specifications are the public record and are never moved to `recycle-bin/`. A superseded specification stays tracked at its existing path with frontmatter `status: deprecated` and a `superseded_by` pointer to its replacement. `recycle-bin/` remains correct for retired non-specification content.
 
-## Floating-point accumulator slack (Deliverable 1)
+## Floating-point accumulator slack at 144 Hz (Spec 01 v3.0, corrected by Spec 01b D1.4)
 
-The fixed-step accumulator accumulates floating-point deltas across many frames. At 144 Hz with 144 pushes of `1/144`, IEEE-754 summation rounds to slightly under 1.0 s, so the accumulator drains 59 ticks instead of 60. The same input at 60 Hz drains 60 ticks exactly. The 60 Hz/30 Hz/144 Hz digest-equality test therefore requires either (a) padding the higher-rate run with a trailing delta to align tick counts, or (b) testing equality of authoritative state fields that ignore FP slack in the tick count.
+Spec 01 v3.0 required one identical authoritative digest across 30, 60, and 144 Hz schedules. Floating-point accumulator slack makes that false as written: 144 summed pushes of `1/144` round to slightly under one second, so a 144 Hz run drains 59 ticks where a 60 Hz run drains 60. The corrected requirement is digest equality after real-time alignment, with the alignment method stated in the test and the residual tick-count difference asserted as at most one.
 
-**Status:** Mitigated in test code by explicit padding. The spec's "identical authoritative digest" language requires careful interpretation: identical after real-time alignment, not necessarily identical tick index.
+This correction originated from the executing occupant's own analysis (not by external review) and is adopted by the Spec 01b amendment.
 
-## No author-visible test for "renaming any single test file changes the reported count" (Deliverable 1)
+## Render-schedule test residual assertion
 
-The spec names this as a mutation but does not require an automated test for it; it is validated by external inspection. The `tests/core/discovery.test.js` file proves that the explicit file list is non-empty and that each listed file exists on disk, which is the closest automated check.
+The 144 Hz test asserts `Math.abs(ticks - 60) <= 1`. The multi-schedule test asserts pairwise tick differences `<= 1` after a tail-push real-time alignment. Both are part of the corrected contract.
 
-## Buggy mutation helpers were considered and dropped (Deliverable 1)
+## Mutation-test integrity standard (Spec 01 v3.0, superseded by Spec 01b Test Integrity Standard)
 
-During planning I created `game/core/clock-mutation.js` and `game/core/rng-mutation.js` helpers that implement the named mutations for comparison. The clock mutation helper was eventually removed because the test design moved to a side-by-side comparison in-test rather than a separate helper file. The RNG mutation helper remains in `game/core/rng-mutation.js` and is excluded from production imports; the source-purity test does not flag it (it is not a rules module — it is a test-only mutation harness). Deliverable 2's purity check continues to exclude `-mutation.js` files.
+Spec 01 v3.0 required every validation box to "name a mutation." The execution produced named mutations that did not discriminate: a rebind test that passed under its own rebind mutation, a buggy RNG twin misaligned by one draw, a canvas balance check that rendered nothing, a digest test that ignored three fields, and a denominator assertion comparing a pure call to itself. Spec 01b replaces "name a mutation" with "execute the mutation and observe failure." A mutation test that cannot be shown to fail is a failed gate.
 
-If D3/D4 want a permanent mutation helper directory, it should live under `tests/_mutations/` rather than `game/core/` to keep the rules purity check clean.
+## Mutation helpers and the purity check
 
-## Clock tick bound (Deliverable 1)
+The Spec 01 v3.0 implementation placed `rng-mutation.js` under `game/core/` and excluded `-mutation.js` files from the purity check by convention rather than by enforcement. Spec 01b relocates mutation helpers to `tests/_mutations/` and adds an explicit assertion that the purity check rejects any `-mutation.js` file under `game/core/`. The check and its documentation now agree.
 
-The current clock consumes accumulator down by exactly `TICK_SECONDS` per drained tick. With FP slack this can leave a sub-tick remainder that does not drain until the next push. There is no upper bound on the number of ticks drained per push, which means a single very large (but clamped) frame could drain many ticks at once. The spec asks the clock to drain "more than one input sample per tick" as a mutation — which we read as: a single input action should not be drained multiple times per tick. Our model uses held input (no per-action queue), so this mutation manifests only as: "actions queued between ticks are not batched into one tick." The test verifies that batching changes the digest.
+## Buggy mutation helpers were considered and dropped
 
-The spec's stricter "drain at most one input sample per tick" wording, if applied to a queue-based input adapter that D3 will introduce, must be enforced there.
+During D1 planning I created `game/core/clock-mutation.js` and `game/core/rng-mutation.js` helpers that implement the named mutations for comparison. The clock mutation helper was eventually removed because the test design moved to a side-by-side comparison in-test rather than a separate helper file. The RNG mutation helper now lives under `tests/_mutations/int-buggy.js`.
 
-## Replay test action placement was frame-indexed (Deliverable 2 fix)
+## Clock tick bound
 
-The D1 replay test dispatched actions when the frame index `i` matched the action's tick index. At 60 Hz that aligns (frame 5 = tick 5), but at 30 Hz and 144 Hz the alignment breaks: frame 5 corresponds to different simulation ticks at different frame rates. With D1 this divergence happened to produce identical snapshots because the action log only toggled held input flags. With D2 the divergence surfaced in shot timing and lane state.
+The clock consumes the accumulator down by exactly `TICK_SECONDS` per drained tick. With FP slack this can leave a sub-tick remainder that does not drain until the next push. There is no upper bound on the number of ticks drained per push, which means a single very large (but clamped) frame could drain many ticks at once. The Spec 01 v3.0 mutation "drain more than one input sample per tick" was modeled in the clock test as "actions queued between ticks are not batched into one tick." Spec 01b preserves this contract.
 
-**Status:** Fixed in `tests/core/replay.test.js`. The replay helper now dispatches each action when the simulation's elapsed tick index first reaches or exceeds the action's tick index. The 144 Hz padded run uses the same dispatch-by-elapsed-tick logic.
+## Replay test action placement was frame-indexed
 
-## Purity regex matches comments (Deliverable 2)
+The D1 replay test dispatched actions when the frame index `i` matched the action's tick index. At 60 Hz that aligns (frame 5 = tick 5), but at 30 Hz and 144 Hz the alignment breaks. D2 fixed the dispatch-by-elapsed-tick logic.
 
-The purity test regex `\bwindow\b` matches the substring "window" inside comments. Deliverable 2's first draft of `breach.js` and `director.js` triggered the regex from comments that used the word "window" in a non-API sense (e.g., "grace window", "run window"). Reworded the comments to use "grace period" and "run bounds" respectively.
+## Purity regex matches comments
 
-## Spec text references a "served `game/` tree" but the Playwright config uses port 8123 (Deliverable 3)
+The purity test regex `\bwindow\b` matches the substring "window" inside comments. Wording such as "grace window" or "run window" triggered the regex. The comments in `breach.js` and `director.js` were reworded to "grace period" and "run bounds" respectively.
 
-The Deliverable 3 plan text mentions "a fixed port fallback `http://127.0.0.1:8123`" and the validation box requires the suite to start its own server. The implementation chose port 8123 for the `webServer` and `use.baseURL`. The plan's "1024x576 ... 1920x1080" viewport list is the spec's playable desktop contract; the CSS additionally shows a warning below 960x540 (a spec-mandated non-blocking message). The spec does not name the port, so the choice is non-conflicting.
+## Spec text references a served `game/` tree but the Playwright config uses port 8123
 
-## Mutation harness uses `addInitScript` and `window.__vv` flag preservation (Deliverable 3)
+The Deliverable 3 plan text mentions "a fixed port fallback `http://127.0.0.1:8123`" and the validation box requires the suite to start its own server. The implementation chose port 8123 for the `webServer` and `use.baseURL`. The plan's viewport list is the spec's playable desktop contract; the CSS additionally shows a warning below 960x540.
 
-The plan text suggests either monkey-patching `window.__vv` from a separate `input.mutation.js` or using early-return guards. The implementation chose the early-return guard approach: each toggle is a small branch that the input adapter, frame runner, or renderer consults. The orchestrator (`main.js`) preserves any properties a test set via `addInitScript` by merging `window.__vv` with the seam object (`Object.assign(seam, preserved)`). This avoids a separate test-only ES module and keeps the mutations discoverable from the runtime source.
+## Mutation harness uses `addInitScript` and `window.__vv` flag preservation
+
+The plan text suggests either monkey-patching `window.__vv` from a separate `input.mutation.js` or using early-return guards. The implementation chose the early-return guard approach: each toggle is a small branch that the input adapter, frame runner, or renderer consults. The orchestrator (`main.js`) preserves any properties a test set via `addInitScript` by merging `window.__vv` with the seam object.

@@ -3,8 +3,8 @@
 title: "Specifications"
 description: "Public specifications for the retro gaming monorepo, the unit of spec-driven work"
 author: "VintageDon (https://github.com/vintagedon/)"
-date: "2026-08-14"
-version: "1.0"
+date: "2026-09-09"
+version: "1.1"
 status: "Active"
 tags:
   - type: directory-readme
@@ -28,7 +28,9 @@ Specs are named `spec-NN-<slug>.md`. `NN` is a running per-repository counter th
 
 | Spec | Series | Status | Description |
 |------|--------|--------|-------------|
-| [spec-01-vector-vortex-core-playable](spec-01-vector-vortex-core-playable.md) | vector-vortex | Draft | Deterministic core playable: fixed-step 60-tick/s simulation, 24-lane tube shooter, Crawler enemy, five-minute director, three lives, swept collision, accuracy bonus, semantic DOM controls. Supersedes the retired spec-01-vector-vortex-mvp-and-shell and spec-02-vector-vortex-topology-shift-and-polish pair. |
+| [spec-01-vector-vortex-core-playable](spec-01-vector-vortex-core-playable.md) | vector-vortex | Under review | Deterministic core playable: fixed-step 60-tick/s simulation, 24-lane tube shooter, Crawler enemy, five-minute director, three lives, swept collision, accuracy bonus, semantic DOM controls. Supersedes the deprecated spec-01-vector-vortex-mvp-and-shell and spec-02-vector-vortex-topology-shift-and-polish pair. The Spec 01b amendment (in the central spec queue) corrects three contract defects and rebuilds the mutation test suite. |
+| [spec-01-vector-vortex-mvp-and-shell](spec-01-vector-vortex-mvp-and-shell.md) | vector-vortex | Deprecated | Earlier MVP-and-shell scope (full app shell, shared UI framework, synthesized UI sound). Superseded by spec-01-vector-vortex-core-playable. |
+| [spec-02-vector-vortex-topology-shift-and-polish](spec-02-vector-vortex-topology-shift-and-polish.md) | vector-vortex | Deprecated | Earlier topology-shift scope. Superseded by the global-counter version in the central spec archive. |
 
 ---
 
