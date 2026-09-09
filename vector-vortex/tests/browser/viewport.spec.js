@@ -1,6 +1,7 @@
 // Vector Vortex D3 validation: all four supported viewports + DPR 1 and DPR 2
 // keep the complete tube, status, and controls visible without overlap or
-// horizontal scrolling.
+// horizontal scrolling, and the sub-960 viewport warning shows/hides by
+// class rather than the [hidden] attribute (D2.7).
 
 import { test, expect } from '@playwright/test';
 

@@ -13,6 +13,12 @@ export function createRng(seed) {
     },
     lane() {
       return this.int(0, 23);
+    },
+    getState() {
+      return state >>> 0;
+    },
+    setState(s) {
+      state = (s >>> 0) || 1;
     }
   };
 }

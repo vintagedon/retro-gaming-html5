@@ -9,7 +9,7 @@ import { advanceEnemiesWithDepth } from './enemies.js';
 import { resolveCollisions } from './collision.js';
 import { resolveBreaches } from './breach.js';
 import { createDirector, bandForTick, shouldSpawnOnTick } from './director.js';
-import { computeAccuracyBonus, SURVIVAL_BONUS } from './scoring.js';
+import { computeAccuracyBonus, computeAccuracyPercent, SURVIVAL_BONUS } from './scoring.js';
 
 export const TICK_HZ = 60;
 export const RUN_LENGTH_TICKS = 18000;
@@ -45,6 +45,11 @@ export function initialState(seed) {
 export function createCore({ seed = 1, initialState: provided } = {}) {
   let state = provided ?? initialState(seed);
   const director = createDirector({ seed });
+  // If the provided state carries a persisted RNG position, restore it on
+  // the director's RNG so a JSON round-trip yields identical lane draws.
+  if (provided && provided.rngState != null) {
+    director._rng.setState(provided.rngState);
+  }
 
   const pendingEvents = [];
   function emit(event) { pendingEvents.push(event); }
@@ -80,7 +85,11 @@ export function createCore({ seed = 1, initialState: provided } = {}) {
         state = { ...state, paused: !state.paused };
         break;
       case 'restart':
-        state = initialState(state.seed);
+        const fresh = initialState(state.seed);
+        // Reset the director's RNG too so a fresh run replays the same lane
+        // sequence from the seed.
+        director._rng.setState(((fresh.seed >>> 0) || 1));
+        state = fresh;
         break;
       case 'blur':
       case 'visibility':
@@ -158,7 +167,12 @@ export function createCore({ seed = 1, initialState: provided } = {}) {
       if (spawn) {
         const id = state.nextEnemyId;
         const enemy = { id, lane: spawn.lane, depth: 1, hp: 1 };
-        state = { ...state, enemies: [...state.enemies, enemy], nextEnemyId: id + 1 };
+        state = {
+          ...state,
+          enemies: [...state.enemies, enemy],
+          nextEnemyId: id + 1,
+          rngState: director._rng.getState()
+        };
         emit({ type: 'director-spawn', enemyId: id, lane: spawn.lane, tick: state.elapsedTicks });
       }
     }
@@ -194,6 +208,7 @@ export function createCore({ seed = 1, initialState: provided } = {}) {
   }
 
   function snapshot() {
+    const acc = computeAccuracyPercent(state.hits, state.shotsSpawned);
     return {
       seed: state.seed,
       lane: state.lane,
@@ -211,6 +226,8 @@ export function createCore({ seed = 1, initialState: provided } = {}) {
       shotsSpawned: state.shotsSpawned,
       hits: state.hits,
       kills: state.kills,
+      accuracyPercent: acc.percent,
+      accuracyDisplay: acc.display,
       recentEvents: state.recentEvents.slice()
     };
   }

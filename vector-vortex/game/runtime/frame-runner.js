@@ -26,7 +26,15 @@ export function createFrameRunner({ renderer, dom, onSnapshot, initialSeed = 1 }
     if (lastTs === 0) lastTs = ts;
     const dt = (ts - lastTs) / 1000;
     lastTs = ts;
-    if (document.visibilityState === 'hidden') return;
+    if (document.visibilityState === 'hidden') {
+      // Reset lastTs on the next visible frame so the first visible frame
+      // contributes no stale delta. The clock also refuses to accumulate
+      // while hidden (suppressWhileHidden), so this is belt-and-braces.
+      lastTs = 0;
+      clock.setHidden(true);
+      return;
+    }
+    clock.setHidden(false);
     if (window.__vv && window.__vv.pauseRaf === true) return;
     clock.pushDelta(dt);
     let safety = 8;
@@ -75,6 +83,19 @@ export function createFrameRunner({ renderer, dom, onSnapshot, initialSeed = 1 }
   }
 
   function dispatch(action) {
+    if (action && action.type === 'blur') {
+      // D2.5: window blur must stop authoritative tick advancement, not
+      // only clear held input. Pause the clock; resume comes from the
+      // focus-return handler or an explicit dispatch('resume-blur').
+      clock.pause();
+    } else if (action && action.type === 'visibility') {
+      // Visibility hidden: the loop already gates dt, but pause as well so
+      // any direct pushDelta from a test seam does not advance the sim.
+      if (document.visibilityState === 'hidden') clock.pause();
+      else clock.resume();
+    } else if (action && action.type === 'resume-blur') {
+      clock.resume();
+    }
     core.dispatch(action);
   }
 

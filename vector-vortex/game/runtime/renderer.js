@@ -133,10 +133,14 @@ export function createRenderer({ canvas }) {
       restoreCount++;
     }
 
-    // Enemies: outward-pointing chevrons at (lane, depth)
+    // Enemies: outward-pointing chevrons at (lane, depth).
+    // Depth contract: depth 1 is the far end (spawn), depth 0 is the player
+    // rim (breach). The mapping must invert t so depth=1 renders at farR and
+    // depth=0 renders at rimR. The previous code mapped depth=1 to rimR,
+    // which is backwards.
     for (const en of snapshot.enemies || []) {
-      const t = Math.max(0, Math.min(1, en.depth));
-      const r = farR + (rimR - farR) * t;
+      const depthT = 1 - Math.max(0, Math.min(1, en.depth));
+      const r = farR + (rimR - farR) * depthT;
       const a = laneToAngle(en.lane);
       const tip = polar(cx, cy, Math.max(2, r + 8), a);
       const b1 = polar(cx, cy, Math.max(2, r - 6), a - 0.18);

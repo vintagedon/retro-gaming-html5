@@ -160,7 +160,7 @@ html, body {
 }
 
 @media (max-width: 960px) {
-  .vv-viewport-warning {
+  .vv-viewport-warning.visible {
     display: block;
   }
 }

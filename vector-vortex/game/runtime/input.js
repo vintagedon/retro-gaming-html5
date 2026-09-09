@@ -15,12 +15,29 @@ function isGameSurfaceFocused(gameSurface) {
   return true;
 }
 
+// D2.4: when focus is on the game surface, fire/move/pause dispatch normally.
+// When focus is on a DOM control (e.g. pause/restart button), browser native
+// activation handles the key, and our dispatch is gated so Space activates
+// the button without firing and arrow keys on the button do not move the
+// player. The mutation toggle window.__vv.disableFocusGate re-enables
+// dispatch regardless of focus for the named mutation test.
+function focusGateOpen() {
+  if (typeof window !== 'undefined' && window.__vv && window.__vv.disableFocusGate === true) {
+    return true;
+  }
+  return false;
+}
+
 export function createInputAdapter({ gameSurface, pauseButton, restartButton, dispatch, onBlur, onVisibility }) {
   let destroyed = false;
 
   function keydown(ev) {
     if (destroyed) return;
     if (window.__vv && window.__vv.disableKeydown === true) return;
+    // D2.9: ignore key auto-repeat for the pause key so holding Escape or P
+    // does not toggle pause repeatedly. Movement and fire keys are still
+    // dispatched on repeat so held-to-fire / held-to-move keep working.
+    if (PAUSE_KEYS.has(ev.key) && ev.repeat) return;
     const key = ev.key;
 
     const isLeft = LEFT_KEYS.has(key);
@@ -29,6 +46,11 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
     const isPause = PAUSE_KEYS.has(key);
 
     if (!isLeft && !isRight && !isFire && !isPause) return;
+
+    // D2.4: gate movement, fire, and pause dispatch on the game surface
+    // holding focus, so Space on the pause button activates it without
+    // firing and arrow keys on the restart button do not move the player.
+    const focused = focusGateOpen() || isGameSurfaceFocused(gameSurface);
 
     // Space at window level is NEVER preventDefaulted in this adapter.
     // We use the explicit mutation toggle to opt into preventing it (the
@@ -44,10 +66,10 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
       ev.preventDefault();
     }
 
-    if (isLeft) dispatch({ type: 'left-down' });
-    else if (isRight) dispatch({ type: 'right-down' });
-    else if (isFire) dispatch({ type: 'fire-down' });
-    else if (isPause) dispatch({ type: 'pause' });
+    if (isLeft) { if (focused) dispatch({ type: 'left-down' }); }
+    else if (isRight) { if (focused) dispatch({ type: 'right-down' }); }
+    else if (isFire) { if (focused) dispatch({ type: 'fire-down' }); }
+    else if (isPause) { if (focused) dispatch({ type: 'pause' }); }
   }
 
   function keyup(ev) {
@@ -68,6 +90,11 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
   function onWindowBlur() {
     clearHeldInput();
     if (typeof onBlur === 'function') onBlur();
+  }
+
+  function onWindowFocus() {
+    // D2.5: focus-return resumes the clock that blur paused.
+    dispatch({ type: 'resume-blur' });
   }
 
   function onVisibility() {
@@ -105,6 +132,7 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
   window.addEventListener('keydown', keydown);
   window.addEventListener('keyup', keyup);
   window.addEventListener('blur', onWindowBlur);
+  window.addEventListener('focus', onWindowFocus);
   document.addEventListener('visibilitychange', onVisibility);
   if (pauseButton) pauseButton.addEventListener('click', onPauseClick);
   if (restartButton) restartButton.addEventListener('click', onRestartClick);
@@ -114,6 +142,7 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
     window.removeEventListener('keydown', keydown);
     window.removeEventListener('keyup', keyup);
     window.removeEventListener('blur', onWindowBlur);
+    window.removeEventListener('focus', onWindowFocus);
     document.removeEventListener('visibilitychange', onVisibility);
     if (pauseButton) pauseButton.removeEventListener('click', onPauseClick);
     if (restartButton) restartButton.removeEventListener('click', onRestartClick);

@@ -64,8 +64,12 @@ function start() {
       return renderer.getKeyCounters();
     },
     setLane(lane) {
+      // D2.6: the seam must not throw. Use advanceTicks(1) to step the
+      // simulation by one lane per tick. The buggy version called
+      // runner.tick(), which does not exist.
       runner.dispatch({ type: 'right-down' });
-      for (let i = 0; i < lane; i++) runner.tick();
+      for (let i = 0; i < lane; i++) runner.advanceTicks(1);
+      runner.dispatch({ type: 'right-up' });
     },
     setFire(pressed) {
       runner.dispatch(pressed ? { type: 'fire-down' } : { type: 'fire-up' });
