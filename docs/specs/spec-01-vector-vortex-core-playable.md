@@ -5,7 +5,7 @@ description: "Build the first playable Vector Vortex mechanics slice: a determin
 author: "VintageDon (https://github.com/vintagedon/)"
 date: "2026-09-08"
 version: "3.0"
-status: "Draft"
+status: "under-review"
 tags:
   - type: specification
   - domain: [game-design, implementation]
@@ -13,8 +13,8 @@ tags:
   - game: vector-vortex
   - series: vector-vortex
 related_documents:
-  - "[Superseded Spec 01 (archived)](../../recycle-bin/spec-01-vector-vortex-mvp-and-shell.md)"
-  - "[Superseded Spec 02 (archived)](../../recycle-bin/spec-02-vector-vortex-topology-shift-and-polish.md)"
+  - "[Superseded Spec 01 (deprecated)](spec-01-vector-vortex-mvp-and-shell.md)"
+  - "[Superseded Spec 02 (deprecated)](spec-02-vector-vortex-topology-shift-and-polish.md)"
   - "[Repository AGENTS](../../AGENTS.md)"
   - "[Specifications Index](README.md)"
 ---
@@ -28,13 +28,13 @@ This spec supersedes `2026-08/2026-08-16-retrohtml5-spec-01-vector-vortex-core-p
 
 ## Startup and Lifecycle
 
-Invoke the `spec-startup` skill before touching a deliverable. This is an operator-selected central-queue run targeting the Git repository at `/opt/agents/repos/retro-gaming-html5`. The authoritative spec remains in `/opt/agents/repos/spec/`.
+Invoke the `spec-startup` skill before touching a deliverable. This is an operator-selected central-queue run targeting this Git repository. The authoritative spec remains in the central spec queue.
 
 This repository runs a public pull-request lifecycle, defined in its own `AGENTS.md`. Create `task/vector-vortex-core-playable` from a clean `main`. Work the gates in order. Each gate ends in exactly one commit whose message carries the gate number and the game as scope, for example `feat(vector-vortex): add lane and depth core (gate 1)`. Check this spec's validation boxes in the commit that completes the gate whose validations they are. Push the branch and open one pull request against the default branch carrying the completed checklist and the exact reproduction commands. The maintainer merges. The executor never merges and never force-pushes.
 
-Read the target `AGENTS.md`, then the target `README.md`, then `/opt/agents/repos/docs/workload-guidance/browser-gaming.md` for the timing, determinism, rendering, input, accessibility, testing, and publishing conventions. If either authority contradicts this spec, stop and report the conflict rather than reconstructing it.
+Read the target `AGENTS.md`, then the target `README.md`, then the browser gaming workload guidance for the timing, determinism, rendering, input, accessibility, testing, and publishing conventions. If either authority contradicts this spec, stop and report the conflict rather than reconstructing it.
 
-Worklog and registry: this repository holds no in-repo worklog files. The worklog and the `work-registry.csv` row for this run are written to `/opt/agents/repos/work-logs/` at closeout. No validation in this spec may reference an in-repo worklog location.
+Worklog and registry: this repository holds no in-repo worklog files. The worklog and the `work-registry.csv` row for this run are written to the central worklog directory at closeout. No validation in this spec may reference an in-repo worklog location.
 
 ## Objective
 
@@ -46,7 +46,7 @@ This spec does not vendor GameUI, publish a preview, add topology shifts, add an
 
 | Field | Value |
 |---|---|
-| Target | `/opt/agents/repos/retro-gaming-html5` |
+| Target | This Git repository (the retro-gaming-html5 clone) |
 | Renderer | Canvas 2D with vanilla JavaScript ES modules; no bundler, Phaser, WebGL, or runtime build step |
 | Tests | Node built-in test runner for pure rules; Playwright with Chromium headless for the served page |
 | Node runtime | Pin the supported runtime in `package.json` `engines` and in `.nvmrc`. Test scripts must run on the pinned version in a fresh clone without relying on shell or runtime glob expansion |
@@ -71,11 +71,11 @@ This spec does not vendor GameUI, publish a preview, add topology shifts, add an
 
 ### Retirement rule
 
-Never delete a tracked file. Any superseded in-repo specification copy or index content is moved to `recycle-bin/` with a one-line reason, per the target `AGENTS.md`. A commit in this run that shows a deletion of a tracked Markdown file without a matching `recycle-bin/` addition fails Deliverable 4.
+Specifications are the public record and are never moved to `recycle-bin/`. A superseded specification stays tracked at its existing path with frontmatter `status: deprecated` and a `superseded_by` pointer to its replacement. `recycle-bin/` remains correct for retired non-specification content, per the target `AGENTS.md`.
 
 ### Do not touch
 
-- `/opt/agents/repos/html5-game-ui-framework` and all vendored or purchased reference packs.
+- The shared browser-game UI framework repository and all vendored or purchased reference packs.
 - Any existing game directory, the preview web root, nginx, or a public deployment.
 - Settings, persistence, synthesized audio, title/pause/end screens, framework vendoring, topology morphs, stun, Sprinter, Splitter, particles, shake, hitstop, or score popups.
 
@@ -208,16 +208,16 @@ Validation:
 
 #### Deliverable 4: Documentation, pull request, and closeout
 
-Update the game `README.md` and game `AGENTS.md` with the frozen architecture, exact commands, action map, current specification status, and the ownership boundary for Specs 02 and 03. Add this spec to `docs/specs/` with an index row. Retire any superseded in-repo spec copy to `recycle-bin/` with a one-line reason. Then push and open the pull request, and invoke `spec-closeout`.
+Update the game `README.md` and game `AGENTS.md` with the frozen architecture, exact commands, action map, current specification status, and the ownership boundary for Specs 02 and 03. Add this spec to `docs/specs/` with an index row. Mark superseded in-repo spec copies as `deprecated` with a `superseded_by` pointer. Then push and open the pull request, and invoke `spec-closeout`.
 
 Validation:
 
 - [ ] Documentation names the exact clean-install, unit, browser, and local-serve commands, and a reviewer following them from a fresh clone reproduces the checked validations.
 - [ ] Every internal link in the added in-repo spec and its index row resolves within the target repository. Mutation: any path copied from the authoring environment that does not exist in the clone fails this box.
-- [ ] No tracked Markdown file is deleted in this run. Retired content appears under `recycle-bin/` with its reason.
+- [ ] No tracked Markdown file is deleted in this run. Retired specifications stay tracked with `status: deprecated` and a `superseded_by` pointer.
 - [ ] The branch is `task/`-prefixed, pushed, and carries one pull request against the default branch, unmerged, with per-gate commits whose messages carry the gate number and game scope.
-- [ ] The worklog at `/opt/agents/repos/work-logs/` records the base commit, per-gate validation results, and commit SHAs; the central registry has the matching row.
-- [ ] This spec is archived to `/opt/agents/repos/spec/2026-09/` and no longer exists in the flat active queue.
+- [ ] The worklog at the central worklog directory records the base commit, per-gate validation results, and commit SHAs; the central registry has the matching row.
+- [ ] This spec is archived to the central spec archive and no longer exists in the flat active queue.
 
 ## Constraints
 

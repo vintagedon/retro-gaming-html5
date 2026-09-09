@@ -15,7 +15,7 @@ tags:
 related_documents:
   - "[Repository AGENTS](../AGENTS.md)"
   - "[Game README](README.md)"
-  - "[Vector Vortex Spec 01](/opt/agents/repos/spec/2026-09-08-retrohtml5-spec-01-vector-vortex-core-playable.md)"
+  - "[Vector Vortex Spec 01](../docs/specs/spec-01-vector-vortex-core-playable.md)"
   - "[Deliverable 1 Plan](docs/superpowers/plans/2026-09-08-vector-vortex-deliverable-1.md)"
   - "[Deliverable 2 Plan](docs/superpowers/plans/2026-09-08-vector-vortex-deliverable-2.md)"
 ---
@@ -61,11 +61,11 @@ The simulation is authoritative. The renderer is presentation-only and never adv
 | Band | Elapsed ticks | Interval | First spawn tick | Second spawn tick |
 |---|---|---:|---:|---:|
 | 1 | 0..3,599 | 60 | 59 | 119 |
-| 2 | 3,600..10,799 | 48 | 3,659 | 3,707 |
+| 2 | 3,600..10,799 | 48 | 3,647 | 3,695 |
 | 3 | 10,800..14,399 | 36 | 10,835 | 10,871 |
 | 4 | 14,400..17,999 | 27 | 14,426 | 14,453 |
 
-A band's first spawn = `bandStart + (interval - 1)`. Band 2's first spawn of 3,659 is the spec's explicit value and is documented in `docs/spec-defects.md` as a spec wording inconsistency: the construction would yield 3,647 by uniform rule, but the spec pins 3,659 and the validation box explicitly references that index. See the defect note.
+A band's first spawn = `bandStart + (interval - 1)` per the corrected Spec 01b construction. Band 2's first spawn is therefore 3,647 (not the 3,659 from the earlier spec draft); see `docs/spec-defects.md` for the amendment history.
 
 ### Scoring
 

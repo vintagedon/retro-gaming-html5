@@ -13,7 +13,7 @@ tags:
   - game: vector-vortex
   - series: vector-vortex
 related_documents:
-  - "[Vector Vortex Spec 01](/opt/agents/repos/spec/2026-09-08-retrohtml5-spec-01-vector-vortex-core-playable.md)"
+  - "[Vector Vortex Spec 01](../../../../docs/specs/spec-01-vector-vortex-core-playable.md)"
   - "[Repository AGENTS](../../../../AGENTS.md)"
 ---
 

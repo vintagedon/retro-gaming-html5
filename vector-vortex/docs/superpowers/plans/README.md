@@ -13,7 +13,7 @@ tags:
   - game: vector-vortex
   - series: vector-vortex
 related_documents:
-  - "[Game AGENTS](../../AGENTS.md)"
+  - "[Game AGENTS](../../../AGENTS.md)"
 ---
 
 # Vector Vortex `docs/superpowers/plans/`

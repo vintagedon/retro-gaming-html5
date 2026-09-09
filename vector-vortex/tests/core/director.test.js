@@ -1,14 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bandForTick, shouldSpawnOnTick, nextSpawnTickAfter, createDirector, BANDS } from '../../game/core/director.js';
+import { bandForTick, shouldSpawnOnTick, nextSpawnTickAfter, createDirector, BANDS, firstSpawnForBand } from '../../game/core/director.js';
 
-test('BANDS table includes window, interval, and explicit firstSpawn tick', () => {
-  assert.deepEqual(BANDS, [
-    { start: 0, end: 3599, interval: 60, firstSpawn: 59 },
-    { start: 3600, end: 10799, interval: 48, firstSpawn: 3659 },
-    { start: 10800, end: 14399, interval: 36, firstSpawn: 10835 },
-    { start: 14400, end: 17999, interval: 27, firstSpawn: 14426 }
-  ]);
+test('BANDS table carries window and interval only; first spawn is computed uniformly per the corrected construction', () => {
+  for (const b of BANDS) {
+    assert.ok(typeof b.start === 'number' && typeof b.end === 'number' && typeof b.interval === 'number');
+    assert.equal(b.firstSpawn, undefined, 'per-band explicit firstSpawn removed; construction is authoritative');
+  }
 });
 
 test('bandForTick maps every tick 0..17999 to its band', () => {
@@ -35,12 +33,13 @@ test('shouldSpawnOnTick: exact band-1 spawn ticks 59 and 119', () => {
   assert.equal(shouldSpawnOnTick(58, b1), false);
 });
 
-test('shouldSpawnOnTick: exact band-2 first spawn 3659, second 3707', () => {
-  const b2 = bandForTick(3659);
-  assert.equal(shouldSpawnOnTick(3659, b2), true);
-  assert.equal(shouldSpawnOnTick(3707, b2), true);
-  assert.equal(shouldSpawnOnTick(3660, b2), false);
-  assert.equal(shouldSpawnOnTick(3600, b2), false);
+test('shouldSpawnOnTick: exact band-2 first spawn 3647, second 3695', () => {
+  const b2 = bandForTick(3647);
+  assert.equal(shouldSpawnOnTick(3647, b2), true);
+  assert.equal(shouldSpawnOnTick(3695, b2), true);
+  assert.equal(shouldSpawnOnTick(3646, b2), false);
+  assert.equal(shouldSpawnOnTick(3648, b2), false);
+  assert.equal(shouldSpawnOnTick(3659, b2), false, 'the erroneous 3659 explicit value must NOT spawn under the corrected construction');
 });
 
 test('shouldSpawnOnTick: exact band-3 first spawn 10835, second 10871', () => {
@@ -63,9 +62,9 @@ test('MUTATION one-tick offset in either direction makes a band-1/band-2 spawn a
   const b1 = bandForTick(59);
   assert.notEqual(shouldSpawnOnTick(58, b1), true, 'tick 58 must NOT spawn (off-by-one)');
   assert.notEqual(shouldSpawnOnTick(60, b1), true, 'tick 60 must NOT spawn (off-by-one)');
-  const b2 = bandForTick(3659);
-  assert.notEqual(shouldSpawnOnTick(3658, b2), true);
-  assert.notEqual(shouldSpawnOnTick(3660, b2), true);
+  const b2 = bandForTick(3647);
+  assert.notEqual(shouldSpawnOnTick(3646, b2), true);
+  assert.notEqual(shouldSpawnOnTick(3648, b2), true);
 });
 
 test('director with fixed seed produces identical lane sequence across two runs', () => {
@@ -93,4 +92,47 @@ test('nextSpawnTickAfter returns the next spawn tick within the band', () => {
   assert.equal(nextSpawnTickAfter(0, b1), 59);
   assert.equal(nextSpawnTickAfter(59, b1), 119);
   assert.equal(nextSpawnTickAfter(60, b1), 119);
+});
+
+test('firstSpawnForBand computes bandStart + interval - 1 uniformly for every band', () => {
+  for (const b of BANDS) {
+    const expected = b.start + (b.interval - 1);
+    assert.equal(firstSpawnForBand(b), expected, `band ${b.start} expected first spawn ${expected}`);
+  }
+  const b1 = BANDS[0];
+  const b2 = BANDS[1];
+  const b3 = BANDS[2];
+  const b4 = BANDS[3];
+  assert.equal(firstSpawnForBand(b1), 59);
+  assert.equal(firstSpawnForBand(b2), 3647);
+  assert.equal(firstSpawnForBand(b3), 10835);
+  assert.equal(firstSpawnForBand(b4), 14426);
+});
+
+test('MUTATION off-by-one in firstSpawnForBand construction fails the uniform-value assertion', () => {
+  for (const b of BANDS) {
+    const correct = b.start + (b.interval - 1);
+    const minus1 = b.start + (b.interval - 2);
+    const plus1 = b.start + b.interval;
+    assert.notEqual(firstSpawnForBand(b), minus1, `band ${b.start}: minus1 must not equal correct`);
+    assert.notEqual(firstSpawnForBand(b), plus1, `band ${b.start}: plus1 must not equal correct`);
+    assert.equal(firstSpawnForBand(b), correct);
+  }
+});
+
+test('D1 validation: director first-spawn indices 59, 3647, 10835, 14426 are produced at the fixed seed', () => {
+  const dir = createDirector({ seed: 0xC0FFEE });
+  const expectedFirsts = [59, 3647, 10835, 14426];
+  const seenFirsts = new Set();
+  const lanes = [];
+  for (let t = 0; t < 18000; t++) {
+    const out = dir.tickSpawned({ elapsedTicks: t });
+    if (out) {
+      if (expectedFirsts.includes(t)) seenFirsts.add(t);
+      lanes.push({ tick: t, lane: out.lane });
+    }
+  }
+  for (const f of expectedFirsts) {
+    assert.ok(seenFirsts.has(f), `expected first-spawn tick ${f} to be produced; got firsts ${[...seenFirsts].sort((a,b)=>a-b)}`);
+  }
 });

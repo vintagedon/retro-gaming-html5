@@ -14,7 +14,7 @@ tags:
   - series: vector-vortex
 related_documents:
   - "[Agent Instructions](AGENTS.md)"
-  - "[Spec 01: Deterministic Core Playable](/opt/agents/repos/spec/2026-09-08-retrohtml5-spec-01-vector-vortex-core-playable.md)"
+  - "[Spec 01: Deterministic Core Playable](../docs/specs/spec-01-vector-vortex-core-playable.md)"
   - "[Deliverable 1 Plan](docs/superpowers/plans/2026-09-08-vector-vortex-deliverable-1.md)"
   - "[Deliverable 2 Plan](docs/superpowers/plans/2026-09-08-vector-vortex-deliverable-2.md)"
   - "[Deliverable 3 Plan](docs/superpowers/plans/2026-09-08-vector-vortex-deliverable-3.md)"

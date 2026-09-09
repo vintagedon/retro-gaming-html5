@@ -12,7 +12,7 @@ test('director: first and second spawn of every band land on the exact tick', ()
   // reach tick index `c.first` we run `c.first + 1` ticks.
   const cases = [
     { first: 59, second: 119 },
-    { first: 3659, second: 3707 },
+    { first: 3647, second: 3695 },
     { first: 10835, second: 10871 },
     { first: 14426, second: 14453 }
   ];
@@ -38,8 +38,8 @@ test('director: off-by-one in either direction fails', () => {
   // are NOT spawn ticks.
   assert.equal(shouldSpawnOnTick(58, bandForTick(59)), false);
   assert.equal(shouldSpawnOnTick(60, bandForTick(59)), false);
-  assert.equal(shouldSpawnOnTick(3658, bandForTick(3659)), false);
-  assert.equal(shouldSpawnOnTick(3660, bandForTick(3659)), false);
+  assert.equal(shouldSpawnOnTick(3646, bandForTick(3647)), false);
+  assert.equal(shouldSpawnOnTick(3648, bandForTick(3647)), false);
 });
 
 test('director: same seed reproduces identical lane sequence in two independent runs', () => {
