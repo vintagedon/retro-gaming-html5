@@ -40,17 +40,65 @@ for (const v of VIEWPORTS) {
   });
 }
 
-test('below 960x540: warning message is visible', async ({ page }) => {
-  await page.setViewportSize({ width: 800, height: 480 });
+test('DPR 1 probe: tube, status, and controls have no overlap and are not off-screen', async ({ browser }) => {
+  const context = await browser.newContext({ deviceScaleFactor: 1, viewport: { width: 1024, height: 576 } });
+  const page = await context.newPage();
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
-  // The warning is shown by CSS at max-width 960; the [hidden] attribute is
-  // removed only by JS if we want a stronger signal. CSS makes it visible.
-  const visible = await page.evaluate(() => {
+  const layout = await page.evaluate(() => {
+    const winW = window.innerWidth;
+    const docW = document.documentElement.scrollWidth;
+    const status = document.getElementById('vv-status');
+    const canvas = document.getElementById('vv-canvas');
+    const pause = document.getElementById('vv-pause');
+    const restart = document.getElementById('vv-restart');
+    const a = status.getBoundingClientRect();
+    const b = canvas.getBoundingClientRect();
+    const c = pause.getBoundingClientRect();
+    const d = restart.getBoundingClientRect();
+    return {
+      docW, winW,
+      statusBox: { x: a.x, y: a.y, w: a.width, h: a.height },
+      canvasBox: { x: b.x, y: b.y, w: b.width, h: b.height },
+      pauseBox: { x: c.x, y: c.y, w: c.width, h: c.height },
+      restartBox: { x: d.x, y: d.y, w: d.width, h: d.height }
+    };
+  });
+  expect(layout.docW).toBeLessThanOrEqual(layout.winW);
+  for (const k of ['statusBox', 'canvasBox', 'pauseBox', 'restartBox']) {
+    const b = layout[k];
+    expect(b.x).toBeGreaterThanOrEqual(0);
+    expect(b.x + b.w).toBeLessThanOrEqual(layout.winW);
+    expect(b.w).toBeGreaterThan(0);
+  }
+  expect(layout.statusBox.y + layout.statusBox.h).toBeLessThanOrEqual(layout.canvasBox.y);
+  expect(layout.canvasBox.y + layout.canvasBox.h).toBeLessThanOrEqual(layout.pauseBox.y);
+  await context.close();
+});
+
+test('below 960x540: warning is visible; above 960 it is not (D2.7)', async ({ browser }) => {
+  const ctxSmall = await browser.newContext({ viewport: { width: 800, height: 480 } });
+  const pageSmall = await ctxSmall.newPage();
+  await pageSmall.goto('/');
+  await pageSmall.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  const visibleSmall = await pageSmall.evaluate(() => {
     const w = document.querySelector('[data-testid="vv-viewport-warning"]');
     if (!w) return false;
     const cs = window.getComputedStyle(w);
     return cs.display !== 'none' && w.getBoundingClientRect().width > 0;
   });
-  expect(visible).toBe(true);
+  expect(visibleSmall).toBe(true);
+  await ctxSmall.close();
+  const ctxWide = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const pageWide = await ctxWide.newPage();
+  await pageWide.goto('/');
+  await pageWide.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  const visibleWide = await pageWide.evaluate(() => {
+    const w = document.querySelector('[data-testid="vv-viewport-warning"]');
+    if (!w) return false;
+    const cs = window.getComputedStyle(w);
+    return cs.display !== 'none' && w.getBoundingClientRect().width > 0;
+  });
+  expect(visibleWide).toBe(false);
+  await ctxWide.close();
 });

@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createCore } from '../../game/core/core.js';
 import {
   tryFireShot,
   advanceShots,
@@ -67,6 +68,48 @@ test('cap of 6 active shots: 7th fire blocked', () => {
   const before = s.shots.length;
   s = tryFireShot(s);
   assert.equal(s.shots.length, before, 'seventh shot must be blocked');
+});
+
+test('blocked-fire denominator: a run with blocked requests has a smaller shotsSpawned than one without (D3.7)', () => {
+  const runCapped = () => {
+    const core = createCore({ seed: 1 });
+    for (let t = 0; t < 100; t++) {
+      core.dispatch({ type: 'fire-down' });
+      core.tick();
+    }
+    core.dispatch({ type: 'fire-up' });
+    return core.snapshot().shotsSpawned;
+  };
+  const capped = runCapped();
+  assert.ok(capped <= 100, `shotsSpawned cannot exceed fire attempts; got ${capped}`);
+  assert.ok(capped < 100, `some fire attempts must be blocked or expired; got ${capped}`);
+});
+
+test('MUTATION: counting blocked fires in shotsSpawned is detected by the comparison', () => {
+  const runBuggy = () => {
+    const core = createCore({ seed: 1 });
+    for (let t = 0; t < 100; t++) {
+      core.dispatch({ type: 'fire-down' });
+      const s = core.getState();
+      core.setState({ ...s, shotsSpawned: s.shotsSpawned + 1 });
+      core.tick();
+    }
+    core.dispatch({ type: 'fire-up' });
+    return core.snapshot().shotsSpawned;
+  };
+  const runCorrect = () => {
+    const core = createCore({ seed: 1 });
+    for (let t = 0; t < 100; t++) {
+      core.dispatch({ type: 'fire-down' });
+      core.tick();
+    }
+    core.dispatch({ type: 'fire-up' });
+    return core.snapshot().shotsSpawned;
+  };
+  const buggy = runBuggy();
+  const correct = runCorrect();
+  assert.ok(buggy > correct,
+    'mutation: buggy version must have a higher shotsSpawned than the correct version');
 });
 
 test('advanceShots moves each shot inward by SHOT_SPEED', () => {

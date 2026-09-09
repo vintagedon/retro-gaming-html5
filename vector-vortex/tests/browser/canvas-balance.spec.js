@@ -11,32 +11,32 @@ test('saveCount === restoreCount on frame 1 and frame 30 at DPR 2', async ({ bro
   // Render 30 frames.
   for (let i = 0; i < 30; i++) {
     await page.evaluate(() => window.__vv.advanceTicks(0));
-    // Trigger a render by also calling getKeyCounters after a microtask.
     await page.waitForTimeout(20);
   }
   const counters = await page.evaluate(() => window.__vv.getKeyCounters());
-  expect(counters.saveCount).toBe(counters.restoreCount);
-  // The composed transform must be identity-like after rendering a frame.
-  // We re-render and read the transform.
-  const t1 = await page.evaluate(() => {
-    const c = document.getElementById('vv-canvas');
-    const ctx = c.getContext('2d');
-    return Array.from(ctx.getTransform());
-  });
-  // Trigger another frame and re-read.
-  await page.evaluate(() => window.__vv.advanceTicks(0));
-  await page.waitForTimeout(20);
-  const t2 = await page.evaluate(() => {
-    const c = document.getElementById('vv-canvas');
-    const ctx = c.getContext('2d');
-    return Array.from(ctx.getTransform());
-  });
-  // m11, m22 should be the DPR; a, d should be 0; e, f should be 0.
-  // We assert the transform is identical between two frames.
-  for (let i = 0; i < 6; i++) {
-    expect(t1[i]).toBe(t2[i]);
-  }
-  await context.close();
+  // D3.6: saveCount must be strictly greater than zero (frames actually
+    // rendered) AND equal to restoreCount (balanced stack).
+    expect(counters.saveCount).toBeGreaterThan(0);
+    expect(counters.saveCount).toBe(counters.restoreCount);
+    // Compare the composed transform across two frames at DPR 2.
+    const t1 = await page.evaluate(() => {
+      const c = document.getElementById('vv-canvas');
+      const ctx = c.getContext('2d');
+      return Array.from(ctx.getTransform());
+    });
+    await page.evaluate(() => window.__vv.advanceTicks(0));
+    await page.waitForTimeout(20);
+    const t2 = await page.evaluate(() => {
+      const c = document.getElementById('vv-canvas');
+      const ctx = c.getContext('2d');
+      return Array.from(ctx.getTransform());
+    });
+    // m11, m22 should be the DPR; a, d should be 0; e, f should be 0.
+    expect(t2[0]).toBeGreaterThan(1); // DPR > 1, so m11 > 1
+    for (let i = 0; i < 6; i++) {
+      expect(t1[i]).toBe(t2[i]);
+    }
+    await context.close();
 });
 
 test('MUTATION: skipOneRestore unbalances the save/restore counter', async ({ browser }) => {

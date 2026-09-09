@@ -41,6 +41,20 @@ test('rules modules contain no DOM/Canvas/Audio/clock APIs', () => {
   assert.deepEqual(offenders, [], `forbidden APIs found: ${offenders.join(', ')}`);
 });
 
+test('game/core/ contains no test-only or mutation module (D3.1)', () => {
+  // Mutation helpers live under tests/_mutations/, never under game/core/.
+  const files = walk(RULES_DIR);
+  const offenders = files.filter(f => /-mutation\.js$|_mutation\.js$|_mutations\.js$/.test(f));
+  assert.deepEqual(offenders, [], `mutation helpers found in game/core/: ${offenders.join(', ')}`);
+});
+
+test('MUTATION: a -mutation.js helper under game/core/ is detected', () => {
+  // The check must reject any filename matching the mutation pattern.
+  const re = /-mutation\.js$|_mutation\.js$|_mutations\.js$/;
+  assert.ok(re.test('foo/bar/rng-mutation.js'), 'mutation: regex must detect rng-mutation.js');
+  assert.ok(!re.test('foo/bar/core.js'), 'regex must NOT match core.js');
+});
+
 test('MUTATION injecting Math.random into a rules module is detected by the forbidden list', () => {
   // The forbidden list contains /Math\.random\b/. If a rules file imported or
   // called Math.random, the assertion above would report it. This is a

@@ -145,3 +145,42 @@ test('JSON round-trip: serialize core state, deserialize, identical digest', () 
   twin.advance(20);
   assert.equal(digest(core), digest(twin));
 });
+
+test('dropped-field mutation: omitting nextShotId from the snapshot breaks the round-trip (D3.5)', () => {
+  const core = createCore({ seed: 11 });
+  core.dispatch({ type: 'fire-down' });
+  core.advance(20);
+  const restored = { ...JSON.parse(JSON.stringify(core.getState())) };
+  delete restored.nextShotId;
+  const twin = createCore({ seed: 11, initialState: restored });
+  twin.dispatch({ type: 'fire-down' });
+  twin.advance(5);
+  // Shots have IDs from the restored state; the fresh core has IDs starting
+  // from 1. Their digests must differ.
+  assert.notEqual(digest(core), digest(twin),
+    'mutation: dropping nextShotId must produce divergent digests');
+});
+
+test('dropped-field mutation: omitting nextEnemyId from the snapshot breaks the round-trip (D3.5)', () => {
+  const core = createCore({ seed: 11 });
+  core.advance(60); // past first spawn tick (59)
+  const restored = { ...JSON.parse(JSON.stringify(core.getState())) };
+  delete restored.nextEnemyId;
+  const twin = createCore({ seed: 11, initialState: restored });
+  twin.advance(5);
+  assert.notEqual(digest(core), digest(twin),
+    'mutation: dropping nextEnemyId must produce divergent digests');
+});
+
+test('dropped-field mutation: omitting rngState from the snapshot breaks the round-trip (D3.5)', () => {
+  const core = createCore({ seed: 11 });
+  core.advance(60);
+  const mutated = { ...JSON.parse(JSON.stringify(core.getState())) };
+  delete mutated.rngState;
+  const twin = createCore({ seed: 11, initialState: mutated });
+  twin.advance(60);
+  // Both cores have advanced 60 ticks total, but the second core starts
+  // with a fresh director RNG, so the next lane differs.
+  assert.notEqual(digest(core), digest(twin),
+    'mutation: dropping rngState must produce divergent digests');
+});

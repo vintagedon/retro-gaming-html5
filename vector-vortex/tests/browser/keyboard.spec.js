@@ -61,3 +61,54 @@ test('keyboard-only flow reaches both outcomes through the test seam', async ({ 
   expect(outcomes.survived).toBeGreaterThan(0);
   expect(outcomes.lost).toBeGreaterThan(0);
 });
+
+test('D3.8 keyboard flow: lane wrap 23→0, hold-fire through cooldown, pause and resume', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  await page.evaluate(() => { window.__vv.pauseRaf = true; });
+  await page.locator('#vv-canvas').focus();
+
+  // 1. Lane wrap 23→0: from lane 0, advance 24 right-steps; the wrap must
+  //    return to lane 0.
+  await page.keyboard.down('ArrowRight');
+  await page.evaluate(() => window.__vv.advanceTicks(24));
+  await page.keyboard.up('ArrowRight');
+  const afterWrap = await page.evaluate(() => window.__vv.getSnapshot().lane);
+  expect(afterWrap).toBe(0);
+
+  // 2. Hold-fire through cooldown: hold Space for 20 ticks (> 8-tick cooldown)
+  //    and assert shotsSpawned > 1 (multiple shots fired).
+  await page.evaluate(() => window.__vv.reset(1));
+  await page.locator('#vv-canvas').focus();
+  await page.keyboard.down('Space');
+  await page.evaluate(() => window.__vv.advanceTicks(20));
+  await page.keyboard.up('Space');
+  const shots = await page.evaluate(() => window.__vv.getSnapshot().shotsSpawned);
+  expect(shots).toBeGreaterThan(1);
+
+  // 3. Pause and resume: dispatch pause, verify paused, advanceTicks does
+  //    nothing while paused, then resume and verify ticks advance.
+  await page.evaluate(() => window.__vv.reset(1));
+  await page.locator('#vv-canvas').focus();
+  await page.keyboard.down('ArrowRight');
+  await page.evaluate(() => window.__vv.advanceTicks(3));
+  await page.keyboard.up('ArrowRight');
+  await page.keyboard.press('Escape');
+  // Pause: blur the canvas by dispatching pause via the pause button click,
+  // which is what the production wiring does.
+  await page.locator('#vv-pause').focus();
+  await page.keyboard.press('Space'); // activates the focused pause button
+  const pausedSnap = await page.evaluate(() => window.__vv.getSnapshot());
+  expect(pausedSnap.paused).toBe(true);
+  const before = pausedSnap.elapsedTicks;
+  await page.evaluate(() => window.__vv.advanceTicks(60));
+  const stillPaused = await page.evaluate(() => window.__vv.getSnapshot());
+  expect(stillPaused.elapsedTicks).toBe(before);
+  // Resume via the pause button.
+  await page.locator('#vv-pause').focus();
+  await page.keyboard.press('Space');
+  await page.evaluate(() => window.__vv.advanceTicks(3));
+  const resumed = await page.evaluate(() => window.__vv.getSnapshot());
+  expect(resumed.paused).toBe(false);
+  expect(resumed.elapsedTicks).toBeGreaterThan(before);
+});

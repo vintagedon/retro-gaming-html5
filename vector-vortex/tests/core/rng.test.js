@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRng } from '../../game/core/rng.js';
-import { intBuggy } from '../../game/core/rng-mutation.js';
+import { intBuggy } from '../_mutations/int-buggy.js';
 
 test('RNG next() produces floats in [0, 1) for many draws', () => {
   const rng = createRng(42);

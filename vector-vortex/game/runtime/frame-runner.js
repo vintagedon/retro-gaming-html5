@@ -22,6 +22,7 @@ export function createFrameRunner({ renderer, dom, onSnapshot, initialSeed = 1 }
 
   function loop(ts) {
     if (!running) return;
+    if (window.__vv && window.__vv.disableFrameRunner === true) return;
     rafId = requestAnimationFrame(loop);
     if (lastTs === 0) lastTs = ts;
     const dt = (ts - lastTs) / 1000;

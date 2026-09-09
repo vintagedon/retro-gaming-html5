@@ -33,6 +33,7 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
 
   function keydown(ev) {
     if (destroyed) return;
+    if (window.__vv && window.__vv.disableInputAdapter === true) return;
     if (window.__vv && window.__vv.disableKeydown === true) return;
     // D2.9: ignore key auto-repeat for the pause key so holding Escape or P
     // does not toggle pause repeatedly. Movement and fire keys are still
@@ -74,6 +75,7 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
 
   function keyup(ev) {
     if (destroyed) return;
+    if (window.__vv && window.__vv.disableInputAdapter === true) return;
     if (window.__vv && window.__vv.disableKeydown === true) return;
     const key = ev.key;
     if (LEFT_KEYS.has(key)) dispatch({ type: 'left-up' });
@@ -88,17 +90,19 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
   }
 
   function onWindowBlur() {
+    if (window.__vv && window.__vv.disableInputAdapter === true) return;
     clearHeldInput();
     if (typeof onBlur === 'function') onBlur();
   }
 
   function onWindowFocus() {
-    // D2.5: focus-return resumes the clock that blur paused.
+    if (window.__vv && window.__vv.disableInputAdapter === true) return;
     dispatch({ type: 'resume-blur' });
   }
 
   function onVisibility() {
     if (document.visibilityState === 'hidden') {
+      if (window.__vv && window.__vv.disableInputAdapter === true) return;
       clearHeldInput();
       if (typeof onVisibility === 'function') onVisibility();
     }
