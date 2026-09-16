@@ -3,13 +3,6 @@
 
 import { test, expect } from '@playwright/test';
 
-function readTransform(ctx) {
-  // Chromium's DOMMatrix exposes the composed transform via named
-  // properties (m11..m42 and a..f), not by numeric indexing.
-  const t = ctx.getTransform();
-  return [t.a, t.b, t.c, t.d, t.e, t.f];
-}
-
 test('saveCount === restoreCount on frame 1 and frame 30 at DPR 2', async ({ browser }) => {
   const context = await browser.newContext({ deviceScaleFactor: 2, viewport: { width: 1280, height: 720 } });
   const page = await context.newPage();

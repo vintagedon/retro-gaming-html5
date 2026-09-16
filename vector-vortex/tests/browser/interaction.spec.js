@@ -149,9 +149,11 @@ test('restart from a paused outcome screen produces a running fresh run without 
   expect(snap.outcome).toBe(null);
   // The fresh run must advance on its own, with no pause toggle.
   const atRestart = await ticks(page);
-  await page.waitForTimeout(700);
-  const advanced = (await ticks(page)) - atRestart;
-  expect(advanced).toBeGreaterThan(15);
+  await page.waitForFunction(
+    (t) => window.__vv.getSnapshot().elapsedTicks - t >= 15,
+    atRestart,
+    { timeout: 3000 }
+  );
 });
 
 test('keyboard pause clears held movement and fire for both P and Escape', async ({ page }) => {
@@ -161,12 +163,16 @@ test('keyboard pause clears held movement and fire for both P and Escape', async
     await page.locator('#vv-canvas').focus();
     await page.keyboard.down('ArrowRight');
     await page.keyboard.down('Space');
-    await page.waitForTimeout(200);
+    // Wait for real advancement instead of a fixed window. ~31 ticks of
+    // held movement (allowing one tick of dispatch latency) lands the
+    // lane safely away from both 0 and the 24-lane wrap.
+    await page.waitForFunction(() => window.__vv.getSnapshot().elapsedTicks >= 31, null, { timeout: 5000 });
     const held = await page.evaluate(() => window.__vv.getSnapshot());
     expect(held.lane).toBeGreaterThan(0);
     expect(held.shotsSpawned).toBeGreaterThan(0);
     const laneAtPause = held.lane;
     const shotsAtPause = held.shotsSpawned;
+    const ticksAtPause = held.elapsedTicks;
     await page.keyboard.press(pauseKey);
     expect(await page.evaluate(() => window.__vv.getSnapshot().paused)).toBe(true);
     // Held flags must already be clear, before any gameplay-key release.
@@ -184,7 +190,11 @@ test('keyboard pause clears held movement and fire for both P and Escape', async
     await page.keyboard.up('Space');
     await page.keyboard.down('ArrowRight');
     await page.keyboard.down('Space');
-    await page.waitForTimeout(200);
+    await page.waitForFunction(
+      (t) => window.__vv.getSnapshot().elapsedTicks >= t + 25,
+      ticksAtPause + 31,
+      { timeout: 5000 }
+    );
     const again = await page.evaluate(() => window.__vv.getSnapshot());
     expect(again.lane).not.toBe(laneAtPause);
     expect(again.shotsSpawned).toBeGreaterThan(shotsAtPause);
@@ -201,9 +211,10 @@ test('mouse pause and resume restore canvas keyboard control; Space-activated re
   expect(await page.evaluate(() => window.__vv.getSnapshot().paused)).toBe(true);
   await page.click('#vv-pause');
   expect(await page.evaluate(() => window.__vv.getSnapshot().paused)).toBe(false);
-  // With no intervening click, an arrow key must move the player.
+  // With no intervening click, an arrow key must move the player. ~25
+  // ticks of held movement lands the lane safely away from 0 and the wrap.
   await page.keyboard.down('ArrowRight');
-  await page.waitForTimeout(200);
+  await page.waitForFunction(() => window.__vv.getSnapshot().elapsedTicks >= 31, null, { timeout: 5000 });
   await page.keyboard.up('ArrowRight');
   expect(await page.evaluate(() => window.__vv.getSnapshot().lane)).toBeGreaterThan(0);
   // Reach an outcome, then activate the enabled Restart with Space.
@@ -216,10 +227,17 @@ test('mouse pause and resume restore canvas keyboard control; Space-activated re
   expect(afterRestart.outcome).toBe(null);
   // Ticks advance and canvas keyboard control returns without another click.
   const atRestart = await ticks(page);
-  await page.waitForTimeout(500);
-  expect((await ticks(page)) - atRestart).toBeGreaterThan(10);
+  await page.waitForFunction(
+    (t) => window.__vv.getSnapshot().elapsedTicks - t >= 15,
+    atRestart,
+    { timeout: 3000 }
+  );
   await page.keyboard.down('ArrowRight');
-  await page.waitForTimeout(200);
+  await page.waitForFunction(
+    (t) => window.__vv.getSnapshot().elapsedTicks >= t + 25,
+    atRestart + 15,
+    { timeout: 5000 }
+  );
   await page.keyboard.up('ArrowRight');
   expect(await page.evaluate(() => window.__vv.getSnapshot().lane)).toBeGreaterThan(0);
 });
