@@ -3,6 +3,13 @@
 
 import { test, expect } from '@playwright/test';
 
+function readTransform(ctx) {
+  // Chromium's DOMMatrix exposes the composed transform via named
+  // properties (m11..m42 and a..f), not by numeric indexing.
+  const t = ctx.getTransform();
+  return [t.a, t.b, t.c, t.d, t.e, t.f];
+}
+
 test('saveCount === restoreCount on frame 1 and frame 30 at DPR 2', async ({ browser }) => {
   const context = await browser.newContext({ deviceScaleFactor: 2, viewport: { width: 1280, height: 720 } });
   const page = await context.newPage();
@@ -22,16 +29,16 @@ test('saveCount === restoreCount on frame 1 and frame 30 at DPR 2', async ({ bro
     const t1 = await page.evaluate(() => {
       const c = document.getElementById('vv-canvas');
       const ctx = c.getContext('2d');
-      return Array.from(ctx.getTransform());
+      return [ctx.getTransform().a, ctx.getTransform().b, ctx.getTransform().c, ctx.getTransform().d, ctx.getTransform().e, ctx.getTransform().f];
     });
     await page.evaluate(() => window.__vv.advanceTicks(0));
     await page.waitForTimeout(20);
     const t2 = await page.evaluate(() => {
       const c = document.getElementById('vv-canvas');
       const ctx = c.getContext('2d');
-      return Array.from(ctx.getTransform());
+      return [ctx.getTransform().a, ctx.getTransform().b, ctx.getTransform().c, ctx.getTransform().d, ctx.getTransform().e, ctx.getTransform().f];
     });
-    // m11, m22 should be the DPR; a, d should be 0; e, f should be 0.
+    // a (m11) and d (m22) should be the DPR; b, c, e, f should be 0.
     expect(t2[0]).toBeGreaterThan(1); // DPR > 1, so m11 > 1
     for (let i = 0; i < 6; i++) {
       expect(t1[i]).toBe(t2[i]);

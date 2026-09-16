@@ -86,16 +86,15 @@ test('D3.8 keyboard flow: lane wrap 23→0, hold-fire through cooldown, pause an
   const shots = await page.evaluate(() => window.__vv.getSnapshot().shotsSpawned);
   expect(shots).toBeGreaterThan(1);
 
-  // 3. Pause and resume: dispatch pause, verify paused, advanceTicks does
-  //    nothing while paused, then resume and verify ticks advance.
+  // 3. Pause and resume: dispatch pause via the pause button click,
+  //    verify paused, advanceTicks does nothing while paused, then
+  //    resume via the pause button and verify ticks advance.
   await page.evaluate(() => window.__vv.reset(1));
   await page.locator('#vv-canvas').focus();
   await page.keyboard.down('ArrowRight');
   await page.evaluate(() => window.__vv.advanceTicks(3));
   await page.keyboard.up('ArrowRight');
-  await page.keyboard.press('Escape');
-  // Pause: blur the canvas by dispatching pause via the pause button click,
-  // which is what the production wiring does.
+  // Pause: dispatch via the pause button click (what production wiring does).
   await page.locator('#vv-pause').focus();
   await page.keyboard.press('Space'); // activates the focused pause button
   const pausedSnap = await page.evaluate(() => window.__vv.getSnapshot());

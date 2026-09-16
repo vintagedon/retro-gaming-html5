@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRng } from '../../game/core/rng.js';
-import { intBuggy } from '../_mutations/int-buggy.js';
 
 test('RNG next() produces floats in [0, 1) for many draws', () => {
   const rng = createRng(42);
@@ -33,15 +32,19 @@ test('RNG int(0,23) (lane) hits both bounds within a reasonable sample', () => {
   }
 });
 
-test('MUTATION max-min rather than max-min+1 changes draws (inclusive-bounds proof)', () => {
-  const a = createRng(0xC0FFEE);
-  const seq = Array.from({ length: 8 }, () => a.int(0, 5));
-  const seqBuggy = Array.from({ length: 8 }, (_, i) => intBuggy(0xC0FFEE, 0, 5, i));
-  assert.notDeepEqual(seq, seqBuggy, 'mutation must change draw sequence');
-});
-
 test('RNG integer sequence is pinned for seed 0xC0FFEE', () => {
   const rng = createRng(0xC0FFEE);
   const seq = Array.from({ length: 12 }, () => rng.int(0, 9));
   assert.deepEqual(seq, [0, 6, 7, 7, 1, 5, 1, 3, 7, 2, 3, 0]);
+});
+
+test('MUTATION int(0,5) can reach the upper bound 5 (off-by-one in max-min vs max-min+1 reverts)', () => {
+  // The mutation: replacing (max - min + 1) with (max - min) makes
+  // the upper bound unreachable because the formula max=5,min=0
+  // produces values in [0, 4] instead of [0, 5]. The discriminating
+  // assertion is observing both 0 and 5 within a reasonable sample.
+  const rng = createRng(0xC0FFEE);
+  const seen = new Set();
+  for (let i = 0; i < 10000; i++) seen.add(rng.int(0, 5));
+  assert.ok(seen.has(5), 'upper bound 5 must be reachable under inclusive bounds');
 });

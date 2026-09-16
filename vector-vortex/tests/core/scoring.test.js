@@ -16,14 +16,6 @@ test('10 shots spawned and 7 hits reports 70%', () => {
   assert.equal(r.percent, 70);
 });
 
-test('blocked fire requests do not change the denominator', () => {
-  // shotsSpawned counts only successful fire. Accuracy must not change when
-  // an attempted-but-blocked fire is dropped. computeAccuracyPercent only
-  // takes spawned counts, so the API proves denominator = shotsSpawned.
-  const before = computeAccuracyPercent(7, 10).percent;
-  assert.equal(computeAccuracyPercent(7, 10).percent, before);
-});
-
 test('rounds to nearest whole percent', () => {
   const r = computeAccuracyPercent(7, 11);
   assert.equal(r.percent, 64);

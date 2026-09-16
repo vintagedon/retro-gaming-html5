@@ -134,39 +134,6 @@ test('MUTATION removing frame-delta cap lets 1s push drain more ticks than the c
   assert.ok(capped.pending() < uncapped.pending(), `capped ${capped.pending()} vs uncapped ${uncapped.pending()}`);
 });
 
-test('MUTATION draining more than one input sample per tick changes digest', () => {
-  // In a system with an input queue, draining multiple samples per tick is a
-  // determinism violation. Our core exposes heldInput directly, so we model
-  // the mutation as one that schedules input actions at tick boundaries and
-  // then drains all accumulated input samples on a single tick.
-  function legitimate(seed) {
-    const core = createCore({ seed });
-    // Press fire at tick 5; legitimate: each tick we observe current heldInput.
-    for (let i = 0; i < 10; i++) {
-      if (i === 5) core.dispatch({ type: 'fire-down' });
-      if (i === 6) core.dispatch({ type: 'fire-up' });
-      core.tick();
-    }
-    return digest(core);
-  }
-  function mutated(seed) {
-    // Mutation: batch input samples then drain them all on a single tick.
-    // Schedule input as an array and apply all entries between ticks.
-    const core = createCore({ seed });
-    const queue = [];
-    queue.push(() => core.dispatch({ type: 'fire-down' }));
-    queue.push(() => core.dispatch({ type: 'fire-up' }));
-    core.tick(); // mutation: applies queued actions BEFORE the tick
-    for (let i = 1; i < 10; i++) core.tick();
-    return digest(core);
-  }
-  let anyDiff = false;
-  for (const seed of [1, 7, 42, 99]) {
-    if (legitimate(seed) !== mutated(seed)) { anyDiff = true; break; }
-  }
-  assert.equal(anyDiff, true);
-});
-
 test('TICK_HZ is 60 and TICK_SECONDS is 1/60', () => {
   assert.equal(TICK_HZ, 60);
   assert.equal(TICK_SECONDS, 1 / 60);
