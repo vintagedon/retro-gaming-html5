@@ -12,6 +12,12 @@ function isGameSurfaceFocused(gameSurface) {
   const active = document.activeElement;
   if (!active) return false;
   if (!gameSurface.contains(active)) return false;
+  // 01c gate 1: the focus gate must NOT accept DOM controls inside the
+  // game container (pause/restart buttons). Only the canvas surface
+  // itself — the element with the wireframe renderer — counts as the
+  // game surface. Without this exclusion, holding Space on the Pause
+  // button fires shots and arrow keys on Restart move the player.
+  if (active.tagName !== 'CANVAS') return false;
   return true;
 }
 
@@ -100,11 +106,16 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
     dispatch({ type: 'resume-blur' });
   }
 
-  function onVisibility() {
+  function onVisibilityChange() {
+    if (window.__vv && window.__vv.disableInputAdapter === true) return;
     if (document.visibilityState === 'hidden') {
-      if (window.__vv && window.__vv.disableInputAdapter === true) return;
       clearHeldInput();
-      if (typeof onVisibility === 'function') onVisibility();
+      if (typeof onVisibility === 'function') onVisibility({ type: 'visibility', hidden: true });
+    } else {
+      // 01c gate 1: on becoming visible, dispatch the visibility action so
+      // the runner's clock resumes. Without this, after a hidden interval
+      // the clock stays stopped until a separate window focus event.
+      if (typeof onVisibility === 'function') onVisibility({ type: 'visibility', hidden: false });
     }
   }
 
@@ -118,6 +129,9 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
     // not producing a click in the first place (Chromium honors
     // preventDefault on Space for buttons).
     ev.preventDefault();
+    // 01c gate 1: clear held input BEFORE dispatching pause, so resuming
+    // with a key still down does not immediately move or fire.
+    clearHeldInput();
     dispatch({ type: 'pause' });
     if (gameSurface && typeof gameSurface.focus === 'function') {
       // Keep focus on the canvas so keyboard movement works post-pause.
@@ -137,7 +151,7 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
   window.addEventListener('keyup', keyup);
   window.addEventListener('blur', onWindowBlur);
   window.addEventListener('focus', onWindowFocus);
-  document.addEventListener('visibilitychange', onVisibility);
+  document.addEventListener('visibilitychange', onVisibilityChange);
   if (pauseButton) pauseButton.addEventListener('click', onPauseClick);
   if (restartButton) restartButton.addEventListener('click', onRestartClick);
 
@@ -147,7 +161,7 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
     window.removeEventListener('keyup', keyup);
     window.removeEventListener('blur', onWindowBlur);
     window.removeEventListener('focus', onWindowFocus);
-    document.removeEventListener('visibilitychange', onVisibility);
+    document.removeEventListener('visibilitychange', onVisibilityChange);
     if (pauseButton) pauseButton.removeEventListener('click', onPauseClick);
     if (restartButton) restartButton.removeEventListener('click', onRestartClick);
   }

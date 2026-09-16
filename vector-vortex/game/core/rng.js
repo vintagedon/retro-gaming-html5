@@ -18,7 +18,10 @@ export function createRng(seed) {
       return state >>> 0;
     },
     setState(s) {
-      state = (s >>> 0) || 1;
+      // 01c gate 1: a zero argument is a valid restored RNG position, not
+      // an uninitialized seed. Normalizing it to 1 changes the stream on
+      // the next draw. The initial-seed normalization lives in createRng.
+      state = s >>> 0;
     }
   };
 }

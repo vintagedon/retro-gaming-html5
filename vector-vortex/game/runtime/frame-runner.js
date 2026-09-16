@@ -92,12 +92,24 @@ export function createFrameRunner({ renderer, dom, onSnapshot, initialSeed = 1 }
     } else if (action && action.type === 'visibility') {
       // Visibility hidden: the loop already gates dt, but pause as well so
       // any direct pushDelta from a test seam does not advance the sim.
+      // The visibility handler must also resume the clock when the tab
+      // becomes visible, otherwise the clock never restarts after a hidden
+      // interval that had no animation frames (rAF was suspended).
       if (document.visibilityState === 'hidden') clock.pause();
       else clock.resume();
     } else if (action && action.type === 'resume-blur') {
       clock.resume();
     }
     core.dispatch(action);
+    // 01c gate 1: a pause action must pause the clock too, so the
+    // accumulator does not build up during the pause interval and replay
+    // on resume. Held input is cleared by the input adapter on the pause
+    // button click, so a fresh keydown is required to act on resume.
+    if (action && action.type === 'pause') {
+      const s = core.snapshot();
+      if (s.paused) clock.pause();
+      else clock.resume();
+    }
   }
 
   function setState(next) {

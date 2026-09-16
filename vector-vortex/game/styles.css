@@ -101,7 +101,10 @@ html, body {
 
 #vv-canvas {
   display: block;
-  width: min(100%, 960px);
+  /* 01c gate 1: size against available height so the smallest supported
+     viewport (1024x576) does not push controls below the fold. Width is
+     still capped at 960 for larger screens. */
+  width: min(100%, 960px, calc(100vh - 240px) * 16 / 9);
   height: auto;
   aspect-ratio: 16 / 9;
   background: #000;
@@ -125,6 +128,7 @@ html, body {
   background: rgba(0,0,0,0.6);
   padding: 4px 10px;
   border-radius: 4px;
+  display: none;
 }
 
 .vv-buttons {
@@ -160,7 +164,7 @@ html, body {
 }
 
 @media (max-width: 960px) {
-  .vv-viewport-warning.visible {
+  .vv-viewport-warning {
     display: block;
   }
 }
