@@ -4,7 +4,7 @@ title: "Vector Vortex"
 description: "Browser-based 24-lane wireframe tube shooter with a deterministic fixed-step core"
 author: "VintageDon (https://github.com/vintagedon/)"
 date: "2026-09-09"
-version: "0.4.0"
+version: "0.5.0"
 status: "Active"
 tags:
   - type: project-root
@@ -40,6 +40,7 @@ This directory implements Deliverables 1, 2, 3, and 4 of Spec 01 and the amendme
 | 3. Playable Canvas slice + minimal semantic DOM | Complete |
 | 4. Documentation, pull request, closeout | Complete |
 | Spec 01b: contract corrections and mutation-test rebuild | Complete |
+| Spec 01c: playability repairs and test truth (pass 1 + continuation) | Complete |
 
 ## Quick Start
 
@@ -71,25 +72,23 @@ game/core/
 └── core.js         state factory, per-tick order, JSON round-trip, semantic events
 ```
 
-Test-only mutation helpers live under `tests/_mutations/`.
-
 ## Runtime (Deliverable 3)
 
 ```
 game/
 ├── index.html            canvas + semantic DOM (status grid, objective, controls, pause/restart)
-├── styles.css            grid layout, focus rings, viewport warning (sub-960 by class)
+├── styles.css            grid layout, focus rings, viewport warning (sub-960 via CSS media query)
 └── runtime/
     ├── renderer.js       Canvas 2D: two rings, 24 lane rails, player marker, shots, Crawlers
     ├── input.js          focus-aware keydown/keyup, blur/visibility clearing, ev.repeat guard
-    ├── frame-runner.js   rAF loop, fixed-step clock, core rebind, first-visible-frame delta reset
+    ├── frame-runner.js   rAF loop, fixed-step clock, core rebind, visibility-transition timestamp rebase, guarded clock resumes
     ├── dom.js            pure projection of core snapshot to semantic DOM (no arithmetic)
     └── main.js           wires everything; exposes window.__vv for Playwright
 ```
 
 ### Supported viewports
 
-`1024x576`, `1280x720`, `1440x900`, `1920x1080`. Below `960x540` the controls remain readable and a non-blocking "larger play area recommended" message appears, toggled by a class (not the `[hidden]` attribute).
+`1024x576`, `1280x720`, `1440x900`, `1920x1080`. Below `960` wide the controls remain readable and a non-blocking "larger play area recommended" message appears, shown by the stylesheet's `@media (max-width: 960px)` rule (`display` toggling, no JavaScript and no markup class).
 
 ### Test seam: `window.__vv`
 
@@ -155,7 +154,7 @@ A breach on the final tick is lethal like any other tick.
 ## Constraints
 
 - Node 22.23.2 is pinned in `.nvmrc` and `package.json` `engines`.
-- Rules modules under `game/core/` MUST NOT import `window`, `document`, `HTMLCanvasElement`, `OffscreenCanvas`, `Audio*`, `Math.random`, `Date.now`, or `performance.now`. A source purity check enforces this and rejects any `-mutation.js` test helper placed under `game/core/`. Mutation helpers live under `tests/_mutations/`.
+- Rules modules under `game/core/` MUST NOT import `window`, `document`, `HTMLCanvasElement`, `OffscreenCanvas`, `Audio*`, `Math.random`, `Date.now`, or `performance.now`. A source purity check enforces this and rejects any `-mutation.js` test helper placed under `game/core/`.
 - 24 lanes wrap; clamping is rejected. Cooldown is 8 ticks; cap is 6 active shots.
 - 18,000-tick run length, three lives, 30-tick damage grace, 5,000 survival bonus.
 - Per-tick order is total and frozen by spec.

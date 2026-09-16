@@ -4,7 +4,7 @@ title: "Vector Vortex Agent Context"
 description: "Game-specific agent instructions for Vector Vortex"
 author: "VintageDon (https://github.com/vintagedon/)"
 date: "2026-09-08"
-version: "1.1"
+version: "1.2"
 status: "Active"
 tags:
   - type: guide
@@ -33,14 +33,14 @@ The simulation is authoritative. The renderer is presentation-only and never adv
 | Pure core | `game/core/*.js` | State, RNG, lane wrap, shots, Crawlers, fixed-step tick, snapshots, events, JSON round-trip, director bands, swept collision, scoring, breach, `kills` counter |
 | Accumulators | `game/core/clock.js` | Fixed 60 Hz accumulator with frame-delta cap, pause, hidden-tab suppression |
 | Page | `game/index.html` | Canvas with `aria-label` + `role="img"`, semantic DOM status grid, objective, controls, pause and restart buttons |
-| Styles | `game/styles.css` | Grid layout, focus rings, viewport warning below 960x540 |
+| Styles | `game/styles.css` | Grid layout, focus rings, viewport warning shown by the sub-960 media query |
 | Renderer | `game/runtime/renderer.js` | Canvas 2D draw, balanced `save`/`restore`, DPR scaling, tracked counters |
-| Input | `game/runtime/input.js` | Focus-aware keyboard adapter, blur and visibilitychange clearing |
-| Frame runner | `game/runtime/frame-runner.js` | rAF loop, fixed-step clock, `replaceCore`, deterministic test seam |
+| Input | `game/runtime/input.js` | Canvas-only focus gate, keyboard/mouse pause clearing held input, blur and visibilitychange handling |
+| Frame runner | `game/runtime/frame-runner.js` | rAF loop, fixed-step clock, guarded clock resumes, visibility-transition timestamp rebase, `replaceCore`, test seam |
 | DOM projector | `game/runtime/dom.js` | Pure projection of the snapshot to the semantic DOM (no computation) |
 | Orchestrator | `game/runtime/main.js` | Wires core + renderer + input + runner; exposes `window.__vv` |
-| Unit tests | `tests/core/*.test.js` | Unit and integration tests with named mutations |
-| Browser tests | `tests/browser/*.spec.js` | Playwright suite, one test per Deliverable 3 validation box with named mutations |
+| Unit tests | `tests/core/*.test.js` | Unit and integration tests; retained mutation checks verified discriminating both ways |
+| Browser tests | `tests/browser/*.spec.js` | Playwright suite: Deliverable 3 validation boxes, 01c interaction journeys, and the smoke flow |
 | Plans | `docs/superpowers/plans/2026-09-08-vector-vortex-deliverable-*.md` | TDD task plans |
 
 ### Per-tick order (frozen by spec)
@@ -128,7 +128,9 @@ The test script invokes `node --test` with an explicit file list. No shell glob 
 - Deliverable 1 (toolchain + deterministic core): complete.
 - Deliverable 2 (director, collision, scoring, lives, outcomes): complete.
 - Deliverable 3 (Canvas slice + semantic DOM + Playwright suite): complete.
-- Deliverable 4 (documentation + pull request): pending.
+- Deliverable 4 (documentation + pull request): complete; pull request #3 open for review.
+- Spec 01b amendment (contract corrections, mutation-test rebuild): complete.
+- Spec 01c amendment (playability repairs and test truth, pass 1 plus continuation): complete and folded into the tracked spec.
 
 ## Scope Boundaries
 

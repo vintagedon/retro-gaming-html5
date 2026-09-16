@@ -1,10 +1,10 @@
 <!--
 ---
 title: "Vector Vortex Tracked Tests"
-description: "Tracked unit and browser tests proving every Spec 01 / Spec 01b validation box"
+description: "Tracked unit and browser tests proving the Spec 01 validation boxes, including the 01c interaction journeys and smoke flow"
 author: "VintageDon (https://github.com/vintagedon/)"
 date: "2026-09-09"
-version: "0.4.0"
+version: "0.5.0"
 status: "Active"
 tags:
   - type: directory
@@ -33,9 +33,9 @@ The unit-test script invokes `node --test` with an explicit file list. No shell 
 | `shots.test.js` | Cooldown 8 ticks; cap 6; advance and expire; blocked-fire denominator (mutation: counting blocked fires) |
 | `enemies.test.js` | Crawler spawn, advance, ascending-ID breach order |
 | `core.test.js` | Snapshot, lane wrap, fire-on-tick, cooldown bypass, shot cap, JSON round-trip, mutation tests |
-| `clock.test.js` | 30/60/144 Hz digest equality with real-time alignment (residual ≤1); frame-delta cap; pause; multi-sample drain mutation; paused/hidden suppression (D2.1); blur stops tick advancement (D2.5); pause ev.repeat guard (D2.9) |
+| `clock.test.js` | 30/60/144 Hz digest equality with real-time alignment (residual ≤1); frame-delta cap (positive catch-up-cap check and its mutation); pause; paused/hidden suppression (D2.1); blur stops tick advancement (D2.5); pause ev.repeat guard (D2.9) |
 | `purity.test.js` | No DOM/Canvas/Audio/clock APIs in `game/core/`; no `-mutation.js` test helpers in `game/core/` (D3.1) |
-| `replay.test.js` | Cross-rate digest equality; uneven deltas; JSON round-trip; dropped-field mutations on `nextShotId`, `nextEnemyId`, `rngState` (D3.5) |
+| `replay.test.js` | Restored by the 01c continuation: action-log delivery record (every entry dispatched once before its named tick, same-tick order kept), held movement and firing produce the expected lane steps and shots, and one authoritative digest at the same completed tick across 30/60/144 Hz and an uneven fractional schedule, aligned without skipping inputs |
 | `discovery.test.js` | Explicit test list, no globs; mutation: renaming a file changes the count |
 | `director.test.js` | Band table, `shouldSpawnOnTick`, `nextSpawnTickAfter`, `firstSpawnForBand` (D1.1); director first-spawn indices 59, 3647, 10835, 14426 |
 | `collision.test.js` | Swept-interval collision, ascending-id tie, first-hit consumption |
@@ -47,8 +47,6 @@ The unit-test script invokes `node --test` with an explicit file list. No shell 
 | `render-depth.test.js` | Crawler depth maps to radius: depth 1 = far radius, depth 0 = rim (D2.2); mutation: inverted mapping fails |
 | `rng-serialize.test.js` | Director RNG position is serialized in state; round-trip and restart preserve lane sequence (D2.3); mutation: dropping `rngState` diverges |
 | `dom-no-arithmetic.test.js` | DOM projector, renderer, and input adapter contain no scoring/accuracy/timing arithmetic (D2.8); mutation: adding hits/shotsSpawned arithmetic is detected |
-
-Mutation helpers live under `tests/_mutations/`.
 
 ## Browser tests (`tests/browser/`)
 
@@ -62,6 +60,8 @@ Mutation helpers live under `tests/_mutations/`.
 | `keyboard.spec.js` | Physical keydown path drives movement; mutation: disabling keydown prevents lane change; full keyboard flow covers lane wrap 23→0, hold-fire through cooldown, and pause/resume (D3.8) |
 | `seam.spec.js` | Test seam reset rebinds every consumer; mutation: skipFrameRunnerRebind leaves an orphaned core; DOM status values are projections |
 | `smoke.spec.js` | Page loads, run loop ticks, status fields update |
-| `viewport.spec.js` | All four supported viewports keep the tube, status, and controls visible; DPR 1 probe asserts no overlap and no off-screen placement; sub-960 warning visible, above 960 hidden (D2.7) |
+| `play-flow.spec.js` | 01c smoke flow: real keyboard play, pause segment through the real frame loop (blur/refocus and hide/restore while paused, guarded resume), hidden→visible without a focus event; fails on errors and on failed stylesheet/module loads; discriminators prove icon failures are optional |
+| `interaction.spec.js` | 01c interaction journeys: guarded resumes after blur/refocus and hide/restore while paused, no replay of suspended-hidden time, restart from a paused outcome, keyboard pause clearing for P and Escape, button focus return to the canvas, 1024x576 control bounds |
+| `viewport.spec.js` | All four supported viewports keep the tube, status, and controls visible; DPR 1 probe asserts no overlap and no off-screen placement; sub-960 warning shown by the stylesheet media query, hidden above 960 (D2.7) |
 
 The fixtures directory is intentionally empty; fixed input logs and replay fixtures live inline in the test files that consume them.

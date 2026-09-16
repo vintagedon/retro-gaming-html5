@@ -68,23 +68,9 @@ export function createDom({ root, status, score, lives, time, kills, accuracy, c
     }
   }
 
-  function setVisibleMessage(text) {
-    if (viewportWarning) {
-      // D2.7: toggle a class rather than the [hidden] attribute, because
-      // the sub-960 media rule sets `display: block` which the user-agent
-      // `[hidden] { display: none }` rule overrides regardless of class.
-      if (text) {
-        viewportWarning.classList.add('visible');
-        viewportWarning.textContent = text;
-      } else {
-        viewportWarning.classList.remove('visible');
-      }
-    }
-  }
-
   function getLastProjectedKills() {
     return lastProjectedKills;
   }
 
-  return { project, setVisibleMessage, getLastProjectedKills };
+  return { project, getLastProjectedKills };
 }
