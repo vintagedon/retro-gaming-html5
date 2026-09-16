@@ -90,25 +90,43 @@ export function createFrameRunner({ renderer, dom, onSnapshot, initialSeed = 1 }
       // focus-return handler or an explicit dispatch('resume-blur').
       clock.pause();
     } else if (action && action.type === 'visibility') {
-      // Visibility hidden: the loop already gates dt, but pause as well so
-      // any direct pushDelta from a test seam does not advance the sim.
-      // The visibility handler must also resume the clock when the tab
-      // becomes visible, otherwise the clock never restarts after a hidden
-      // interval that had no animation frames (rAF was suspended).
-      if (document.visibilityState === 'hidden') clock.pause();
-      else clock.resume();
+      // 01c continuation gate 1: rebase the frame timestamp at the
+      // lifecycle transition itself. A hidden tab whose animation frames
+      // were suspended delivers no callback, so the in-loop reset below
+      // never runs and the first restored frame would replay hidden time
+      // as a stale delta. Rebase on both transitions so hidden time is
+      // discarded regardless of callback delivery.
+      lastTs = 0;
+      if (document.visibilityState === 'hidden') {
+        clock.pause();
+      } else if (!core.snapshot().paused) {
+        // 01c continuation gate 1: the visible transition resumes the
+        // clock only when the core is not manually paused. Resuming
+        // unconditionally let pushDelta accumulate against a paused core
+        // for the whole pause interval and burst on the next unpause.
+        clock.resume();
+      }
     } else if (action && action.type === 'resume-blur') {
-      clock.resume();
+      // 01c continuation gate 1: same guard as the visible transition.
+      // A player who paused and then changed focus must not come back to
+      // a clock that accumulated delta against the paused core.
+      if (!core.snapshot().paused) clock.resume();
     }
     core.dispatch(action);
     // 01c gate 1: a pause action must pause the clock too, so the
     // accumulator does not build up during the pause interval and replay
     // on resume. Held input is cleared by the input adapter on the pause
-    // button click, so a fresh keydown is required to act on resume.
+    // button click and on the keyboard pause keys, so a fresh keydown is
+    // required to act on resume.
     if (action && action.type === 'pause') {
       const s = core.snapshot();
       if (s.paused) clock.pause();
       else clock.resume();
+    } else if (action && action.type === 'restart') {
+      // 01c continuation gate 1: the reset state is always unpaused, so a
+      // restart must re-sync the clock to running. Without this, restarting
+      // from the outcome screen while paused left the fresh run frozen.
+      clock.resume();
     }
   }
 

@@ -41,7 +41,12 @@ function start() {
   publish(runner.getSnapshot());
 
   const input = createInputAdapter({
-    gameSurface: root,
+    // 01c continuation gate 1: the adapter's gameSurface is the Canvas, not
+    // the game root. The focus gate accepts only the canvas (01c gate 1),
+    // and the pause/restart click handlers return focus to this element, so
+    // it must be the focusable canvas for keyboard control to work after a
+    // button click without a second click on the canvas.
+    gameSurface: canvas,
     pauseButton,
     restartButton,
     dispatch: (a) => runner.dispatch(a),

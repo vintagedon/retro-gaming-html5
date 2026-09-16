@@ -76,7 +76,15 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
     if (isLeft) { if (focused) dispatch({ type: 'left-down' }); }
     else if (isRight) { if (focused) dispatch({ type: 'right-down' }); }
     else if (isFire) { if (focused) dispatch({ type: 'fire-down' }); }
-    else if (isPause) { if (focused) dispatch({ type: 'pause' }); }
+    else if (isPause) {
+      if (focused) {
+        // 01c continuation gate 1: keyboard pause clears held input, same
+        // as the pause button click path. Holding movement or fire through
+        // P or Escape must not resume those actions without a fresh press.
+        clearHeldInput();
+        dispatch({ type: 'pause' });
+      }
+    }
   }
 
   function keyup(ev) {
