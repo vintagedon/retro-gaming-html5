@@ -190,9 +190,13 @@ test('keyboard pause clears held movement and fire for both P and Escape', async
     await page.keyboard.up('Space');
     await page.keyboard.down('ArrowRight');
     await page.keyboard.down('Space');
+    // Baseline captured after the keys are down: the game kept ticking
+    // through the no-movement wait above, so the pause-time count cannot
+    // serve as the base here.
+    const baseAtRepress = await page.evaluate(() => window.__vv.getSnapshot().elapsedTicks);
     await page.waitForFunction(
-      (t) => window.__vv.getSnapshot().elapsedTicks >= t + 25,
-      ticksAtPause + 31,
+      (t) => window.__vv.getSnapshot().elapsedTicks >= t + 31,
+      baseAtRepress,
       { timeout: 5000 }
     );
     const again = await page.evaluate(() => window.__vv.getSnapshot());
@@ -223,8 +227,12 @@ test('mouse pause and resume restore canvas keyboard control; Space-activated re
   await page.locator('#vv-restart').focus();
   await page.keyboard.press('Space');
   const afterRestart = await page.evaluate(() => window.__vv.getSnapshot());
-  expect(afterRestart.elapsedTicks).toBe(0);
+  // The clock is live here, so a frame may tick before the read lands;
+  // a fresh unpaused run near zero (not the finished 18,000-tick run)
+  // is the assertion.
+  expect(afterRestart.elapsedTicks).toBeLessThan(10);
   expect(afterRestart.outcome).toBe(null);
+  expect(afterRestart.paused).toBe(false);
   // Ticks advance and canvas keyboard control returns without another click.
   const atRestart = await ticks(page);
   await page.waitForFunction(
