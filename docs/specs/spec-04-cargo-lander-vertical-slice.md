@@ -144,11 +144,11 @@ A deterministic seam on `window.__cl` exposes `stop()`, `start()`, `advanceTicks
 
 **Validation:**
 
-- [ ] The clock is tested directly with synthetic deltas, no browser: a 10-second gap contributes fifteen ticks, not 600
-- [ ] Time passed while hidden produces no ticks, and the first visible frame produces no burst
-- [ ] Pausing stops tick advancement, and resuming does not replay the paused interval
-- [ ] After `stop()`, manual advancement adds exactly the requested active ticks and browser animation-frame opportunities add none; `start()` resumes ordinary advancement without replaying stopped time, and repeated start/stop calls do not create duplicate runners
-- [ ] The frame loop contains no branch that reads a test flag
+- [x] The clock is tested directly with synthetic deltas, no browser: a 10-second gap contributes fifteen ticks, not 600
+- [x] Time passed while hidden produces no ticks, and the first visible frame produces no burst
+- [x] Pausing stops tick advancement, and resuming does not replay the paused interval
+- [x] After `stop()`, manual advancement adds exactly the requested active ticks and browser animation-frame opportunities add none; `start()` resumes ordinary advancement without replaying stopped time, and repeated start/stop calls do not create duplicate runners
+- [x] The frame loop contains no branch that reads a test flag
 
 ### G3 HUD as an outside consumer
 
