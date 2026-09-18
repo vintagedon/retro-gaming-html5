@@ -66,7 +66,7 @@ A custom 3D wireframe game is the eventual capstone and graduates to a Three.js 
 |------|--------|-------------|
 | Repository | ✅ Active | Repo-mode lifecycle, spec-driven, tracked tests, public review |
 | Vector Vortex (rung 1) | 🟢 Specified | Tempest-inspired 24-lane tube shooter: a fixed-step Canvas 2D core, a scheduled topology shift, and a wireframe app shell. Two specs, MVP then twist |
-| Lunar Lander (rung 2) | ⬜ Planned | Chosen after Vector Vortex ships |
+| CargoLander (rung 2) | 🟡 In review | Lunar lander vertical slice: continuous physics, thrust notches, survivable impacts, limited craft, and the first outside-consumer HUD on the h5gameui kit. [spec-04](docs/specs/spec-04-cargo-lander-vertical-slice.md) |
 
 An earlier experiment, Materialoids, exists in the tree from before this cadence. Its green-monochrome visual language is not a precedent; new games establish their own palette from first principles.
 

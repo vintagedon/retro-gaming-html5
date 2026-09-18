@@ -5,7 +5,7 @@ description: "Wireframe-arc rung 2. A playable lander in retro-gaming-html5 that
 author: "VintageDon (https://github.com/vintagedon/)"
 date: "2026-09-18"
 version: "1.2"
-status: "draft"
+status: "under-review"
 series: "cargo-lander"
 tags:
   - type: specification

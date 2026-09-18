@@ -4,8 +4,8 @@ title: "CargoLander Consumer Report"
 description: "How CargoLander consumed the published h5gameui kit, what was checked, and what was found"
 author: "VintageDon (https://github.com/vintagedon/)"
 date: "2026-09-18"
-version: "1.0"
-status: "In Progress"
+version: "1.1"
+status: "Complete"
 tags:
   - type: consumer-report
   - domain: [implementation]
