@@ -10,7 +10,7 @@ const MAX_TICKS_PER_FRAME = Math.ceil(DEFAULT_MAX_FRAME_DELTA * TICK_HZ);
 // stop() relinquishes automatic advancement without touching gameplay
 // pause; start() resumes with a fresh time origin and no backlog. Both are
 // idempotent: repeated starts cannot create a second frame chain.
-export function createRunner({ core, clock, requestFrame, cancelFrame }) {
+export function createRunner({ core, clock, requestFrame, cancelFrame, onFrame }) {
   let running = false;
   let frameId = null;
   let lastTime = null;
@@ -29,6 +29,7 @@ export function createRunner({ core, clock, requestFrame, cancelFrame }) {
     while (drained < MAX_TICKS_PER_FRAME && clock.run(core)) {
       drained += 1;
     }
+    if (typeof onFrame === 'function') onFrame(core.snapshot());
     frameId = requestFrame(loop);
   }
 

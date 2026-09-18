@@ -1,0 +1,95 @@
+/*
+ * CargoLander HUD chrome: consumer composition over the vendored kit.
+ * Structural layout is unlayered; anything that touches kit surfaces
+ * lives in the overrides layer declared by the kit's entry point.
+ */
+
+#stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  display: grid;
+  grid-template-columns: 420px 1fr 260px;
+}
+
+#playfield-wrap {
+  position: relative;
+  grid-column: 2;
+  overflow: hidden;
+}
+
+#playfield {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hud-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 2rem;
+  z-index: 2;
+}
+
+.hud-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.hud-label {
+  font-family: var(--gc-font-code);
+  font-size: var(--gc-type-caption-size);
+  letter-spacing: var(--gc-type-label-tracking);
+  text-transform: var(--gc-type-label-transform);
+  color: var(--gc-text-secondary);
+}
+
+.hud-value {
+  font-family: var(--gc-font-code);
+  font-size: var(--gc-type-title-size);
+  color: var(--gc-text-primary);
+}
+
+.hud-meter {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.hud-meter .gc-meter {
+  flex: 1;
+}
+
+.hud-meter--stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.hud-impact {
+  font-family: var(--gc-font-code);
+  font-size: var(--gc-type-label-size);
+  letter-spacing: var(--gc-type-label-tracking);
+  text-transform: var(--gc-type-label-transform);
+  color: var(--gc-status-danger);
+  border: var(--gc-border-width) solid var(--gc-border-default);
+  border-radius: var(--gc-radius-control);
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+}
+
+.hud-impact[data-band='none'] {
+  color: var(--gc-text-muted);
+}
+
+@layer overrides {
+  .hud-rail.gc-panel {
+    justify-content: flex-start;
+    border-block-size: var(--gc-border-width);
+  }
+
+  #hud-right .gc-meter[data-orientation='vertical'] {
+    block-size: 15rem;
+  }
+}

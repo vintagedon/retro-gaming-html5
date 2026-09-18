@@ -166,11 +166,11 @@ A projector takes a snapshot and writes the DOM, holding a last value per field 
 
 **Validation:**
 
-- [ ] Synthetic snapshots cover zero, an intermediate fraction and full for continuous values, and zero units, one unit and maximum for counted meters; segment/pip capacities match the snapshot
-- [ ] The actual vertical segmented thrust meter holds full track width at zero, an intermediate notch and full, with quantized height; a bounded consumer fixture exercises the same vertical segmented markup with both fill and trail so both repaired selectors are covered
-- [ ] Re-projecting an unchanged snapshot performs no DOM writes, asserted by counting mutations
-- [ ] A scan asserts the HUD imports nothing outside `cargo-lander/`; G3 vendoring compares CSS bytes with the pinned published revision and records per-file hashes and the license. Fresh-clone checks use the committed manifest and vendor files without a sibling framework checkout
-- [ ] A browser check serves only the isolated `game/` tree and loads all CSS imports successfully, with rendered kit appearance and no asset requests outside that tree
+- [x] Synthetic snapshots cover zero, an intermediate fraction and full for continuous values, and zero units, one unit and maximum for counted meters; segment/pip capacities match the snapshot
+- [x] The actual vertical segmented thrust meter holds full track width at zero, an intermediate notch and full, with quantized height; a bounded consumer fixture exercises the same vertical segmented markup with both fill and trail so both repaired selectors are covered
+- [x] Re-projecting an unchanged snapshot performs no DOM writes, asserted by counting mutations
+- [x] A scan asserts the HUD imports nothing outside `cargo-lander/`; G3 vendoring compares CSS bytes with the pinned published revision and records per-file hashes and the license. Fresh-clone checks use the committed manifest and vendor files without a sibling framework checkout
+- [x] A browser check serves only the isolated `game/` tree and loads all CSS imports successfully, with rendered kit appearance and no asset requests outside that tree
 
 ### G4 Stage
 
