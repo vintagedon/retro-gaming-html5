@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en" data-gc-theme="modern">
+<head>
+  <meta charset="utf-8">
+  <title>HUD projection fixture</title>
+  <link rel="stylesheet" href="../../game/vendor/h5gameui/src/gc.css">
+  <link rel="stylesheet" href="../../game/hud.css">
+  <style>
+    body { margin: 0; padding: 1rem; }
+    #fixture-hud { display: flex; gap: 2rem; width: 40rem; }
+    #fixture-hud .hud-rail { background: transparent; border: none; box-shadow: none; clip-path: none; }
+  </style>
+</head>
+<body>
+  <div id="fixture-hud">
+    <aside class="hud-rail" id="hud-left">
+      <div class="hud-block">
+        <span class="hud-label">Altitude</span>
+        <span class="hud-value" data-hud-field="altitude">0 m</span>
+      </div>
+      <div class="hud-block">
+        <span class="hud-label">Velocity</span>
+        <span class="hud-value" data-hud-field="velocity">0.0 m/s</span>
+      </div>
+      <div class="hud-block">
+        <span class="hud-label">Fuel</span>
+        <span class="hud-value" data-hud-field="fuel">100 %</span>
+        <div class="gc-meter" data-hud-field="fuelMeter" data-hud="fuel-meter" role="meter">
+          <div class="gc-meter__fill"></div>
+        </div>
+      </div>
+      <div class="hud-block">
+        <span class="hud-label">Hull integrity</span>
+        <div class="gc-meter" data-shape="segmented" data-hud-field="hullMeter" data-hud="hull-meter" role="meter">
+          <div class="gc-meter__trail"></div>
+          <div class="gc-meter__fill"></div>
+        </div>
+        <span class="hud-impact" data-hud-field="impact" data-band="none">NONE</span>
+      </div>
+    </aside>
+    <aside class="hud-rail" id="hud-right">
+      <div class="hud-block">
+        <span class="hud-label">Thrust</span>
+        <div class="gc-meter" data-orientation="vertical" data-shape="segmented" data-hud-field="thrustMeter" data-hud="thrust-meter" role="meter">
+          <div class="gc-meter__fill"></div>
+        </div>
+      </div>
+      <div class="hud-block">
+        <span class="hud-label">Craft</span>
+        <div class="gc-meter" data-shape="pips" data-hud-field="craftMeter" data-hud="craft-meter" role="meter">
+          <div class="gc-meter__fill"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+  <script type="module">
+    import { createHudProjector } from '../../game/ui/hud.js';
+
+    const projector = createHudProjector({
+      fuelMeter: document.querySelector('[data-hud="fuel-meter"]'),
+      hullMeter: document.querySelector('[data-hud="hull-meter"]'),
+      thrustMeter: document.querySelector('[data-hud="thrust-meter"]'),
+      craftMeter: document.querySelector('[data-hud="craft-meter"]'),
+      altitudeValue: document.querySelector('[data-hud-field="altitude"]'),
+      velocityValue: document.querySelector('[data-hud-field="velocity"]'),
+      fuelValue: document.querySelector('[data-hud-field="fuel"]'),
+      impactBadge: document.querySelector('[data-hud-field="impact"]')
+    });
+
+    window.__hud = { project: (snapshot) => projector.project(snapshot) };
+  </script>
+</body>
+</html>

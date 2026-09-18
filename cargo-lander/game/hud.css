@@ -1,0 +1,151 @@
+/*
+ * CargoLander HUD chrome: consumer composition over the vendored kit.
+ * Structural layout is unlayered; anything that touches kit surfaces
+ * lives in the overrides layer declared by the kit's entry point.
+ */
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+#stage-root {
+  position: fixed;
+  inset: 0;
+}
+
+#stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  display: grid;
+  grid-template-columns: 420px 1fr 260px;
+  grid-template-rows: 100%;
+}
+
+/* Explicit areas: sparse auto-placement would skip column 1 after the
+ * definite-column playfield moves the placement cursor forward. */
+#hud-left {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+#playfield-wrap {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+#hud-right {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+#playfield {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hud-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 2rem;
+  z-index: 2;
+}
+
+.hud-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.hud-label {
+  font-family: var(--gc-font-code);
+  font-size: var(--gc-type-caption-size);
+  letter-spacing: var(--gc-type-label-tracking);
+  text-transform: var(--gc-type-label-transform);
+  color: var(--gc-text-secondary);
+}
+
+.hud-value {
+  font-family: var(--gc-font-code);
+  font-size: var(--gc-type-title-size);
+  color: var(--gc-text-primary);
+}
+
+.hud-meter {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.hud-meter .gc-meter {
+  flex: 1;
+}
+
+.hud-meter--stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.hud-impact {
+  font-family: var(--gc-font-code);
+  font-size: var(--gc-type-label-size);
+  letter-spacing: var(--gc-type-label-tracking);
+  text-transform: var(--gc-type-label-transform);
+  color: var(--gc-status-danger);
+  border: var(--gc-border-width) solid var(--gc-border-default);
+  border-radius: var(--gc-radius-control);
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+}
+
+.hud-impact[data-band='none'] {
+  color: var(--gc-text-muted);
+}
+
+#overlay {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  grid-column: 2;
+  grid-row: 1;
+  z-index: 3;
+  text-align: center;
+  min-inline-size: 22rem;
+}
+
+#overlay[hidden] {
+  display: none;
+}
+
+#overlay h2 {
+  font-family: var(--gc-font-display);
+  font-size: var(--gc-type-display-size);
+  font-weight: var(--gc-type-title-weight);
+  letter-spacing: var(--gc-type-title-tracking);
+  color: var(--gc-text-primary);
+}
+
+#overlay p {
+  font-family: var(--gc-font-code);
+  font-size: var(--gc-type-label-size);
+  color: var(--gc-text-secondary);
+}
+
+@layer overrides {
+  .hud-rail.gc-panel {
+    justify-content: flex-start;
+    border-block-size: var(--gc-border-width);
+  }
+
+  #hud-right .gc-meter[data-orientation='vertical'] {
+    block-size: 15rem;
+  }
+}

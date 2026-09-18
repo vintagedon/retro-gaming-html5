@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en" data-gc-theme="cargo-lander">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CargoLander</title>
+  <link rel="stylesheet" href="./vendor/h5gameui/src/gc.css">
+  <link rel="stylesheet" href="./hud.css">
+  <link rel="stylesheet" href="./theme.css">
+</head>
+<body>
+  <main id="stage-root">
+    <div id="stage">
+      <section id="playfield-wrap" aria-label="Playfield">
+        <canvas id="playfield"></canvas>
+      </section>
+      <aside id="hud-left" class="gc-panel hud-rail" aria-label="Flight telemetry">
+        <div class="hud-block">
+          <span class="hud-label">Altitude</span>
+          <span class="hud-value" data-hud-field="altitude">0 m</span>
+        </div>
+        <div class="hud-block">
+          <span class="hud-label">Velocity</span>
+          <span class="hud-value" data-hud-field="velocity">0.0 m/s</span>
+        </div>
+        <div class="hud-block">
+          <span class="hud-label">Fuel</span>
+          <span class="hud-value" data-hud-field="fuel">100 %</span>
+          <div class="gc-meter" data-hud-field="fuelMeter" data-hud="fuel-meter" role="meter" aria-label="Fuel reserve">
+            <div class="gc-meter__fill"></div>
+          </div>
+        </div>
+        <div class="hud-block">
+          <span class="hud-label">Hull integrity</span>
+          <div class="gc-meter" data-shape="segmented" data-hud-field="hullMeter" data-hud="hull-meter" role="meter" aria-label="Hull integrity">
+            <div class="gc-meter__trail"></div>
+            <div class="gc-meter__fill"></div>
+          </div>
+          <span class="hud-label">Last impact</span>
+          <span class="hud-impact" data-hud-field="impact" data-band="none">NONE</span>
+        </div>
+      </aside>
+      <aside id="hud-right" class="gc-panel hud-rail" aria-label="Craft status">
+        <div class="hud-block">
+          <span class="hud-label">Thrust</span>
+          <div class="gc-meter" data-orientation="vertical" data-shape="segmented" data-hud-field="thrustMeter" data-hud="thrust-meter" role="meter" aria-label="Thrust output">
+            <div class="gc-meter__fill"></div>
+          </div>
+        </div>
+        <div class="hud-block">
+          <span class="hud-label">Craft</span>
+          <div class="gc-meter" data-shape="pips" data-hud-field="craftMeter" data-hud="craft-meter" role="meter" aria-label="Craft remaining">
+            <div class="gc-meter__fill"></div>
+          </div>
+        </div>
+      </aside>
+      <div id="overlay" class="gc-panel" data-hud-field="overlay" hidden>
+        <h2 id="overlay-title" data-hud-field="overlayTitle">CargoLander</h2>
+        <p id="overlay-hint" data-hud-field="overlayHint"></p>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

@@ -30,6 +30,7 @@ Specs are named `spec-NN-<slug>.md`. `NN` is a running per-repository counter th
 |------|--------|--------|-------------|
 | [spec-01-vector-vortex-mvp-and-shell](spec-01-vector-vortex-mvp-and-shell.md) | vector-vortex | Draft | Playable MVP: fixed-step tube-shooter core, DOM wireframe HUD and shell |
 | [spec-02-vector-vortex-topology-shift-and-polish](spec-02-vector-vortex-topology-shift-and-polish.md) | vector-vortex | Draft | The topology-shift twist, stun mechanic, enemy roster, and vector-FX polish |
+| [spec-04-cargo-lander-vertical-slice](spec-04-cargo-lander-vertical-slice.md) | cargo-lander | Under review | Lunar lander vertical slice: pure simulation core, runtime seam, h5gameui kit-consumer HUD, scaled stage, playable theme slice |
 
 ---
 

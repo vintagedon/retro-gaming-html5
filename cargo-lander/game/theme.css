@@ -1,0 +1,106 @@
+/*
+ * CargoLander shipping theme: a game-owned token theme layered on the
+ * vendored kit. It follows the kit's theme contract: a complete
+ * semantic token set on `html[data-gc-theme]`, changed only where this
+ * game's vector-phosphor look differs from the stock mechanical
+ * defaults, with no meter reimplementation.
+ */
+@layer theme {
+  :where(html[data-gc-theme="cargo-lander"]) {
+    --gc-surface-canvas: #050810;
+    --gc-surface-base: #0a1020;
+    --gc-surface-raised: #0a1020;
+    --gc-surface-sunken: #0d1526;
+    --gc-surface-interactive: #0d1526;
+    --gc-surface-overlay: #0a1020;
+    --gc-surface-texture: var(--gc-image-none);
+    --gc-surface-backdrop-filter: var(--gc-filter-none);
+    --gc-surface-shape: var(--gc-shape-rect);
+    --gc-surface-edge-filter: var(--gc-filter-none);
+    --gc-ornament-color: var(--gc-accent);
+    --gc-ornament-mask: var(--gc-image-none);
+    --gc-ornament-opacity: var(--gc-alpha-hidden);
+
+    --gc-text-primary: #d7e6ff;
+    --gc-text-secondary: #8fa3c8;
+    --gc-text-muted: #5d6f92;
+    --gc-text-inverse: #050810;
+    --gc-text-disabled: #44536f;
+
+    --gc-border-default: #2a3b5e;
+    --gc-border-strong: #58f5c8;
+    --gc-divider: #2a3b5e;
+    --gc-border-width: var(--gc-border-thin);
+
+    --gc-accent: #58f5c8;
+    --gc-on-accent: #04241c;
+    --gc-focus-ring: #58f5c8;
+    --gc-focus-width: var(--gc-border-medium);
+    --gc-focus-offset: var(--gc-size-1);
+
+    --gc-status-success: var(--gc-palette-positive);
+    --gc-on-status-success: var(--gc-palette-positive-on);
+    --gc-status-warning: #ffd166;
+    --gc-on-status-warning: var(--gc-palette-caution-on);
+    --gc-status-danger: #ff5d5d;
+    --gc-on-status-danger: var(--gc-palette-critical-on);
+    --gc-status-info: var(--gc-palette-notice);
+    --gc-on-status-info: var(--gc-palette-notice-on);
+
+    --gc-disabled-opacity: var(--gc-alpha-disabled);
+    --gc-overlay-fill: var(--gc-alpha-overlay);
+    --gc-scrim-fill: var(--gc-alpha-scrim);
+
+    --gc-elevation-none: var(--gc-shadow-none);
+    --gc-elevation-low: 0 0 0 1px rgba(88, 245, 200, 0.08);
+    --gc-elevation-mid: 0 0 24px rgba(4, 8, 16, 0.9);
+    --gc-elevation-high: 0 0 48px rgba(4, 8, 16, 0.95);
+
+    --gc-radius-control: var(--gc-radius-medium);
+    --gc-radius-panel: var(--gc-radius-large);
+    --gc-radius-round: var(--gc-radius-pill);
+
+    --gc-space-1: var(--gc-size-1);
+    --gc-space-2: var(--gc-size-2);
+    --gc-space-3: var(--gc-size-3);
+    --gc-space-4: var(--gc-size-4);
+    --gc-space-5: var(--gc-size-5);
+    --gc-space-6: var(--gc-size-6);
+    --gc-space-7: var(--gc-size-7);
+    --gc-space-8: var(--gc-size-8);
+
+    --gc-font-body: var(--gc-font-technical);
+    --gc-font-display: var(--gc-font-technical);
+    --gc-font-code: var(--gc-font-technical);
+    --gc-type-caption-size: var(--gc-font-size-xs);
+    --gc-type-body-size: var(--gc-font-size-md);
+    --gc-type-label-size: var(--gc-font-size-sm);
+    --gc-type-title-size: var(--gc-font-size-lg);
+    --gc-type-display-size: var(--gc-font-size-xl);
+    --gc-type-body-weight: var(--gc-font-weight-regular);
+    --gc-type-label-weight: var(--gc-font-weight-heavy);
+    --gc-type-title-weight: var(--gc-font-weight-heavy);
+    --gc-type-body-line-height: var(--gc-line-normal);
+    --gc-type-heading-line-height: var(--gc-line-compact);
+    --gc-type-label-tracking: var(--gc-track-wide);
+    --gc-type-title-tracking: var(--gc-track-wide);
+    --gc-type-label-transform: var(--gc-case-upper);
+
+    --gc-motion-instant: var(--gc-time-0);
+    --gc-motion-fast: var(--gc-time-1);
+    --gc-motion-base: var(--gc-time-2);
+    --gc-motion-slow: var(--gc-time-3);
+    --gc-easing-standard: var(--gc-ease-standard);
+    --gc-easing-enter: var(--gc-ease-enter);
+    --gc-easing-exit: var(--gc-ease-exit);
+    --gc-easing-stepped: var(--gc-ease-steps);
+
+    --gc-z-base: var(--gc-stack-0);
+    --gc-z-raised: var(--gc-stack-1);
+    --gc-z-overlay: var(--gc-stack-2);
+    --gc-z-modal: var(--gc-stack-3);
+    --gc-z-toast: var(--gc-stack-4);
+
+    --gc-image-rendering: var(--gc-render-auto);
+  }
+}

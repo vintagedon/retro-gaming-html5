@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en" data-gc-theme="modern">
+<head>
+  <meta charset="utf-8">
+  <title>Vertical segmented meter fixture</title>
+  <link rel="stylesheet" href="../../game/vendor/h5gameui/src/gc.css">
+  <style>
+    body { margin: 2rem; }
+    /* Geometry assertions read steady-state sizes; the fixture measures
+       the kit's quantized math, not its cosmetic motion. */
+    #vs-fill, #vs-trail { transition: none; }
+  </style>
+</head>
+<body>
+  <div class="gc-meter" id="vs-meter" data-orientation="vertical" data-shape="segmented"
+       style="--gc-meter-segments: 4; --gc-meter-value: 0%; --gc-meter-trail-value: 0%;">
+    <div class="gc-meter__trail" id="vs-trail"></div>
+    <div class="gc-meter__fill" id="vs-fill"></div>
+  </div>
+  <script>
+    window.__setValues = (fill, trail, segments) => {
+      const meter = document.getElementById('vs-meter');
+      meter.style.setProperty('--gc-meter-value', fill);
+      meter.style.setProperty('--gc-meter-trail-value', trail);
+      if (segments !== undefined) {
+        meter.style.setProperty('--gc-meter-segments', String(segments));
+      }
+    };
+  </script>
+</body>
+</html>
