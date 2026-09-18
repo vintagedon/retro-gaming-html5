@@ -21,6 +21,14 @@ export function createHudProjector(refs) {
     el.setAttribute(name, value);
   }
 
+  function setShown(el, shown) {
+    const key = `${el.dataset.hudField}:shown`;
+    if (cache.get(key) === shown) return;
+    cache.set(key, shown);
+    if (shown) el.removeAttribute('hidden');
+    else el.setAttribute('hidden', '');
+  }
+
   function setText(el, value) {
     const key = `${el.dataset.hudField}:text`;
     if (cache.get(key) === value) return;
@@ -52,6 +60,33 @@ export function createHudProjector(refs) {
       setText(refs.fuelValue, snapshot.fuelDisplay);
       setText(refs.impactBadge, snapshot.lastImpact === null ? 'NONE' : snapshot.lastImpact.toUpperCase());
       setAttr(refs.impactBadge, 'data-band', snapshot.lastImpact === null ? 'none' : snapshot.lastImpact);
+
+      if (refs.overlay) {
+        const banner = overlayFor(snapshot);
+        setText(refs.overlayTitle, banner.title);
+        setText(refs.overlayHint, banner.hint);
+        setShown(refs.overlay, banner.visible);
+      }
     }
   };
+}
+
+function overlayFor(snapshot) {
+  if (snapshot.paused) {
+    return { title: 'PAUSED', hint: 'P to resume', visible: true };
+  }
+  if (snapshot.outcome === 'landed') {
+    return { title: 'LANDED', hint: 'ENTER to fly a fresh run', visible: true };
+  }
+  if (snapshot.outcome === 'run-over') {
+    return { title: 'RUN OVER', hint: 'ENTER to start a fresh run', visible: true };
+  }
+  if (snapshot.craftState === 'destroyed') {
+    return {
+      title: 'CRAFT LOST',
+      hint: `R to retry with ${snapshot.craftRemaining} craft left`,
+      visible: true
+    };
+  }
+  return { title: '', hint: '', visible: false };
 }

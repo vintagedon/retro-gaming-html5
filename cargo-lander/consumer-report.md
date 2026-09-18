@@ -60,7 +60,21 @@ asserts the boundary.
 
 ## 3. Theme results
 
-Recorded at gate 5.
+The theme experiment ran in the specified order: build on `modern`,
+flip to `arcade` holding snapshot, HUD markup, game rules, and consumer
+composition fixed, then apply the game-owned `cargo-lander` token theme
+as the shipping appearance.
+
+| Check | Result |
+|---|---|
+| modern to arcade, attribute only | Computed styles changed on meter surfaces (fill color, radius) and chrome surfaces (panel font, radius, border width, background) while meter values, display strings, and usable geometry were preserved |
+| arcade to cargo-lander, attribute only | Computed styles changed again on meter and chrome surfaces with the same value and geometry preservation |
+| Shipping appearance | `index.html` ships with `data-gc-theme="cargo-lander"`; the theme declares a complete semantic token set on the kit's `html[data-gc-theme]` contract with no meter reimplementation |
+| Console | Zero errors across all flows, including the theme walks |
+
+The vertical segmented thrust meter held its cross axis at full content
+width under all three themes, measured in layout units so the stage
+transform and theme border widths do not distort the ratio.
 
 ## 4. Kit findings
 

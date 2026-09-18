@@ -29,8 +29,11 @@ game/
 ├── core/       # Pure lander simulation: config, seeded RNG, terrain, core
 ├── runtime/    # Fixed-step clock, frame runner, and the __cl test seam
 ├── ui/         # HUD projector over the vendored kit CSS; stage fitter
-├── render/     # Canvas playfield drawing
 ├── vendor/     # h5gameui pinned revision (never edited)
+├── render.js   # Procedural canvas playfield drawing
+├── hud.css     # Consumer HUD composition on kit tokens
+├── theme.css   # The game's own shipping token theme
+├── main.js     # Wiring: core, runner, HUD, stage, input, seam
 ├── index.html  # Entry page
 └── README.md   # This file
 ```

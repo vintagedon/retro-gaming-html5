@@ -191,12 +191,12 @@ After that passes, the custom theme changes the theme attribute and adds token o
 
 **Validation:**
 
-- [ ] One stopped-runner Playwright flow drives a full run through the seam, deterministically, from launch to `landed`, asserting the HUD agrees with the snapshot at three checkpoints
-- [ ] A second stopped-runner flow takes a gentle impact and then a hard one, verifies hull/trail/craft count, retries without another decrement, and reaches `run-over` only when the final craft is destroyed
-- [ ] One flow uses ordinary keyboard input and the running frame loop, without manual tick advancement, proving rotation, intermediate/full thrust notches and retry/restart controls respond
-- [ ] With the same snapshot and markup, the modern-to-arcade attribute-only flip changes computed styles on at least one meter and one chrome surface while preserving correct values and usable geometry; the custom token theme is applied only after this check passes and receives the same checks
-- [ ] Zero console errors across all flows
-- [ ] Zero image and zero audio files in the game directory, asserted by a scan
+- [x] One stopped-runner Playwright flow drives a full run through the seam, deterministically, from launch to `landed`, asserting the HUD agrees with the snapshot at three checkpoints
+- [x] A second stopped-runner flow takes a gentle impact and then a hard one, verifies hull/trail/craft count, retries without another decrement, and reaches `run-over` only when the final craft is destroyed
+- [x] One flow uses ordinary keyboard input and the running frame loop, without manual tick advancement, proving rotation, intermediate/full thrust notches and retry/restart controls respond
+- [x] With the same snapshot and markup, the modern-to-arcade attribute-only flip changes computed styles on at least one meter and one chrome surface while preserving correct values and usable geometry; the custom token theme is applied only after this check passes and receives the same checks
+- [x] Zero console errors across all flows
+- [x] Zero image and zero audio files in the game directory, asserted by a scan
 
 ### G6 Closeout
 

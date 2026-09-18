@@ -109,6 +109,36 @@ html, body {
   color: var(--gc-text-muted);
 }
 
+#overlay {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  grid-column: 2;
+  grid-row: 1;
+  z-index: 3;
+  text-align: center;
+  min-inline-size: 22rem;
+}
+
+#overlay[hidden] {
+  display: none;
+}
+
+#overlay h2 {
+  font-family: var(--gc-font-display);
+  font-size: var(--gc-type-display-size);
+  font-weight: var(--gc-type-title-weight);
+  letter-spacing: var(--gc-type-title-tracking);
+  color: var(--gc-text-primary);
+}
+
+#overlay p {
+  font-family: var(--gc-font-code);
+  font-size: var(--gc-type-label-size);
+  color: var(--gc-text-secondary);
+}
+
 @layer overrides {
   .hud-rail.gc-panel {
     justify-content: flex-start;

@@ -33,9 +33,9 @@ export const CONFIG = Object.freeze({
   hull: Object.freeze({ segments: 3 }),
   craft: Object.freeze({ starting: 3 }),
   start: Object.freeze({
-    x: 260,
+    x: 960,
     y: 620,
-    vx: 26,
+    vx: 0,
     vy: 0,
     angle: 0
   }),

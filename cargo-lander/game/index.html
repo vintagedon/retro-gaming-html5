@@ -1,11 +1,12 @@
 <!doctype html>
-<html lang="en" data-gc-theme="modern">
+<html lang="en" data-gc-theme="cargo-lander">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CargoLander</title>
   <link rel="stylesheet" href="./vendor/h5gameui/src/gc.css">
   <link rel="stylesheet" href="./hud.css">
+  <link rel="stylesheet" href="./theme.css">
 </head>
 <body>
   <main id="stage-root">
@@ -53,6 +54,10 @@
           </div>
         </div>
       </aside>
+      <div id="overlay" class="gc-panel" data-hud-field="overlay" hidden>
+        <h2 id="overlay-title" data-hud-field="overlayTitle">CargoLander</h2>
+        <p id="overlay-hint" data-hud-field="overlayHint"></p>
+      </div>
     </div>
   </main>
   <script type="module" src="./main.js"></script>
