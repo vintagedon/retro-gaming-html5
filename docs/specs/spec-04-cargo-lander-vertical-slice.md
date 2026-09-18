@@ -124,15 +124,15 @@ All ratios, including `thrustLevel`, are bounded 0..1 values computed by the cor
 
 **Validation:**
 
-- [ ] A source scan over `game/core/` rejects the forbidden APIs. Its mutation gate writes a real file containing `Math.random` into a temporary copy of the core directory and asserts the scan fails on it. A regex asserted against a string literal does not satisfy this
-- [ ] Same seed and same action script produce identical snapshots after 5,000 ticks
-- [ ] A snapshot serialized to JSON after the RNG has advanced continues with identical subsequent draws and snapshots; repeat continuation across a contact/retry boundary so omitted contact or control state cannot pass unnoticed
-- [ ] Each landing tolerance is proven separately: four runs violating exactly one of vertical speed, horizontal speed, tilt, and site position each fail to land, and the run inside all four lands
-- [ ] The three contact outcomes are proven distinctly: a gentle impact leaves the craft flying with one fewer hull segment, a hard impact destroys the craft, and a third gentle impact on a three-segment hull destroys it
-- [ ] Destruction sets hull to zero and decrements `craftRemaining` exactly once; retry restores pose, hull and fuel while preserving the resulting count, elapsed ticks and RNG state, and resetting control input and the impact trail
-- [ ] Remaining in one contact episode causes no repeated hull or craft charge; a survivor can take off and a later distinct contact can cause another impact
-- [ ] Exhausting the craft count sets `outcome` to `run-over`, and no further retry is accepted
-- [ ] A run burns to empty without negative fuel; requesting full thrust then produces zero `thrustLevel` and the same next-tick velocity as coasting from the identical empty-fuel state
+- [x] A source scan over `game/core/` rejects the forbidden APIs. Its mutation gate writes a real file containing `Math.random` into a temporary copy of the core directory and asserts the scan fails on it. A regex asserted against a string literal does not satisfy this
+- [x] Same seed and same action script produce identical snapshots after 5,000 ticks
+- [x] A snapshot serialized to JSON after the RNG has advanced continues with identical subsequent draws and snapshots; repeat continuation across a contact/retry boundary so omitted contact or control state cannot pass unnoticed
+- [x] Each landing tolerance is proven separately: four runs violating exactly one of vertical speed, horizontal speed, tilt, and site position each fail to land, and the run inside all four lands
+- [x] The three contact outcomes are proven distinctly: a gentle impact leaves the craft flying with one fewer hull segment, a hard impact destroys the craft, and a third gentle impact on a three-segment hull destroys it
+- [x] Destruction sets hull to zero and decrements `craftRemaining` exactly once; retry restores pose, hull and fuel while preserving the resulting count, elapsed ticks and RNG state, and resetting control input and the impact trail
+- [x] Remaining in one contact episode causes no repeated hull or craft charge; a survivor can take off and a later distinct contact can cause another impact
+- [x] Exhausting the craft count sets `outcome` to `run-over`, and no further retry is accepted
+- [x] A run burns to empty without negative fuel; requesting full thrust then produces zero `thrustLevel` and the same next-tick velocity as coasting from the identical empty-fuel state
 
 ### G2 Runtime spine
 

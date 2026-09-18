@@ -1,0 +1,12 @@
+{
+  "name": "cargo-lander",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "CargoLander: wireframe-arc lunar lander vertical slice. Development test toolchain; the servable game is the game/ tree only.",
+  "scripts": {
+    "test:unit": "node --test",
+    "test:e2e": "playwright test",
+    "test": "npm run test:unit && npm run test:e2e"
+  }
+}
