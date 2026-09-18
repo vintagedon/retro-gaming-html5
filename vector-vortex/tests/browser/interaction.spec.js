@@ -42,8 +42,16 @@ test('paused game survives blur and refocus with zero ticks and a normal post-re
   // 500ms window carries the evidence: a guarded resume drains ~30 ticks,
   // an unguarded one bursts with the whole paused interval's delta.
   await page.keyboard.press('p');
+  // The resume keypress re-opens the live clock, so a frame may tick
+  // between the press and this read; exact equality against the paused
+  // count races the next frame (the same live-clock race family as the
+  // restart read below). The pause-interval freeze is proven by the
+  // equalities above, which read while paused. A real paused-interval
+  // replay would add the whole interval (over 100 ticks for the ~1.8 s
+  // paused here), far above this bound, which only absorbs read latency.
   const atResume = await ticks(page);
-  expect(atResume).toBe(atPause);
+  expect(atResume - atPause).toBeGreaterThanOrEqual(0);
+  expect(atResume - atPause).toBeLessThanOrEqual(4);
   const firstWindow = await sampleAdvance(page, 500);
   expect(firstWindow).toBeGreaterThan(0);
   expect(firstWindow).toBeLessThanOrEqual(48);
@@ -144,7 +152,13 @@ test('restart from a paused outcome screen produces a running fresh run without 
   // Click the enabled Restart button.
   await page.click('#vv-restart');
   const snap = await page.evaluate(() => window.__vv.getSnapshot());
-  expect(snap.elapsedTicks).toBe(0);
+  // The restart dispatch itself resumes the live clock (the runner
+  // re-syncs the clock on restart), and rAF keeps running throughout, so
+  // a frame may tick between the dispatch and this read. The stopped-clock
+  // zero assertion this test used was therefore still racy. The assertion
+  // is a fresh unpaused run near zero, never the finished 18,000-tick run;
+  // the advancement wait below retains the proof that the fresh run runs.
+  expect(snap.elapsedTicks).toBeLessThan(10);
   expect(snap.paused).toBe(false);
   expect(snap.outcome).toBe(null);
   // The fresh run must advance on its own, with no pause toggle.
@@ -185,6 +199,20 @@ test('keyboard pause clears held movement and fire for both P and Escape', async
     const resumed = await page.evaluate(() => window.__vv.getSnapshot());
     expect(resumed.lane).toBe(laneAtPause);
     expect(resumed.shotsSpawned).toBe(shotsAtPause);
+    // Auto-repeat keydowns from the still-physically-held keys must not
+    // resurrect the cleared held flags either: a real OS repeat while the
+    // key never came up would otherwise restart movement and fire across
+    // the pause without a fresh press. Playwright does not synthesize
+    // auto-repeat, so the repeat keydowns are dispatched directly to the
+    // adapter's window listener.
+    await page.evaluate(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', repeat: true }));
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', repeat: true }));
+    });
+    await page.waitForTimeout(300);
+    const afterRepeat = await page.evaluate(() => window.__vv.getSnapshot());
+    expect(afterRepeat.lane).toBe(laneAtPause);
+    expect(afterRepeat.shotsSpawned).toBe(shotsAtPause);
     // Release, press again, and movement and firing resume.
     await page.keyboard.up('ArrowRight');
     await page.keyboard.up('Space');

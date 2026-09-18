@@ -16,9 +16,14 @@ import { test, expect } from '@playwright/test';
 test.use({ viewport: { width: 1280, height: 720 } });
 
 function isOptionalAssetFailure(url) {
-  // Identified optional loads: the browser's own icon request and source
-  // maps. Nothing else is optional.
-  return url.includes('favicon') || url.endsWith('.map');
+  // Identified optional loads, matched precisely: the browser's own icon
+  // request (/favicon.ico) and source maps. Nothing else is optional. The
+  // match is on the exact optional targets only; a substring test such as
+  // url.includes('favicon') would also swallow genuine application
+  // failures for any URL or text that merely contains the word.
+  if (!url) return false;
+  const path = url.split('?')[0];
+  return path.endsWith('/favicon.ico') || path.endsWith('.map');
 }
 
 function isAppResource(resourceType) {
@@ -29,8 +34,12 @@ function collectErrors(page, errors) {
   page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`));
   page.on('console', (msg) => {
     if (msg.type() !== 'error') return;
+    // Identify optional failures by their resource URL only. Matching the
+    // message text would suppress application errors whose prose mentions
+    // an optional target (for example a handler logging a favicon cache
+    // failure); only the request's own URL identifies an optional load.
     const loc = msg.location()?.url ?? '';
-    if (isOptionalAssetFailure(loc) || isOptionalAssetFailure(msg.text())) return;
+    if (isOptionalAssetFailure(loc)) return;
     errors.push(`console.error: ${msg.text()}`);
   });
   page.on('requestfailed', (req) => {
@@ -131,9 +140,37 @@ test('smoke error gate: a failed stylesheet request is blocking', async ({ page 
 test('smoke error gate: a failed icon request is not blocking', async ({ page }) => {
   const errors = [];
   collectErrors(page, errors);
-  await page.route('**/favicon.ico', (route) => route.abort());
+  // Issue the optional icon request deterministically and observe it
+  // fail. Waiting for the browser to fetch the icon of its own accord is
+  // not evidence: Chromium routes its favicon fetching through the
+  // browser process's favicon service, which produces no page-attributed
+  // network events, so a bare favicon.ico route never fires and the gate
+  // would pass vacuously (that is how this test originally passed while
+  // proving nothing). A query-suffixed fetch of the same icon URL goes
+  // through the ordinary, interceptable request pipeline. The route
+  // counter and the requestfailed capture prove the request happened and
+  // was seen failing; the empty error list proves the gate tolerates an
+  // identified optional failure.
+  let iconRouteHits = 0;
+  const iconFailures = [];
+  page.on('requestfailed', (req) => {
+    if (req.url().split('?')[0].endsWith('/favicon.ico')) iconFailures.push(req.url());
+  });
+  await page.route('**/favicon.ico*', (route) => {
+    iconRouteHits += 1;
+    route.abort();
+  });
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.getSnapshot === 'function');
+  await page.evaluate(async () => {
+    try {
+      await fetch('favicon.ico?probe=icon-failure-gate');
+    } catch {
+      // The abort is the point of the request.
+    }
+  });
   await page.waitForTimeout(300);
+  expect(iconRouteHits, 'the icon request must actually be issued').toBeGreaterThan(0);
+  expect(iconFailures.length, 'the icon failure must actually be observed').toBeGreaterThan(0);
   expect(errors, `unexpected page errors: ${errors.join(' | ')}`).toEqual([]);
 });

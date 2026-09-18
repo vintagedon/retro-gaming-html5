@@ -35,7 +35,7 @@ coverage/
 # Licensed reference material (studied as shapes, never redistributed)
 # ----------------------------------------------------------------------------
 reference/
-reference-files-*/
+reference-files*/
 
 # ----------------------------------------------------------------------------
 # Raw asset staging (sourced from the ML01 library; never committed)

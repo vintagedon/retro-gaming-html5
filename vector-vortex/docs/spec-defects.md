@@ -1,10 +1,10 @@
 <!--
 ---
 title: "Vector Vortex Spec Defects Observed"
-description: "Spec defects observed while implementing Vector Vortex Spec 01 and the 01b amendment"
+description: "Spec defects observed while implementing Vector Vortex Spec 01 and its 01b and 01c amendments"
 author: "VintageDon (https://github.com/vintagedon/)"
-date: "2026-09-09"
-version: "0.4.0"
+date: "2026-09-18"
+version: "0.5.0"
 status: "Active"
 tags:
   - type: defect-log
@@ -20,7 +20,11 @@ related_documents:
 
 # Vector Vortex Spec 01 and 01b: Spec Defects Observed
 
-These items are observations made while implementing Deliverables 1 through 4 of Spec 01 and the Spec 01b amendment. The two Spec 01 defects corrected by 01b are also recorded in the central spec defect register with spec attribution.
+These items are observations made while implementing Deliverables 1 through 4 of Spec 01 and the Spec 01b and 01c amendments (01c pass 1 plus its continuation). The two Spec 01 defects corrected by 01b are also recorded in the central spec defect register with spec attribution, as is the 01c multi-drain strike below.
+
+## Named multi-drain mutation requirement struck (Spec 01 v3.0/01b, struck by the 01c continuation)
+
+The tracked spec's Drain-clause disposition states it is recorded here; this entry is that record, reconciling the register with the amendment. The Deliverable 1 requirement for a named "draining more than one input sample per tick" mutation is struck by Amendment 01c's continuation. Cross-rate digest equality cannot discriminate that mutation: every schedule replays the identical action log, so any per-tick input-evaluation mistake occurs identically at every rate and the digests still agree. The only mutation test written for the clause compared two different action schedules and passed for a reason unrelated to the mutation, which is why 01c pass 1 deleted it as hollow. The frame-delta cap mutation remains the clock's discriminating check. Positive evidence for correct input timing comes from the restored action-log fixture: a delivery record asserting every entry is dispatched once before its named simulation tick in order, plus expected movement and firing assertions against the resulting core. No replacement mutation wrapper is required. The central register carries the same record as SD-198.
 
 ## Director band 2 first-spawn index (Spec 01 v3.0, corrected by Spec 01b D1.1)
 
@@ -58,7 +62,7 @@ During D1 planning I created `game/core/clock-mutation.js` and `game/core/rng-mu
 
 ## Clock tick bound
 
-The clock consumes the accumulator down by exactly `TICK_SECONDS` per drained tick. With FP slack this can leave a sub-tick remainder that does not drain until the next push. There is no upper bound on the number of ticks drained per push, which means a single very large (but clamped) frame could drain many ticks at once. The Spec 01 v3.0 mutation "drain more than one input sample per tick" was modeled in the clock test as "actions queued between ticks are not batched into one tick." Spec 01b preserves this contract.
+The clock consumes the accumulator down by exactly `TICK_SECONDS` per drained tick. With FP slack this can leave a sub-tick remainder that does not drain until the next push. There is no upper bound on the number of ticks drained per push, which means a single very large (but clamped) frame could drain many ticks at once. The Spec 01 v3.0 mutation "drain more than one input sample per tick" was struck by the 01c continuation (see the disposition entry above); the frame-delta cap mutation is the surviving discriminating check for catch-up behavior.
 
 ## Replay test action placement was frame-indexed
 

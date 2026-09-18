@@ -216,23 +216,28 @@ test('blur stops authoritative tick advancement (D2.5)', () => {
   assert.equal(core.snapshot().elapsedTicks, 2, 'resume produces one tick, not a 60-tick catch-up burst');
 });
 
-test('pause key ev.repeat guard: holding pause produces exactly one transition (D2.9)', () => {
+test('gameplay key ev.repeat guard: repeats re-dispatch nothing (D2.9, closing)', () => {
   const src = readFileSync(
     new URL('../../game/runtime/input.js', import.meta.url),
     'utf8'
   );
-  // The input adapter must guard PAUSE_KEYS handling on ev.repeat.
-  assert.ok(/PAUSE_KEYS\.has\(ev\.key\)\s*&&\s*ev\.repeat/.test(src),
-    'input adapter must skip PAUSE_KEYS dispatch on ev.repeat');
-  // Simulate: dispatching pause twice with the same held key would toggle
-  // pause off; with the guard the second dispatch is dropped.
+  // The input adapter must drop auto-repeat keydowns for every gameplay
+  // key (pause AND movement AND fire) before any dispatch branch runs,
+  // so a key still physically held across a pause cannot restart its
+  // action after resume without a fresh press.
+  const guardIdx = src.indexOf('if (ev.repeat) return;');
+  assert.ok(guardIdx > -1, 'input adapter must drop auto-repeat keydowns');
+  for (const dispatched of ["dispatch({ type: 'left-down' })", "dispatch({ type: 'fire-down' })", "dispatch({ type: 'pause' })"]) {
+    assert.ok(src.indexOf(dispatched) > guardIdx,
+      `repeat guard must precede ${dispatched}`);
+  }
+  // Simulate: a repeat keydown never reaches dispatch. First keydown
+  // (no repeat) pauses; the repeat is dropped by the adapter, so the
+  // core sees no second pause dispatch and stays paused.
   const core = createCore({ seed: 1 });
-  // First keydown (no repeat) -> paused becomes true.
   core.dispatch({ type: 'pause' });
   assert.equal(core.snapshot().paused, true);
-  // Second keydown with repeat=true should NOT reach dispatch (the input
-  // adapter filters it out). We model the filtered event as a no-op:
-  // dispatch is not called at all. The state therefore stays paused.
-  // (No state mutation.)
+  // The dropped repeat dispatches nothing; the state therefore stays
+  // paused. (No state mutation.)
   assert.equal(core.snapshot().paused, true, 'repeat keydown is filtered; pause state unchanged');
 });

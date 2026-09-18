@@ -29,7 +29,7 @@ This directory holds the static files served by the Vector Vortex playable. The 
 | `styles.css` | Grid layout, focus rings, viewport warning (sub-960 by class) |
 | `core/*.js` | Pure ES modules: authoritative simulation, director, scoring, breach, RNG, clock, collision, shots, enemies, lanes |
 | `runtime/renderer.js` | Canvas 2D draw, balanced `save`/`restore`, DPR scaling |
-| `runtime/input.js` | Focus-aware keyboard adapter, blur/visibility clearing, ev.repeat guard for pause |
+| `runtime/input.js` | Focus-aware keyboard adapter, blur/visibility clearing, ev.repeat guard for all gameplay keys |
 | `runtime/frame-runner.js` | rAF loop, fixed-step clock, deterministic test seam, first-visible-frame delta reset |
 | `runtime/dom.js` | Pure projection of the snapshot to the semantic DOM (no arithmetic) |
 | `runtime/main.js` | Wires core + renderer + input + runner; exposes `window.__vv` |

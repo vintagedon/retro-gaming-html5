@@ -33,7 +33,7 @@ The unit-test script invokes `node --test` with an explicit file list. No shell 
 | `shots.test.js` | Cooldown 8 ticks; cap 6; advance and expire; blocked-fire denominator (mutation: counting blocked fires) |
 | `enemies.test.js` | Crawler spawn, advance, ascending-ID breach order |
 | `core.test.js` | Snapshot, lane wrap, fire-on-tick, cooldown bypass, shot cap, JSON round-trip, mutation tests |
-| `clock.test.js` | 30/60/144 Hz digest equality with real-time alignment (residual ≤1); frame-delta cap (positive catch-up-cap check and its mutation); pause; paused/hidden suppression (D2.1); blur stops tick advancement (D2.5); pause ev.repeat guard (D2.9) |
+| `clock.test.js` | 30/60/144 Hz digest equality with real-time alignment (residual ≤1); frame-delta cap (positive catch-up-cap check and its mutation); pause; paused/hidden suppression (D2.1); blur stops tick advancement (D2.5); gameplay ev.repeat guard for all gameplay keys (D2.9, closing) |
 | `purity.test.js` | No DOM/Canvas/Audio/clock APIs in `game/core/`; no `-mutation.js` test helpers in `game/core/` (D3.1) |
 | `replay.test.js` | Restored by the 01c continuation: action-log delivery record (every entry dispatched once before its named tick, same-tick order kept), held movement and firing produce the expected lane steps and shots, and one authoritative digest at the same completed tick across 30/60/144 Hz and an uneven fractional schedule, aligned without skipping inputs |
 | `discovery.test.js` | Explicit test list, no globs; mutation: renaming a file changes the count |

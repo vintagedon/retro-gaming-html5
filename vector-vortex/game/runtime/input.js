@@ -41,10 +41,14 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
     if (destroyed) return;
     if (window.__vv && window.__vv.disableInputAdapter === true) return;
     if (window.__vv && window.__vv.disableKeydown === true) return;
-    // D2.9: ignore key auto-repeat for the pause key so holding Escape or P
-    // does not toggle pause repeatedly. Movement and fire keys are still
-    // dispatched on repeat so held-to-fire / held-to-move keep working.
-    if (PAUSE_KEYS.has(ev.key) && ev.repeat) return;
+    // Closing correction (Spec 01 review): ignore key auto-repeat for
+    // every gameplay key, not only pause. Held movement and fire persist
+    // through the core's held flags, set once by the initial keydown, so
+    // repeats add nothing while a key is legitimately held. But a pause
+    // clears held input, and an auto-repeat keydown from a key still
+    // physically down would re-set the flag after resume, restarting the
+    // action without a fresh press and violating the 01c pause contract.
+    if (ev.repeat) return;
     const key = ev.key;
 
     const isLeft = LEFT_KEYS.has(key);
