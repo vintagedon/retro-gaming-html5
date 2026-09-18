@@ -88,3 +88,4 @@ dist/
 *.tmp
 *.bak
 tmp/
+reference-files/
