@@ -2,9 +2,21 @@ import { createLanderCore } from './core/lander.js';
 import { createClock } from './runtime/clock.js';
 import { createRunner } from './runtime/runner.js';
 import { createHudProjector } from './ui/hud.js';
+import { createStage } from './ui/stage.js';
 
 const core = createLanderCore({ seed: 20260918 });
 const clock = createClock();
+const stage = createStage({
+  root: document.getElementById('stage-root'),
+  stage: document.getElementById('stage'),
+  canvas: document.getElementById('playfield'),
+  getDpr: () => window.devicePixelRatio || 1
+});
+stage.fit();
+window.addEventListener('resize', () => {
+  stage.fit();
+  projectHud();
+});
 const projector = createHudProjector({
   fuelMeter: document.querySelector('[data-hud="fuel-meter"]'),
   hullMeter: document.querySelector('[data-hud="hull-meter"]'),
@@ -68,7 +80,8 @@ window.__cl = {
   },
   lifecycle: {
     isRunning: () => runner.isRunning()
-  }
+  },
+  stage: () => stage.info()
 };
 
 projectHud();

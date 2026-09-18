@@ -178,8 +178,8 @@ One 1920x1080 logical CSS-pixel stage, scaled uniformly by `min(hostWidth / 1920
 
 **Validation:**
 
-- [ ] At 1920x1080, 2560x1440, 3840x2160, and one deliberately awkward window, stage bounds match the fit formula and centering, the HUD keeps its logical position relative to the playfield, and authored content has no unintended overflow
-- [ ] Assert `canvas.width` and `canvas.height` against its displayed CSS-pixel dimensions after stage scaling multiplied by emulated DPR, allowing integer rounding, at DPR 1 and 2; the drawing transform retains logical stage coordinates
+- [x] At 1920x1080, 2560x1440, 3840x2160, and one deliberately awkward window, stage bounds match the fit formula and centering, the HUD keeps its logical position relative to the playfield, and authored content has no unintended overflow
+- [x] Assert `canvas.width` and `canvas.height` against its displayed CSS-pixel dimensions after stage scaling multiplied by emulated DPR, allowing integer rounding, at DPR 1 and 2; the drawing transform retains logical stage coordinates
 
 ### G5 Playable slice and theme layer
 

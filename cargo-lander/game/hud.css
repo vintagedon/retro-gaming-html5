@@ -4,18 +4,44 @@
  * lives in the overrides layer declared by the kit's entry point.
  */
 
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+#stage-root {
+  position: fixed;
+  inset: 0;
+}
+
 #stage {
-  position: relative;
+  position: absolute;
+  left: 0;
+  top: 0;
   width: 1920px;
   height: 1080px;
   display: grid;
   grid-template-columns: 420px 1fr 260px;
+  grid-template-rows: 100%;
+}
+
+/* Explicit areas: sparse auto-placement would skip column 1 after the
+ * definite-column playfield moves the placement cursor forward. */
+#hud-left {
+  grid-column: 1;
+  grid-row: 1;
 }
 
 #playfield-wrap {
-  position: relative;
   grid-column: 2;
+  grid-row: 1;
+  position: relative;
   overflow: hidden;
+}
+
+#hud-right {
+  grid-column: 3;
+  grid-row: 1;
 }
 
 #playfield {
