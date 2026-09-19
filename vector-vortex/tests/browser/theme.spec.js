@@ -70,6 +70,7 @@ test('required rendered primitives exist and carry computed theme roles', async 
     }
     const panels = [...document.querySelectorAll('.gc-panel')];
     const buttons = [...document.querySelectorAll('.gc-button')];
+    const meters = [...document.querySelectorAll('.gc-meter')];
     const h1 = document.querySelector('.vv-header h1');
     const objective = document.querySelector('[data-testid="vv-objective"]');
     const pauseButton = document.querySelector('#vv-pause');
@@ -77,6 +78,7 @@ test('required rendered primitives exist and carry computed theme roles', async 
     return {
       panelCount: panels.length,
       buttonCount: buttons.length,
+      meterCount: meters.length,
       bodyBackground: computedColor(body, 'backgroundColor'),
       canvasField: probeToken('--gc-surface-canvas', 'backgroundColor'),
       accent: probeToken('--gc-accent', 'color'),
@@ -88,14 +90,18 @@ test('required rendered primitives exist and carry computed theme roles', async 
       pauseColor: pauseButton ? computedColor(pauseButton, 'color') : null,
       panelBackground: panels[0] ? computedColor(panels[0], 'backgroundColor') : null,
       raisedProbe: probeToken('--gc-surface-raised', 'backgroundColor'),
+      meterFill: meters[0] ? computedColor(meters[0].querySelector('.gc-meter__fill'), 'backgroundColor') : null,
+      meterFillProbe: probeToken('--gc-meter-fill', 'backgroundColor'),
       bodyFont: computedColor(body, 'fontFamily'),
       labelTransform: pauseButton ? computedColor(pauseButton, 'textTransform') : null
     };
   });
 
-  // Non-empty primitive sets (an empty set must fail, not pass).
-  expect(result.panelCount).toBeGreaterThan(0);
+  // Non-empty primitive sets (an empty set must fail, not pass). Panels
+  // arrive with the dialog surfaces in deliverable 3; buttons and the meter
+  // are required now.
   expect(result.buttonCount).toBeGreaterThanOrEqual(2);
+  expect(result.meterCount).toBeGreaterThan(0);
 
   // Frozen palette roles resolve exactly on rendered elements.
   expect(result.bodyBackground).toBe(FROZEN.field);
@@ -110,8 +116,8 @@ test('required rendered primitives exist and carry computed theme roles', async 
   expect(result.pauseColor).toBe(FROZEN.text);
   expect(result.objectiveColor).toBe(FROZEN.muted);
 
-  // Panel consumes the themed raised surface token.
-  expect(result.panelBackground).toBe(result.raisedProbe);
+  // The meter fill consumes the public meter-fill token.
+  expect(result.meterFill).toBe(result.meterFillProbe);
 
   // Frozen monospace stack and compact uppercase labels.
   expect(result.bodyFont).toBe('ui-monospace, SFMono-Regular, Menlo, Consolas, monospace');

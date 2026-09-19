@@ -7,25 +7,31 @@ import { createDom } from './dom.js';
 
 function start() {
   const canvas = document.getElementById('vv-canvas');
-  const root = document.getElementById('vv-root');
-  const status = document.getElementById('vv-status');
   const score = document.querySelector('[data-testid="vv-score"]');
-  const lives = document.querySelector('[data-testid="vv-lives"]');
-  const time = document.querySelector('[data-testid="vv-time"]');
+  const best = document.querySelector('[data-testid="vv-best"]');
+  const meter = document.getElementById('vv-meter');
+  const meterText = document.querySelector('[data-testid="vv-time"]');
+  const lives = document.getElementById('vv-lives');
   const kills = document.querySelector('[data-testid="vv-kills"]');
   const accuracy = document.querySelector('[data-testid="vv-accuracy"]');
   const currentStatus = document.querySelector('[data-testid="vv-current-status"]');
   const pauseButton = document.getElementById('vv-pause');
   const restartButton = document.getElementById('vv-restart');
-  const viewportWarning = document.querySelector('[data-testid="vv-viewport-warning"]');
+
+  // BEST source (Spec 02 deliverable 3 wires defensive persistence). The
+  // provider hook keeps the HUD free of storage rules; tests may inject a
+  // provider through window.__vv.bestProvider before boot.
+  const bestProvider = (typeof window.__vv !== 'undefined' && typeof window.__vv.bestProvider === 'function')
+    ? window.__vv.bestProvider
+    : () => 0;
 
   const renderer = createRenderer({ canvas });
   renderer.resize();
   window.addEventListener('resize', () => renderer.resize());
 
   const dom = createDom({
-    root, status, score, lives, time, kills, accuracy, currentStatus,
-    pauseButton, restartButton, viewportWarning
+    score, best, meter, meterText, lives, kills, accuracy, currentStatus,
+    pauseButton, restartButton, bestProvider
   });
 
   let runner = null;

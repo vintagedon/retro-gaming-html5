@@ -41,8 +41,11 @@
   }
 
   .vv-header h1 {
-    font-size: clamp(18px, 2.4vw, 28px);
-    margin: 0 0 8px;
+    /* Fixed compact sizes (not viewport clamps) keep the non-canvas chrome
+       uniform across the supported viewports, which is what the canvas
+       height reserve below depends on. */
+    font-size: 20px;
+    margin: 0 0 6px;
     color: var(--gc-accent);
     letter-spacing: 0.04em;
     font-weight: var(--gc-type-title-weight);
@@ -50,9 +53,9 @@
 
   .vv-objective,
   .vv-controls {
-    font-size: clamp(12px, 1.2vw, 14px);
-    line-height: 1.4;
-    margin: 0 0 4px;
+    font-size: 12px;
+    line-height: 1.35;
+    margin: 0 0 3px;
     color: var(--gc-text-muted);
   }
 
@@ -64,29 +67,97 @@
     min-height: 0;
   }
 
-  .vv-status {
+  .vv-hud-top {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .vv-hud-cell {
+    display: inline-flex;
+    align-items: baseline;
     gap: 8px;
   }
 
-  .vv-status-cell {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .vv-status-label {
+  .vv-hud-label {
     font-size: var(--gc-type-label-size);
     letter-spacing: var(--gc-type-label-tracking);
     text-transform: var(--gc-type-label-transform);
     color: var(--gc-text-muted);
   }
 
-  .vv-status-value {
+  .vv-hud-value {
     font-size: clamp(14px, 1.6vw, 18px);
     font-weight: var(--gc-type-label-weight);
     color: var(--gc-accent);
+  }
+
+  .vv-hud-score .vv-hud-value {
+    font-size: clamp(18px, 2vw, 24px);
+  }
+
+  .vv-hud-meter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  /* Positional layout for the game-owned meter slot only; the component's
+     own presentation stays entirely the framework's. */
+  .vv-hud-meter > * {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Depletion meter role flip at the final minute: the game toggles this
+     vv- class and the rule sets only the documented public fill token. */
+  .vv-meter--warning {
+    --gc-meter-fill: var(--gc-status-warning);
+  }
+
+  .vv-lives {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .vv-life {
+    inline-size: 16px;
+    block-size: 16px;
+    color: var(--gc-accent);
+  }
+
+  .vv-life--spent {
+    opacity: var(--gc-disabled-opacity);
+  }
+
+  .vv-hud-bottom {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .vv-hud-status {
+    justify-self: center;
+    font-size: var(--gc-type-label-size);
+    letter-spacing: var(--gc-type-label-tracking);
+    text-transform: var(--gc-type-label-transform);
+    color: var(--gc-text-muted);
+  }
+
+  .vv-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .vv-canvas-wrap {
@@ -107,11 +178,11 @@
        still capped at 960 for larger screens. 01c continuation gate 1: the
        height reserve is the measured non-canvas chrome plus margin, so the
        bottom edge of the lowest control stays inside the viewport at
-       1024x576 and 1280x720 alike. Spec 02 deliverable 1 re-measured the
-       chrome at 338px (framework panel padding and 44px control height
-       replace the mechanics-slice sizes) and reset the reserve to 338 + 16
-       margin by the same rule. */
-    width: min(100%, 960px, calc((100vh - 354px) * 16 / 9));
+       1024x576 and 1280x720 alike. Spec 02 deliverable 2 re-measured the
+       chrome for the frozen HUD (top bar, bottom bar, compact header) at
+       its worst supported viewport (1024x576, where the controls paragraph
+       wraps to three lines): 296px, plus 16 margin by the same rule. */
+    width: min(100%, 960px, calc((100vh - 312px) * 16 / 9));
     height: auto;
     aspect-ratio: 16 / 9;
     background: var(--gc-surface-canvas);

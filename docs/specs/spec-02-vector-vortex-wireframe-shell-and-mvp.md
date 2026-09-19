@@ -173,11 +173,13 @@ Replace the mechanics slice's minimal status with the frozen HUD while retaining
 
 Validation:
 
-- [ ] A scripted run checks every value against the same core snapshot after shots, hits, a life loss, final-minute entry, survival, and loss.
-- [ ] The depletion meter starts full, switches to Warning at exactly 3,600 remaining ticks, and reaches zero at elapsed tick 18,000, including a final-tick loss. A loss before the final tick freezes the remaining value rather than emptying it.
-- [ ] Zero shots shows `ACC --`; all three life glyphs and subsequent decrements match the snapshot.
-- [ ] Screenshot geometry probes at the four supported viewports find no HUD/playable-rim overlap, clipping, horizontal scroll, or hidden action, and confirm the required HUD, playfield, and actions each have nonzero bounds entirely inside the viewport. Required actions remain operable by keyboard and by pointer.
-- [ ] HUD bindings reuse core-owned scoring helpers and constants and duplicate no authoritative scoring, accuracy, collision, timing, or outcome rule. Presentation formatting and the normalization of elapsed ticks into display text or a meter fraction are permitted and are not findings.
+- [x] A scripted run checks every value against the same core snapshot after shots, hits, a life loss, final-minute entry, survival, and loss.
+- [x] The depletion meter starts full, switches to Warning at exactly 3,600 remaining ticks, and reaches zero at elapsed tick 18,000, including a final-tick loss. A loss before the final tick freezes the remaining value rather than emptying it.
+- [x] Zero shots shows `ACC --`; all three life glyphs and subsequent decrements match the snapshot.
+- [x] Screenshot geometry probes at the four supported viewports find no HUD/playable-rim overlap, clipping, horizontal scroll, or hidden action, and confirm the required HUD, playfield, and actions each have nonzero bounds entirely inside the viewport. Required actions remain operable by keyboard and by pointer.
+- [x] HUD bindings reuse core-owned scoring helpers and constants and duplicate no authoritative scoring, accuracy, collision, timing, or outcome rule. Presentation formatting and the normalization of elapsed ticks into display text or a meter fraction are permitted and are not findings.
+
+Completion record (2026-09-19): the frozen HUD replaced the mechanics-slice status grid. The core gained the sanctioned read-only `remainingTicks` projection and the `FINAL_MINUTE_TICKS` vocabulary constant; the HUD binder (`game/runtime/dom.js`) formats only. BEST renders through a provider hook that deliverable 3 wires to defensive persistence. Proven by `vector-vortex/tests/core/hud-projection.test.js` and `vector-vortex/tests/browser/hud.spec.js` (scripted deterministic run with a seed-verified hit at the tick-59 lane-15 spawn, staged outcomes through the tracked seam, meter threshold and freeze checks, four-viewport geometry probes with screenshots, and keyboard/pointer action operability). The 01c chrome reserve was re-measured for the HUD layout (296px worst viewport plus 16 margin). The title capture was refreshed for the new HUD.
 
 #### Deliverable 3: Shell, UI sound, and defensive storage
 

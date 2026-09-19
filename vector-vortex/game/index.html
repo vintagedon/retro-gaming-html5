@@ -23,30 +23,25 @@
     </header>
 
     <main class="vv-main">
-      <div class="vv-status gc-panel" id="vv-status" data-testid="vv-status" aria-live="polite">
-        <div class="vv-status-cell">
-          <span class="vv-status-label">Score</span>
-          <span class="vv-status-value" data-testid="vv-score">0</span>
+      <div class="vv-hud-top" data-testid="vv-hud-top">
+        <div class="vv-hud-cell vv-hud-score">
+          <span class="vv-hud-label">Score</span>
+          <span class="vv-hud-value" data-testid="vv-score">0</span>
         </div>
-        <div class="vv-status-cell">
-          <span class="vv-status-label">Lives</span>
-          <span class="vv-status-value" data-testid="vv-lives">3</span>
+        <div class="vv-hud-meter">
+          <div
+            class="gc-meter"
+            id="vv-meter"
+            data-testid="vv-meter"
+            style="--gc-meter-value: 100%"
+          >
+            <div class="gc-meter__fill"></div>
+          </div>
+          <span class="vv-sr-only" data-testid="vv-time">05:00 remaining</span>
         </div>
-        <div class="vv-status-cell">
-          <span class="vv-status-label">Time</span>
-          <span class="vv-status-value" data-testid="vv-time">00:00</span>
-        </div>
-        <div class="vv-status-cell">
-          <span class="vv-status-label">Kills</span>
-          <span class="vv-status-value" data-testid="vv-kills">0</span>
-        </div>
-        <div class="vv-status-cell">
-          <span class="vv-status-label">Accuracy</span>
-          <span class="vv-status-value" data-testid="vv-accuracy">ACC --</span>
-        </div>
-        <div class="vv-status-cell">
-          <span class="vv-status-label">Status</span>
-          <span class="vv-status-value" data-testid="vv-current-status">running</span>
+        <div class="vv-hud-cell vv-hud-best">
+          <span class="vv-hud-label">Best</span>
+          <span class="vv-hud-value" data-testid="vv-best">0</span>
         </div>
       </div>
 
@@ -60,6 +55,22 @@
         <p class="vv-viewport-warning" data-testid="vv-viewport-warning">
           Larger play area recommended (below 960x540).
         </p>
+      </div>
+
+      <div class="vv-hud-bottom" data-testid="vv-hud-bottom">
+        <span class="vv-lives" id="vv-lives" data-testid="vv-lives" role="img" aria-label="Lives: 3">
+          <svg class="vv-life" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.5 L14.5 14 L8 10.5 L1.5 14 Z" fill="currentColor"></path></svg>
+          <svg class="vv-life" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.5 L14.5 14 L8 10.5 L1.5 14 Z" fill="currentColor"></path></svg>
+          <svg class="vv-life" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.5 L14.5 14 L8 10.5 L1.5 14 Z" fill="currentColor"></path></svg>
+        </span>
+        <span class="vv-hud-cell vv-hud-kills">
+          <span class="vv-hud-label">Kills</span>
+          <span class="vv-hud-value" data-testid="vv-kills">0</span>
+        </span>
+        <span class="vv-hud-status" data-testid="vv-current-status" aria-live="polite">running</span>
+        <span class="vv-hud-cell vv-hud-acc">
+          <span class="vv-hud-value" data-testid="vv-accuracy">ACC --</span>
+        </span>
       </div>
 
       <div class="vv-actions" id="vv-controls-buttons">

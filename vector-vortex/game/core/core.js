@@ -16,6 +16,11 @@ export const RUN_LENGTH_TICKS = 18000;
 export const STARTING_LIVES = 3;
 export const DAMAGE_GRACE_TICKS = 30;
 export const CRAWLER_SCORE = 100;
+// Vocabulary constant for the run's final minute (60 s at 60 Hz). The
+// director's band 4 already begins at RUN_LENGTH_TICKS - FINAL_MINUTE_TICKS;
+// exporting the constant lets presentation read the threshold without
+// restating timing arithmetic (Spec 02 HUD contract).
+export const FINAL_MINUTE_TICKS = 3600;
 
 export function initialState(seed) {
   return {
@@ -215,6 +220,10 @@ export function createCore({ seed = 1, initialState: provided } = {}) {
       lives: state.lives,
       score: state.score,
       elapsedTicks: state.elapsedTicks,
+      // Read-only projection for presentation (Spec 02 HUD): remaining run
+      // budget derived from values the core already owns. It adds no rule
+      // and does not change simulation behavior.
+      remainingTicks: Math.max(0, RUN_LENGTH_TICKS - state.elapsedTicks),
       cooldown: state.cooldown,
       paused: state.paused,
       outcome: state.outcome,

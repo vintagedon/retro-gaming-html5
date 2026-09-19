@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "npm run test:unit",
-    "test:unit": "node --test tests/core/rng.test.js tests/core/lanes.test.js tests/core/shots.test.js tests/core/enemies.test.js tests/core/core.test.js tests/core/clock.test.js tests/core/purity.test.js tests/core/discovery.test.js tests/core/director.test.js tests/core/collision.test.js tests/core/scoring.test.js tests/core/breach.test.js tests/core/integration.test.js tests/core/links.test.js tests/core/input-focus-contract.test.js tests/core/render-depth.test.js tests/core/rng-serialize.test.js tests/core/replay.test.js tests/core/dom-no-arithmetic.test.js tests/core/vendor-manifest.test.js tests/core/source-boundaries.test.js",
+    "test:unit": "node --test tests/core/rng.test.js tests/core/lanes.test.js tests/core/shots.test.js tests/core/enemies.test.js tests/core/core.test.js tests/core/clock.test.js tests/core/purity.test.js tests/core/discovery.test.js tests/core/director.test.js tests/core/collision.test.js tests/core/scoring.test.js tests/core/breach.test.js tests/core/integration.test.js tests/core/links.test.js tests/core/input-focus-contract.test.js tests/core/render-depth.test.js tests/core/rng-serialize.test.js tests/core/replay.test.js tests/core/dom-no-arithmetic.test.js tests/core/vendor-manifest.test.js tests/core/source-boundaries.test.js tests/core/hud-projection.test.js",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install --with-deps chromium",
     "serve": "http-server game -p 8123 --silent"

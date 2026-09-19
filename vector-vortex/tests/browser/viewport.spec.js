@@ -21,7 +21,7 @@ for (const v of VIEWPORTS) {
     const layout = await page.evaluate(() => {
       const docW = document.documentElement.scrollWidth;
       const winW = window.innerWidth;
-      const status = document.getElementById('vv-status');
+      const status = document.querySelector('[data-testid="vv-hud-top"]');
       const canvas = document.getElementById('vv-canvas');
       const pause = document.getElementById('vv-pause');
       const restart = document.getElementById('vv-restart');
@@ -49,7 +49,7 @@ test('DPR 1 probe: tube, status, and controls have no overlap and are not off-sc
   const layout = await page.evaluate(() => {
     const winW = window.innerWidth;
     const docW = document.documentElement.scrollWidth;
-    const status = document.getElementById('vv-status');
+    const status = document.querySelector('[data-testid="vv-hud-top"]');
     const canvas = document.getElementById('vv-canvas');
     const pause = document.getElementById('vv-pause');
     const restart = document.getElementById('vv-restart');
