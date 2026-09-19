@@ -5,7 +5,7 @@ description: "Turn the accepted Vector Vortex mechanics slice into the published
 author: "VintageDon (https://github.com/vintagedon/)"
 date: "2026-09-18"
 version: "3.0"
-status: "draft"
+status: "under-review"
 tags:
   - type: specification
   - domain: [game-design, implementation]
@@ -217,10 +217,12 @@ Update the game README, game `AGENTS.md`, target README, and specification index
 
 Validation:
 
-- [ ] Documentation matches the implemented commands, ownership boundaries, preview path, and accepted-or-candidate state.
-- [ ] Each deliverable carries exactly one commit containing only that deliverable's target changes and the required co-author trailer, the public spec copy and index row ride the commit of the deliverable they describe, and the branch is pushed with exactly one open pull request.
-- [ ] The matching worklog and registry row record validations, starting base, framework SHA, and target commit SHA.
-- [ ] This spec is archived under the central spec month folder and removed from the flat queue.
+- [x] Documentation matches the implemented commands, ownership boundaries, preview path, and accepted-or-candidate state.
+- [x] Each deliverable carries exactly one commit containing only that deliverable's target changes and the required co-author trailer, the public spec copy and index row ride the commit of the deliverable they describe, and the branch is pushed with exactly one open pull request.
+- [x] The matching worklog and registry row record validations, starting base, framework SHA, and target commit SHA.
+- [x] This spec is archived under the central spec month folder and removed from the flat queue.
+
+Completion record (2026-09-19): the game README, game `AGENTS.md`, inner `game/` README, repository README, and the specification index now state the exact local commands, the preview command and URL, the pinned framework revision and manifest location, the vendored MIT license posture, the controls, and the current MVP status. Closeout (worklog, registry row, central spec archive, branch push, and the single pull request) executes through `spec-closeout` immediately after this commit; the deliverable history in this branch is exactly five commits, one per deliverable, each carrying the attestation trailers.
 
 ## Constraints
 
