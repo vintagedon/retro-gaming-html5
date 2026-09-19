@@ -5,7 +5,8 @@ description: "The Vector Vortex twist and polish on the merged Spec 01 MVP: a sc
 author: "VintageDon (https://github.com/vintagedon/)"
 date: "2026-08-14"
 version: "1.1"
-status: "Draft"
+status: "deprecated"
+superseded_by: "2026-08-16-retrohtml5-spec-03-vector-vortex-topology-shift-and-polish.md"
 tags:
   - type: specification
   - domain: [game-design, implementation]
@@ -15,8 +16,13 @@ tags:
 related_documents:
   - "[Agent Instructions](../../AGENTS.md)"
   - "[Spec 01: MVP and Wireframe Shell](spec-01-vector-vortex-mvp-and-shell.md)"
+  - "[Repository Specs Index](README.md)"
 ---
 -->
+
+# Vector Vortex Spec 02: Topology Shift and Polish
+
+> **Status:** Deprecated. The earlier numbering (this file as Spec 02) was realigned to a global per-repository counter in Spec 01 v3.0. The replacement lives in the central spec archive and is not in-repo. This file is preserved as the durable record of that earlier scope.
 
 # Vector Vortex Spec 02: Topology Shift and Polish
 

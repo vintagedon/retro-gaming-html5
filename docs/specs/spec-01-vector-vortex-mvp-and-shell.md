@@ -5,7 +5,8 @@ description: "First playable Vector Vortex: a 24-lane Canvas 2D tube shooter wit
 author: "VintageDon (https://github.com/vintagedon/)"
 date: "2026-08-14"
 version: "1.1"
-status: "Draft"
+status: "deprecated"
+superseded_by: "spec-01-vector-vortex-core-playable.md"
 tags:
   - type: specification
   - domain: [game-design, implementation]
@@ -16,10 +17,13 @@ related_documents:
   - "[Agent Instructions](../../AGENTS.md)"
   - "[Project README](../../README.md)"
   - "[Spec 02: Topology Shift and Polish](spec-02-vector-vortex-topology-shift-and-polish.md)"
+  - "[Replacement: Spec 01 v3.0 Deterministic Core Playable](spec-01-vector-vortex-core-playable.md)"
 ---
 -->
 
 # Vector Vortex Spec 01: MVP and Wireframe Shell
+
+> **Status:** Deprecated. Superseded by [Spec 01 v3.0 Deterministic Core Playable](spec-01-vector-vortex-core-playable.md) on 2026-09-08. The MVP scope (full app shell, shared UI framework, synthesized UI sound, settings surface) was descoped in favor of a minimal mechanics slice. This file is preserved as the durable record of that earlier scope.
 
 **Series: Vector Vortex, spec 1 of 2. Spec 02 does not begin until this spec's pull request is merged.**
 

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vector Vortex</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="vv-root">
+    <header class="vv-header">
+      <h1>Vector Vortex</h1>
+      <p class="vv-objective" data-testid="vv-objective">
+        Objective: survive the 5-minute Crawler wave on a 24-lane wireframe tube.
+        Move with Left/Right (or A/D), hold Space to fire, and pause with Escape (or P).
+      </p>
+      <p class="vv-controls" data-testid="vv-controls">
+        Controls: Left Arrow or A = move left. Right Arrow or D = move right. Space = fire. Escape or P = pause. The Restart button is enabled after the run ends.
+      </p>
+    </header>
+
+    <main class="vv-main">
+      <div class="vv-status" id="vv-status" data-testid="vv-status" aria-live="polite">
+        <div class="vv-status-cell">
+          <span class="vv-status-label">Score</span>
+          <span class="vv-status-value" data-testid="vv-score">0</span>
+        </div>
+        <div class="vv-status-cell">
+          <span class="vv-status-label">Lives</span>
+          <span class="vv-status-value" data-testid="vv-lives">3</span>
+        </div>
+        <div class="vv-status-cell">
+          <span class="vv-status-label">Time</span>
+          <span class="vv-status-value" data-testid="vv-time">00:00</span>
+        </div>
+        <div class="vv-status-cell">
+          <span class="vv-status-label">Kills</span>
+          <span class="vv-status-value" data-testid="vv-kills">0</span>
+        </div>
+        <div class="vv-status-cell">
+          <span class="vv-status-label">Accuracy</span>
+          <span class="vv-status-value" data-testid="vv-accuracy">ACC --</span>
+        </div>
+        <div class="vv-status-cell">
+          <span class="vv-status-label">Status</span>
+          <span class="vv-status-value" data-testid="vv-current-status">running</span>
+        </div>
+      </div>
+
+      <div class="vv-canvas-wrap">
+        <canvas
+          id="vv-canvas"
+          role="img"
+          aria-label="Vector Vortex tube: 24 lanes, player on the rim, shots moving inward, Crawlers moving outward"
+          tabindex="0"
+        ></canvas>
+        <p class="vv-viewport-warning" data-testid="vv-viewport-warning">
+          Larger play area recommended (below 960x540).
+        </p>
+      </div>
+
+      <div class="vv-buttons" id="vv-controls-buttons">
+        <button type="button" id="vv-pause" data-testid="vv-pause">Pause</button>
+        <button type="button" id="vv-restart" data-testid="vv-restart" disabled>Restart</button>
+      </div>
+    </main>
+  </div>
+  <script type="module" src="runtime/main.js"></script>
+</body>
+</html>

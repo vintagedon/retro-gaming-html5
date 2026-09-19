@@ -1,0 +1,173 @@
+:root {
+  --vv-bg: #05060a;
+  --vv-fg: #d6e7ff;
+  --vv-accent: #59c0ff;
+  --vv-grid: #1a2330;
+  --vv-focus: #ffd166;
+  --vv-font: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--vv-bg);
+  color: var(--vv-fg);
+  font-family: var(--vv-font);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#vv-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 12px;
+  gap: 12px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.vv-header h1 {
+  font-size: clamp(18px, 2.4vw, 28px);
+  margin: 0 0 8px;
+  color: var(--vv-accent);
+  letter-spacing: 0.04em;
+}
+
+.vv-objective,
+.vv-controls {
+  font-size: clamp(12px, 1.2vw, 14px);
+  line-height: 1.4;
+  margin: 0 0 4px;
+  color: var(--vv-fg);
+  opacity: 0.92;
+}
+
+.vv-main {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.vv-status {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  background: #0a1020;
+  border: 1px solid var(--vv-grid);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.vv-status-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px;
+  background: #0e1426;
+  border-radius: 4px;
+}
+
+.vv-status-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7d99c2;
+}
+
+.vv-status-value {
+  font-size: clamp(14px, 1.6vw, 18px);
+  font-weight: 600;
+  color: var(--vv-accent);
+}
+
+.vv-canvas-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #02040a;
+  border: 1px solid var(--vv-grid);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+#vv-canvas {
+  display: block;
+  /* 01c gate 1: size against available height so the smallest supported
+     viewport (1024x576) does not push controls below the fold. Width is
+     still capped at 960 for larger screens. 01c continuation gate 1: the
+     height reserve is the measured non-canvas chrome (header, status,
+     gaps, root padding, buttons, wrap padding/border, about 284px) plus
+     margin, so the bottom edge of the lowest control stays inside the
+     viewport at 1024x576 and 1280x720 alike. */
+  width: min(100%, 960px, calc((100vh - 300px) * 16 / 9));
+  height: auto;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  outline: none;
+}
+
+#vv-canvas:focus-visible,
+#vv-canvas:focus {
+  outline: 2px solid var(--vv-focus);
+  outline-offset: 2px;
+}
+
+.vv-viewport-warning {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: 12px;
+  color: var(--vv-focus);
+  background: rgba(0,0,0,0.6);
+  padding: 4px 10px;
+  border-radius: 4px;
+  display: none;
+}
+
+.vv-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.vv-buttons button {
+  font-family: var(--vv-font);
+  font-size: clamp(13px, 1.3vw, 15px);
+  background: #0e1426;
+  color: var(--vv-fg);
+  border: 1px solid var(--vv-grid);
+  border-radius: 4px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.vv-buttons button:focus,
+.vv-buttons button:focus-visible {
+  outline: 2px solid var(--vv-focus);
+  outline-offset: 2px;
+}
+
+.vv-buttons button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vv-buttons button:hover:not(:disabled) {
+  background: #162042;
+}
+
+@media (max-width: 960px) {
+  .vv-viewport-warning {
+    display: block;
+  }
+}
