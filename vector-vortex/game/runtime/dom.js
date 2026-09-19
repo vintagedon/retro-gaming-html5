@@ -25,15 +25,8 @@ function formatAccuracy(snapshot) {
   return `ACC ${snapshot.accuracyPercent}%`;
 }
 
-function formatStatus(snapshot) {
-  if (snapshot.paused) return 'paused';
-  if (snapshot.outcome === 'survived') return 'survived';
-  if (snapshot.outcome === 'lost') return 'lost';
-  return 'running';
-}
-
 export function createDom({
-  score, best, meter, meterText, lives, kills, accuracy, currentStatus,
+  score, best, meter, meterText, lives, kills, accuracy,
   pauseButton, restartButton, bestProvider
 }) {
   const last = {};
@@ -84,7 +77,8 @@ export function createDom({
     }
     setIfChanged('kills', v => { kills.textContent = v; }, String(snapshot.kills ?? 0));
     setIfChanged('accuracy', v => { accuracy.textContent = v; }, formatAccuracy(snapshot));
-    setIfChanged('currentStatus', v => { currentStatus.textContent = v; }, formatStatus(snapshot));
+    // The paused/status label is the shell state mirror and is owned by the
+    // shell (Spec 02 deliverable 3), not by the snapshot projection.
 
     if (pauseButton) {
       const label = snapshot.paused ? 'Resume' : 'Pause';

@@ -12,6 +12,7 @@
 // ignored; application errors are never suppressed.
 
 import { test, expect } from '@playwright/test';
+import { startRun } from './helpers.js';
 
 test.use({ viewport: { width: 1280, height: 720 } });
 
@@ -60,7 +61,7 @@ test('smoke flow: keyboard play, real-frame-loop pause segment, and hidden→vis
 
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.getSnapshot === 'function');
-  await page.locator('#vv-canvas').focus();
+  await startRun(page);
 
   // 1. Real keyboard movement and firing for several seconds.
   await page.keyboard.down('ArrowRight');

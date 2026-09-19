@@ -187,12 +187,14 @@ Implement the frozen shell states, focus behavior, three-tab settings, blur/paus
 
 Validation:
 
-- [ ] Keyboard-only Playwright flows cover title → run → pause → settings → resume → both outcomes → new run/return to title, with visible focus and correct restoration.
-- [ ] Relabeling a shell item in a fixture does not alter the named command it invokes; each activation fires once.
-- [ ] Blur during running pauses once and clears held actions; blur elsewhere changes neither shell nor core. Elapsed ticks stay fixed across a real pause interval, and after resume the clock advances at the normal rate with no catch-up and fresh input acts.
-- [ ] Replacing audio with a no-op yields an identical shell action log and identical gameplay state at equal completed ticks. The first deliberate gesture enables a cue, mute yields zero output, volume scales the one common bus, audio completion drives no shell or core state, and node counts stay bounded.
-- [ ] Reload fixtures for missing, corrupt, wrong-shape, out-of-range, unavailable, and valid storage all reach an operable title. Start is actually activated, a run is completed, and that run's best score survives a reload; valid preferences survive; in-progress state never does.
-- [ ] The settings surface has exactly Audio, Display, and Controls. Each tab is activated by keyboard and by pointer, its content renders, and focus behaves correctly. No save, import/export, rebinding, account, telemetry, or progression surface appears.
+- [x] Keyboard-only Playwright flows cover title → run → pause → settings → resume → both outcomes → new run/return to title, with visible focus and correct restoration.
+- [x] Relabeling a shell item in a fixture does not alter the named command it invokes; each activation fires once.
+- [x] Blur during running pauses once and clears held actions; blur elsewhere changes neither shell nor core. Elapsed ticks stay fixed across a real pause interval, and after resume the clock advances at the normal rate with no catch-up and fresh input acts.
+- [x] Replacing audio with a no-op yields an identical shell action log and identical gameplay state at equal completed ticks. The first deliberate gesture enables a cue, mute yields zero output, volume scales the one common bus, audio completion drives no shell or core state, and node counts stay bounded.
+- [x] Reload fixtures for missing, corrupt, wrong-shape, out-of-range, unavailable, and valid storage all reach an operable title. Start is actually activated, a run is completed, and that run's best score survives a reload; valid preferences survive; in-progress state never does.
+- [x] The settings surface has exactly Audio, Display, and Controls. Each tab is activated by keyboard and by pointer, its content renders, and focus behaves correctly. No save, import/export, rebinding, account, telemetry, or progression surface appears.
+
+Completion record (2026-09-19): the shell (`game/runtime/shell.js`) owns the five lifecycle states on framework primitives, with focus containment, Escape safety, and invoker restoration; the clock runs only in the running state, so real time never advances a title or ended run. The run-ended surface reuses `SURVIVAL_BONUS` and `computeAccuracyBonus` from the core's scoring module for its breakdown. Synthesized UI audio (`game/runtime/audio.js`) gates on the first deliberate gesture, scales one bus by volume, silences on mute, and bounds active nodes. Defensive persistence (`game/runtime/storage.js`) keeps the single `retrohtml5.vector-vortex.v1` key with field-level validation and silent degradation on quota or security failure. Proven by `vector-vortex/tests/browser/shell-flow.spec.js`, `shell-audio.spec.js`, and `shell-storage.spec.js`, with the blur contract exercised in the reworked `blur.spec.js` and `interaction.spec.js` journeys. The spec-01-era lifecycle tests were reworked onto the shell lifecycle with a shared `startRun` helper; the deterministic-seam and clock contracts are unchanged.
 
 #### Deliverable 4: Scoped preview, evidence, and MVP review
 

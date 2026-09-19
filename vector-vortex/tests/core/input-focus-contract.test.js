@@ -26,9 +26,11 @@ test('input adapter keydown handler dispatches fire/pause/move only when game su
   const moveDispatchIdx = SRC.indexOf("dispatch({ type: 'left-down' })");
   assert.ok(moveDispatchIdx > gateIdx,
     'left-down dispatch must come after the focus gate');
-  const pauseDispatchIdx = SRC.indexOf("dispatch({ type: 'pause' })");
-  assert.ok(pauseDispatchIdx > gateIdx,
-    'pause dispatch must come after the focus gate');
+  // Spec 02: the pause key routes through the shell's onPauseKey; the
+  // call must still sit after the focus gate.
+  const pauseKeyIdx = SRC.indexOf('onPauseKey()');
+  assert.ok(pauseKeyIdx > gateIdx,
+    'pause key route must come after the focus gate');
 });
 
 test('MUTATION: removing the focus gate from the keydown handler breaks the contract (D2.4)', () => {

@@ -15,6 +15,7 @@
 // produce the outcome.
 
 import { test, expect } from '@playwright/test';
+import { startRun } from './helpers.js';
 
 const VIEWPORTS = [
   { width: 1024, height: 576, label: '1024x576' },
@@ -30,6 +31,7 @@ const HIT_SEED_LANE = 15;
 async function boot(page) {
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  await startRun(page);
 }
 
 function stage(page, overrides) {
@@ -168,7 +170,7 @@ test('survived run: meter reaches zero at elapsed tick 18,000 with cash-out show
   expect(snap.score).toBeGreaterThanOrEqual(5000);
   expect(hud.meterValue).toBe('0%');
   expect(hud.meterNow).toBe('0');
-  expect(hud.status).toBe('survived');
+  expect(hud.status).toBe('ended');
   expect(hud.score).toBe(String(snap.score));
 });
 
@@ -197,7 +199,7 @@ test('loss before the final tick freezes the remaining value rather than emptyin
   expect(hud.meterNow).toBe('12999');
   expect(hud.meterValue).not.toBe('0%');
   expect(hud.activeGlyphs).toBe(0);
-  expect(hud.status).toBe('lost');
+  expect(hud.status).toBe('ended');
 });
 
 test('final-tick breach is lethal and the meter still reads zero at 18,000', async ({ page }) => {
@@ -222,7 +224,7 @@ test('final-tick breach is lethal and the meter still reads zero at 18,000', asy
   expect(snap.elapsedTicks).toBe(18000);
   expect(snap.remainingTicks).toBe(0);
   expect(hud.meterValue).toBe('0%');
-  expect(hud.status).toBe('lost');
+  expect(hud.status).toBe('ended');
 });
 
 for (const v of VIEWPORTS) {
@@ -280,14 +282,14 @@ for (const v of VIEWPORTS) {
     // Actions remain operable by pointer and by keyboard at this viewport.
     await page.click('#vv-pause');
     expect(await page.evaluate(() => window.__vv.getSnapshot().paused)).toBe(true);
-    await page.click('#vv-pause');
+    await page.click('#vv-resume');
     expect(await page.evaluate(() => window.__vv.getSnapshot().paused)).toBe(false);
     await page.locator('#vv-pause').focus();
     await page.keyboard.press('Enter');
     expect(await page.evaluate(() => window.__vv.getSnapshot().paused)).toBe(true);
-    // The pause handler returns focus to the game surface (01c contract),
-    // so the resuming activation re-focuses the control first.
-    await page.locator('#vv-pause').focus();
+    // The pause handler moves focus into the dialog (shell contract), so
+    // the resuming activation uses the dialog's Resume control.
+    await page.locator('#vv-resume').focus();
     await page.keyboard.press('Enter');
     expect(await page.evaluate(() => window.__vv.getSnapshot().paused)).toBe(false);
   });

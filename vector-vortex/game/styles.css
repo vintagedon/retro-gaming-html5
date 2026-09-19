@@ -215,6 +215,164 @@
     flex-wrap: wrap;
   }
 
+  .vv-actions[data-vv-bar="hidden"] {
+    display: none;
+  }
+
+  /* --- Shell (Spec 02 deliverable 3) --- */
+
+  .vv-shell {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: var(--gc-z-modal);
+    background: var(--gc-scrim-fill);
+  }
+
+  .vv-shell[data-vv-state="title"],
+  .vv-shell[data-vv-state="paused"],
+  .vv-shell[data-vv-state="settings"],
+  .vv-shell[data-vv-state="ended"] {
+    display: grid;
+    place-items: center;
+    padding: 16px;
+  }
+
+  .vv-surface {
+    display: none;
+    width: 100%;
+    max-width: 560px;
+    max-height: 100%;
+  }
+
+  .vv-surface[data-vv-active="true"] {
+    display: block;
+  }
+
+  .vv-dialog {
+    max-height: calc(100vh - 32px);
+    overflow: auto;
+  }
+
+  .vv-dialog h2 {
+    margin: 0 0 8px;
+    color: var(--gc-accent);
+    font-size: var(--gc-type-title-size);
+    letter-spacing: var(--gc-type-title-tracking);
+    text-transform: var(--gc-type-label-transform);
+  }
+
+  .vv-dialog-copy {
+    margin: 0 0 8px;
+    color: var(--gc-text-secondary);
+    font-size: var(--gc-type-body-size);
+    line-height: var(--gc-type-body-line-height);
+  }
+
+  .vv-dialog-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .vv-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .vv-tab[aria-selected="true"] {
+    --gc-button-fill: var(--gc-control-fill-selected);
+    color: var(--gc-button-selected-text);
+  }
+
+  .vv-tab-panel {
+    border-top: var(--gc-border-width) solid var(--gc-divider);
+    padding-top: 12px;
+  }
+
+  .vv-tab-panel[data-vv-panel="hidden"] {
+    display: none;
+  }
+
+  .vv-setting-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .vv-setting-label {
+    color: var(--gc-text-muted);
+    font-size: var(--gc-type-label-size);
+    letter-spacing: var(--gc-type-label-tracking);
+    text-transform: var(--gc-type-label-transform);
+  }
+
+  .vv-setting-value {
+    color: var(--gc-text-primary);
+    font-size: var(--gc-type-body-size);
+    min-width: 3ch;
+    text-align: right;
+  }
+
+  .vv-motion-group {
+    flex-wrap: wrap;
+  }
+
+  #vv-volume {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .vv-controls-map {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+  }
+
+  .vv-controls-map th,
+  .vv-controls-map td {
+    text-align: left;
+    padding: 4px 8px 4px 0;
+    font-size: var(--gc-type-body-size);
+    color: var(--gc-text-primary);
+    border-bottom: var(--gc-border-width) solid var(--gc-divider);
+  }
+
+  .vv-controls-map th {
+    color: var(--gc-text-muted);
+    font-weight: var(--gc-type-label-weight);
+  }
+
+  .vv-end-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 16px;
+    margin-bottom: 8px;
+  }
+
+  /* --- Motion preference (display setting) --- */
+
+  /* Reduced (explicit) maps the public motion tokens to instant; system
+     defers to the OS reduce preference; full pins the normal durations
+     against a system reduce. */
+  html[data-vv-motion="reduced"] {
+    --gc-motion-fast: var(--gc-time-0);
+    --gc-motion-base: var(--gc-time-0);
+    --gc-motion-slow: var(--gc-time-0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html:not([data-vv-motion]) {
+      --gc-motion-fast: var(--gc-time-0);
+      --gc-motion-base: var(--gc-time-0);
+      --gc-motion-slow: var(--gc-time-0);
+    }
+  }
+
   @media (max-width: 960px) {
     .vv-viewport-warning {
       display: block;

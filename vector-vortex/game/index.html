@@ -73,11 +73,116 @@
         </span>
       </div>
 
-      <div class="vv-actions" id="vv-controls-buttons">
+      <div class="vv-actions" id="vv-controls-buttons" data-vv-bar="hidden">
         <button type="button" class="gc-button" id="vv-pause" data-testid="vv-pause">Pause</button>
         <button type="button" class="gc-button" id="vv-restart" data-testid="vv-restart" disabled>Restart</button>
       </div>
     </main>
+
+    <div class="vv-shell" id="vv-shell" data-vv-state="title" data-vv-howto="closed">
+      <section class="vv-surface" data-vv-surface="title" data-vv-active="true" aria-label="Vector Vortex title">
+        <div class="gc-panel vv-dialog" role="dialog" aria-modal="true" aria-labelledby="vv-title-heading">
+          <h2 id="vv-title-heading">Vector Vortex</h2>
+          <p class="vv-dialog-copy">Survive the five-minute Crawler wave on a 24-lane wireframe tube.</p>
+          <div class="vv-dialog-actions">
+            <button type="button" class="gc-button" id="vv-start">Start</button>
+            <button type="button" class="gc-button" id="vv-title-settings">Settings</button>
+            <button type="button" class="gc-button" id="vv-howto">How to Play</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="vv-surface" data-vv-surface="howto" data-vv-active="false" aria-label="How to play">
+        <div class="gc-panel vv-dialog" role="dialog" aria-modal="true" aria-labelledby="vv-howto-heading">
+          <h2 id="vv-howto-heading">How to Play</h2>
+          <p class="vv-dialog-copy">Ride the rim of the 24-lane tube. Crawlers advance outward from the far end; a Crawler that reaches your rim costs a life. Three breaches end the run.</p>
+          <p class="vv-dialog-copy">Left Arrow or A moves left around the rim. Right Arrow or D moves right, wrapping at the seam. Hold Space to fire inward along your lane; shots have a short cooldown and six may be active at once.</p>
+          <p class="vv-dialog-copy">Escape or P pauses. A kill scores 100. Surviving all five minutes cashes out a 5,000 survival bonus plus an accuracy bonus.</p>
+          <div class="vv-dialog-actions">
+            <button type="button" class="gc-button" id="vv-howto-close">Close</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="vv-surface" data-vv-surface="paused" data-vv-active="false" aria-label="Paused">
+        <div class="gc-panel vv-dialog" role="dialog" aria-modal="true" aria-labelledby="vv-paused-heading">
+          <h2 id="vv-paused-heading">Paused</h2>
+          <div class="vv-dialog-actions">
+            <button type="button" class="gc-button" id="vv-resume">Resume</button>
+            <button type="button" class="gc-button" id="vv-pause-settings">Settings</button>
+            <button type="button" class="gc-button" id="vv-pause-restart">Restart</button>
+            <button type="button" class="gc-button" id="vv-return-title">Return to Title</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="vv-surface" data-vv-surface="settings" data-vv-active="false" aria-label="Settings">
+        <div class="gc-panel vv-dialog" role="dialog" aria-modal="true" aria-labelledby="vv-settings-heading">
+          <h2 id="vv-settings-heading">Settings</h2>
+          <div class="vv-tabs" role="tablist" aria-label="Settings sections">
+            <button type="button" class="gc-button vv-tab" id="vv-tab-audio" role="tab" aria-selected="true" tabindex="0" aria-controls="vv-panel-audio">Audio</button>
+            <button type="button" class="gc-button vv-tab" id="vv-tab-display" role="tab" aria-selected="false" tabindex="-1" aria-controls="vv-panel-display">Display</button>
+            <button type="button" class="gc-button vv-tab" id="vv-tab-controls" role="tab" aria-selected="false" tabindex="-1" aria-controls="vv-panel-controls">Controls</button>
+          </div>
+          <div class="vv-tab-panel" id="vv-panel-audio" role="tabpanel" aria-labelledby="vv-tab-audio" data-vv-panel="active">
+            <div class="vv-setting-row">
+              <span class="vv-setting-label" id="vv-mute-label">Mute all UI sound</span>
+              <button type="button" class="gc-button" id="vv-mute-toggle" aria-pressed="false" aria-labelledby="vv-mute-label">Muted</button>
+            </div>
+            <div class="vv-setting-row">
+              <label class="vv-setting-label" for="vv-volume">Volume</label>
+              <input type="range" id="vv-volume" class="gc-input" min="0" max="100" step="1" value="80">
+              <span class="vv-setting-value" id="vv-volume-value" aria-hidden="true">80</span>
+            </div>
+          </div>
+          <div class="vv-tab-panel" id="vv-panel-display" role="tabpanel" aria-labelledby="vv-tab-display" data-vv-panel="hidden">
+            <div class="vv-setting-row vv-motion-group" role="group" aria-label="Motion preference">
+              <span class="vv-setting-label">Motion</span>
+              <button type="button" class="gc-button" id="vv-motion-system" aria-pressed="true">System</button>
+              <button type="button" class="gc-button" id="vv-motion-reduced" aria-pressed="false">Reduced</button>
+              <button type="button" class="gc-button" id="vv-motion-full" aria-pressed="false">Full</button>
+            </div>
+          </div>
+          <div class="vv-tab-panel" id="vv-panel-controls" role="tabpanel" aria-labelledby="vv-tab-controls" data-vv-panel="hidden">
+            <table class="vv-controls-map">
+              <tbody>
+                <tr><th scope="row">Move left</th><td>Left Arrow or A</td></tr>
+                <tr><th scope="row">Move right</th><td>Right Arrow or D</td></tr>
+                <tr><th scope="row">Fire</th><td>Space (hold)</td></tr>
+                <tr><th scope="row">Pause / resume</th><td>Escape or P</td></tr>
+              </tbody>
+            </table>
+            <p class="vv-dialog-copy">The action map is fixed; rebinding is not available.</p>
+          </div>
+          <div class="vv-dialog-actions">
+            <button type="button" class="gc-button" id="vv-reset-defaults">Reset to Defaults</button>
+            <button type="button" class="gc-button" id="vv-settings-close">Close</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="vv-surface" data-vv-surface="ended" data-vv-active="false" aria-label="Run ended">
+        <div class="gc-panel vv-dialog" role="dialog" aria-modal="true" aria-labelledby="vv-ended-heading">
+          <h2 id="vv-ended-heading" data-testid="vv-end-outcome">Lost</h2>
+          <div class="vv-end-grid">
+            <span class="vv-setting-label">Final score</span>
+            <span class="vv-hud-value" data-testid="vv-end-score">0</span>
+            <span class="vv-setting-label">Kills</span>
+            <span class="vv-hud-value" data-testid="vv-end-kills">0</span>
+            <span class="vv-setting-label">Accuracy</span>
+            <span class="vv-hud-value" data-testid="vv-end-accuracy">ACC --</span>
+            <span class="vv-setting-label">Survival bonus</span>
+            <span class="vv-hud-value" data-testid="vv-end-survival">+0</span>
+            <span class="vv-setting-label">Accuracy bonus</span>
+            <span class="vv-hud-value" data-testid="vv-end-accuracy-bonus">+0</span>
+          </div>
+          <div class="vv-dialog-actions">
+            <button type="button" class="gc-button" id="vv-new-run">New Run</button>
+            <button type="button" class="gc-button" id="vv-end-return-title">Return to Title</button>
+          </div>
+        </div>
+      </section>
+    </div>
   </div>
   <script type="module" src="runtime/main.js"></script>
 </body>

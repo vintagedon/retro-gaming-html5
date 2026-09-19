@@ -1,6 +1,7 @@
 // Vector Vortex D3 validation: a11y + no off-origin + no image/audio.
 
 import { test, expect } from '@playwright/test';
+import { startRun } from './helpers.js';
 
 test('canvas has aria-label, role=img, and adjacent objective/status', async ({ page }) => {
   await page.goto('/');
@@ -51,17 +52,17 @@ test('all network requests are same-origin (the baseURL host)', async ({ page, b
 test('focus-visible CSS exists for the pause button', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
-  await page.locator('#vv-pause').focus();
+  await startRun(page);
+  // Reach the pause button by real keyboard focus: the framework's focus
+  // ring is a :focus-visible contract, and programmatic focus() carries no
+  // keyboard modality.
+  await page.keyboard.press('Tab');
   const visible = await page.evaluate(() => {
-    const b = document.getElementById('vv-pause');
-    b.focus();
-    // The button is focused; check that it has a non-zero outline.
+    const b = document.activeElement;
     const cs = window.getComputedStyle(b);
-    return { outlineWidth: cs.outlineWidth, outlineStyle: cs.outlineStyle };
+    return { id: b.id, outlineWidth: cs.outlineWidth, outlineStyle: cs.outlineStyle };
   });
-  // Either the rule is matched via :focus-visible and the browser applies
-  // it, or the rule is unconditional via :focus. Either way outline-width
-  // is non-zero.
+  expect(visible.id).toBe('vv-pause');
   expect(visible.outlineStyle).not.toBe('none');
   expect(visible.outlineWidth).not.toBe('0px');
 });

@@ -5,6 +5,7 @@
 // class involved (D2.7).
 
 import { test, expect } from '@playwright/test';
+import { startRun } from './helpers.js';
 
 const VIEWPORTS = [
   { width: 1024, height: 576, label: '1024x576' },
@@ -18,6 +19,7 @@ for (const v of VIEWPORTS) {
     await page.setViewportSize({ width: v.width, height: v.height });
     await page.goto('/');
     await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+    await startRun(page);
     const layout = await page.evaluate(() => {
       const docW = document.documentElement.scrollWidth;
       const winW = window.innerWidth;
@@ -46,6 +48,7 @@ test('DPR 1 probe: tube, status, and controls have no overlap and are not off-sc
   const page = await context.newPage();
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  await startRun(page);
   const layout = await page.evaluate(() => {
     const winW = window.innerWidth;
     const docW = document.documentElement.scrollWidth;

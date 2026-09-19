@@ -97,9 +97,8 @@ test('required rendered primitives exist and carry computed theme roles', async 
     };
   });
 
-  // Non-empty primitive sets (an empty set must fail, not pass). Panels
-  // arrive with the dialog surfaces in deliverable 3; buttons and the meter
-  // are required now.
+  // Non-empty primitive sets (an empty set must fail, not pass).
+  expect(result.panelCount).toBeGreaterThan(0);
   expect(result.buttonCount).toBeGreaterThanOrEqual(2);
   expect(result.meterCount).toBeGreaterThan(0);
 
@@ -116,6 +115,9 @@ test('required rendered primitives exist and carry computed theme roles', async 
   expect(result.pauseColor).toBe(FROZEN.text);
   expect(result.objectiveColor).toBe(FROZEN.muted);
 
+  // Panels consume the themed raised surface token.
+  expect(result.panelBackground).toBe(result.raisedProbe);
+
   // The meter fill consumes the public meter-fill token.
   expect(result.meterFill).toBe(result.meterFillProbe);
 
@@ -127,12 +129,16 @@ test('required rendered primitives exist and carry computed theme roles', async 
 test('focus ring renders the Geometry accent on a real control', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  // Keyboard focus gives the control :focus-visible modality, which is
+  // what the framework's focus contract styles.
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
   const ring = await page.evaluate(() => {
-    const b = document.getElementById('vv-pause');
-    b.focus();
+    const b = document.activeElement;
     const cs = getComputedStyle(b);
-    return { color: cs.outlineColor, width: cs.outlineWidth, style: cs.outlineStyle };
+    return { id: b.id, color: cs.outlineColor, width: cs.outlineWidth, style: cs.outlineStyle };
   });
+  expect(ring.id).toBe('vv-start');
   expect(ring.style).not.toBe('none');
   expect(ring.width).not.toBe('0px');
   expect(ring.color).toBe(FROZEN.geometry);

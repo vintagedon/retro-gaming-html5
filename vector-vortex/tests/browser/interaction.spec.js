@@ -4,6 +4,7 @@
 // pause/focus/visibility/restart interaction defects. No test-only runner.
 
 import { test, expect } from '@playwright/test';
+import { startRun } from './helpers.js';
 
 test.use({ viewport: { width: 1280, height: 720 } });
 
@@ -23,7 +24,7 @@ async function sampleAdvance(page, ms) {
 test('paused game survives blur and refocus with zero ticks and a normal post-resume rate', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
-  await page.locator('#vv-canvas').focus();
+  await startRun(page);
   // Baseline: the game runs.
   await page.waitForTimeout(300);
   // Pause with the keyboard (canvas focused).
@@ -62,7 +63,7 @@ test('paused game survives blur and refocus with zero ticks and a normal post-re
 test('paused game survives hide and restore without a focus event with zero ticks and a normal post-resume rate', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
-  await page.locator('#vv-canvas').focus();
+  await startRun(page);
   await page.waitForTimeout(300);
   await page.keyboard.press('p');
   expect(await page.evaluate(() => window.__vv.getSnapshot().paused)).toBe(true);
@@ -97,7 +98,7 @@ test('paused game survives hide and restore without a focus event with zero tick
 test('hidden interval with no animation callbacks replays no hidden time on restoration', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
-  await page.locator('#vv-canvas').focus();
+  await startRun(page);
   await page.waitForTimeout(300);
   // Stop animation-frame DELIVERY to the production runner. The runner
   // stays wired end to end; only the browser's callback delivery is
@@ -139,18 +140,17 @@ test('hidden interval with no animation callbacks replays no hidden time on rest
   expect(await sampleAdvance(page, 500)).toBeGreaterThan(0);
 });
 
-test('restart from a paused outcome screen produces a running fresh run without pause toggling', async ({ page }) => {
+test('new run from the ended surface produces a running fresh run', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
-  await page.locator('#vv-canvas').focus();
-  // Reach an outcome through the seam (journey setup only).
+  await startRun(page);
+  // Reach an outcome through the seam (journey setup only); the shell
+  // observes the outcome and opens the ended surface.
   await page.evaluate(() => window.__vv.advanceTicks(18000));
   expect(await page.evaluate(() => window.__vv.getSnapshot().outcome)).not.toBe(null);
-  // Pause on the outcome screen.
-  await page.keyboard.press('p');
-  expect(await page.evaluate(() => window.__vv.getSnapshot().paused)).toBe(true);
-  // Click the enabled Restart button.
-  await page.click('#vv-restart');
+  await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+  // Click New Run on the ended surface.
+  await page.click('#vv-new-run');
   const snap = await page.evaluate(() => window.__vv.getSnapshot());
   // The restart dispatch itself resumes the live clock (the runner
   // re-syncs the clock on restart), and rAF keeps running throughout, so
@@ -174,7 +174,7 @@ test('keyboard pause clears held movement and fire for both P and Escape', async
   for (const pauseKey of ['p', 'Escape']) {
     await page.goto('/');
     await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
-    await page.locator('#vv-canvas').focus();
+    await startRun(page);
     await page.keyboard.down('ArrowRight');
     await page.keyboard.down('Space');
     // Wait for real advancement instead of a fixed window. ~31 ticks of
@@ -235,25 +235,31 @@ test('keyboard pause clears held movement and fire for both P and Escape', async
   }
 });
 
-test('mouse pause and resume restore canvas keyboard control; Space-activated restart returns control too', async ({ page }) => {
+test('mouse pause and resume follow the shell focus contract; ended surface restart returns control', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
-  // Mouse-only pause and resume.
+  await startRun(page);
+  // Mouse-only pause: the dialog opens and contains focus.
   await page.click('#vv-pause');
   expect(await page.evaluate(() => window.__vv.getSnapshot().paused)).toBe(true);
-  await page.click('#vv-pause');
+  expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-resume');
+  // Mouse resume: focus returns to the invoking control (the pause button).
+  await page.click('#vv-resume');
   expect(await page.evaluate(() => window.__vv.getSnapshot().paused)).toBe(false);
-  // With no intervening click, an arrow key must move the player. ~25
-  // ticks of held movement lands the lane safely away from 0 and the wrap.
+  expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-pause');
+  // Canvas control returns with the canvas focused; ~25 ticks of held
+  // movement lands the lane safely away from 0 and the wrap.
+  await page.locator('#vv-canvas').focus();
   await page.keyboard.down('ArrowRight');
   await page.waitForFunction(() => window.__vv.getSnapshot().elapsedTicks >= 31, null, { timeout: 5000 });
   await page.keyboard.up('ArrowRight');
   expect(await page.evaluate(() => window.__vv.getSnapshot().lane)).toBeGreaterThan(0);
-  // Reach an outcome, then activate the enabled Restart with Space.
+  // Reach an outcome; the shell opens the ended surface, whose New Run
+  // control receives focus and restarts by keyboard.
   await page.evaluate(() => window.__vv.advanceTicks(18000));
-  expect(await page.evaluate(() => window.__vv.getSnapshot().outcome)).not.toBe(null);
-  await page.locator('#vv-restart').focus();
-  await page.keyboard.press('Space');
+  await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+  expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-new-run');
+  await page.keyboard.press('Enter');
   const afterRestart = await page.evaluate(() => window.__vv.getSnapshot());
   // The clock is live here, so a frame may tick before the read lands;
   // a fresh unpaused run near zero (not the finished 18,000-tick run)
@@ -282,6 +288,7 @@ test('at 1024x576 the bottom edge of the lowest control is inside the viewport',
   await page.setViewportSize({ width: 1024, height: 576 });
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  await startRun(page);
   const bounds = await page.evaluate(() => {
     const b = document.querySelector('#vv-controls-buttons').getBoundingClientRect();
     return { bottom: b.bottom, innerH: window.innerHeight, scrollH: document.documentElement.scrollHeight };
