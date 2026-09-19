@@ -1,10 +1,13 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-gc-theme="vector-vortex">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Vector Vortex</title>
+  <link rel="stylesheet" href="vendor/gameui/gc.css">
+  <link rel="stylesheet" href="vector-vortex-theme.css">
   <link rel="stylesheet" href="styles.css">
+  <script type="module" src="vendor/gameui/gc.js"></script>
 </head>
 <body>
   <div id="vv-root">
@@ -20,7 +23,7 @@
     </header>
 
     <main class="vv-main">
-      <div class="vv-status" id="vv-status" data-testid="vv-status" aria-live="polite">
+      <div class="vv-status gc-panel" id="vv-status" data-testid="vv-status" aria-live="polite">
         <div class="vv-status-cell">
           <span class="vv-status-label">Score</span>
           <span class="vv-status-value" data-testid="vv-score">0</span>
@@ -59,9 +62,9 @@
         </p>
       </div>
 
-      <div class="vv-buttons" id="vv-controls-buttons">
-        <button type="button" id="vv-pause" data-testid="vv-pause">Pause</button>
-        <button type="button" id="vv-restart" data-testid="vv-restart" disabled>Restart</button>
+      <div class="vv-actions" id="vv-controls-buttons">
+        <button type="button" class="gc-button" id="vv-pause" data-testid="vv-pause">Pause</button>
+        <button type="button" class="gc-button" id="vv-restart" data-testid="vv-restart" disabled>Restart</button>
       </div>
     </main>
   </div>

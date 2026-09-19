@@ -1,0 +1,86 @@
+/*
+ * Vector Vortex wireframe theme.
+ *
+ * Game-owned theme layer (vv- namespace, Spec 02 deliverable 1). Places every
+ * rule in the framework's documented `overrides` cascade layer and selects
+ * only `html[data-gc-theme="vector-vortex"]`, the documented public theme
+ * consumption. Sets documented public tokens only; no `!important`, no
+ * framework-internal selector, no restyled component internals.
+ *
+ * Frozen palette roles (Spec 02, Frozen Presentation Contract):
+ *   Field    #05080d  page and playfield background
+ *   Geometry #5ee7ff  player, tube, live shots, primary focus
+ *   Warning  #ffbf47  final-minute timer and danger state
+ *   Text     #e8f1f7  primary labels and values
+ *   Muted    #7f93a3  secondary guidance
+ *
+ * The shift-energy role of the frozen contract is reserved for Spec 03. Its
+ * hex literal appears nowhere in this file or any game surface in this MVP,
+ * which the source and runtime magenta checks enforce.
+ *
+ * Derived values blend only frozen roles with color-mix, so the palette
+ * stays exactly the six frozen colors and their mixes.
+ */
+@layer overrides {
+  :where(html[data-gc-theme="vector-vortex"]) {
+    /* Surfaces: field-derived, flat, open negative space. */
+    --gc-surface-canvas: #05080d;
+    --gc-surface-base: #05080d;
+    --gc-surface-raised: color-mix(in oklch, #05080d 92%, #5ee7ff);
+    --gc-surface-sunken: color-mix(in oklch, #05080d 88%, #7f93a3);
+    --gc-surface-interactive: color-mix(in oklch, #05080d 88%, #5ee7ff);
+    --gc-surface-overlay: color-mix(in oklch, #05080d 94%, #5ee7ff);
+    --gc-overlay-fill: color-mix(in oklch, #05080d 90%, transparent);
+    --gc-scrim-fill: color-mix(in oklch, #05080d 72%, transparent);
+
+    /* Text: frozen text and muted roles; secondary blends the two. */
+    --gc-text-primary: #e8f1f7;
+    --gc-text-secondary: color-mix(in oklch, #e8f1f7 55%, #7f93a3);
+    --gc-text-muted: #7f93a3;
+    --gc-text-inverse: #05080d;
+
+    /* Rails: thin crisp geometry-tinted lines. */
+    --gc-border-default: color-mix(in oklch, #5ee7ff 30%, #05080d);
+    --gc-border-strong: color-mix(in oklch, #5ee7ff 55%, #05080d);
+    --gc-divider: color-mix(in oklch, #5ee7ff 30%, #05080d);
+    --gc-border-width: var(--gc-border-thin);
+
+    /* Accent and focus: Geometry is the single accent and primary focus. */
+    --gc-accent: #5ee7ff;
+    --gc-on-accent: #05080d;
+    --gc-focus-ring: #5ee7ff;
+    --gc-focus-width: var(--gc-border-medium);
+    --gc-focus-offset: var(--gc-size-1);
+
+    /* Status roles: danger renders Warning per the frozen danger-state rule;
+       success renders Geometry; info renders Muted. No red, no magenta. */
+    --gc-status-success: #5ee7ff;
+    --gc-on-status-success: #05080d;
+    --gc-status-warning: #ffbf47;
+    --gc-on-status-warning: #05080d;
+    --gc-status-danger: #ffbf47;
+    --gc-on-status-danger: #05080d;
+    --gc-status-info: #7f93a3;
+    --gc-on-status-info: #05080d;
+
+    /* Meter tokens (public): geometry fill over a recessed field track;
+       the damage trail reads Warning, not red. */
+    --gc-meter-track: color-mix(in oklch, #05080d 88%, #7f93a3);
+    --gc-meter-fill: #5ee7ff;
+    --gc-meter-text: #e8f1f7;
+    --gc-meter-trail: #ffbf47;
+
+    /* Typography: local system monospace stack only, no font request;
+       compact uppercase technical labels. */
+    --gc-font-body: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --gc-font-display: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --gc-font-code: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --gc-type-label-size: var(--gc-font-size-xs);
+    --gc-type-label-tracking: var(--gc-track-wide);
+    --gc-type-label-transform: var(--gc-case-upper);
+
+    /* Geometry: small radii keep the instrument crisp. */
+    --gc-radius-control: var(--gc-radius-small);
+    --gc-radius-panel: var(--gc-radius-small);
+  }
+}

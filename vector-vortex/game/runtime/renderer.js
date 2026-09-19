@@ -1,8 +1,21 @@
 // Vector Vortex Canvas 2D renderer.
 // One outer save/restore per frame, plus one save/restore per lane rail.
 // Composed transform must be identical on frame 1 and frame 30 at DPR 2.
+//
+// Playfield palette (Spec 02 Frozen Presentation Contract). The canvas draws
+// only the six frozen roles or mixes derived from them: Field #05080d,
+// Geometry #5ee7ff (player, tube, live shots, primary focus), Warning
+// #ffbf47 (danger state: hostiles). The reserved shift-energy role appears
+// nowhere in this MVP.
 
 const LANE_COUNT = 24;
+
+const FIELD = '#05080d';
+const GEOMETRY = '#5ee7ff';
+const WARNING = '#ffbf47';
+// Inactive lane rails: Geometry mixed into Field (~25%), so every rail
+// stays inside the frozen palette's mixes.
+const RAIL_DIM = '#1b4048';
 
 function laneToAngle(lane) {
   // Lane 0 is top, increasing clockwise. Angle 0 is the top (-y) direction.
@@ -48,7 +61,7 @@ export function createRenderer({ canvas }) {
     // One outer save/restore: DPR + clear
     ctx.save();
     saveCount++;
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = FIELD;
     ctx.fillRect(0, 0, cssWidth, cssHeight);
 
     const cx = cssWidth / 2;
@@ -59,7 +72,7 @@ export function createRenderer({ canvas }) {
     const farR = maxR * 0.45;
 
     // Tube rings
-    ctx.strokeStyle = '#3a6ea5';
+    ctx.strokeStyle = GEOMETRY;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(cx, cy, rimR, 0, Math.PI * 2);
@@ -74,7 +87,7 @@ export function createRenderer({ canvas }) {
     for (let lane = 0; lane < LANE_COUNT; lane++) {
       ctx.save();
       saveCount++;
-      ctx.strokeStyle = lane === snapshot.lane ? '#ffd166' : '#1f3550';
+      ctx.strokeStyle = lane === snapshot.lane ? GEOMETRY : RAIL_DIM;
       const angle = laneToAngle(lane);
       const inner = polar(cx, cy, rimR, angle);
       const outer = polar(cx, cy, farR, angle);
@@ -100,7 +113,7 @@ export function createRenderer({ canvas }) {
     const pR = polar(cx, cy, rimR - 10, pAngle + 0.18);
     ctx.save();
     saveCount++;
-    ctx.fillStyle = '#ffd166';
+    ctx.fillStyle = GEOMETRY;
     ctx.beginPath();
     ctx.moveTo(pOuter.x, pOuter.y);
     ctx.lineTo(pL.x, pL.y);
@@ -120,8 +133,8 @@ export function createRenderer({ canvas }) {
       const base2 = polar(cx, cy, r + 4, a + 0.05);
       ctx.save();
       saveCount++;
-      ctx.strokeStyle = '#59c0ff';
-      ctx.fillStyle = '#59c0ff';
+      ctx.strokeStyle = GEOMETRY;
+      ctx.fillStyle = GEOMETRY;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(tip.x, tip.y);
@@ -147,8 +160,8 @@ export function createRenderer({ canvas }) {
       const b2 = polar(cx, cy, Math.max(2, r - 6), a + 0.18);
       ctx.save();
       saveCount++;
-      ctx.strokeStyle = '#ff5d6c';
-      ctx.fillStyle = '#ff5d6c';
+      ctx.strokeStyle = WARNING;
+      ctx.fillStyle = WARNING;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(tip.x, tip.y);
