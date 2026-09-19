@@ -202,12 +202,14 @@ Create an idempotent `publish.sh` that resolves its own game root, validates the
 
 Validation:
 
-- [ ] Preview marker and page load at the target URL; a second publish is byte-identical.
-- [ ] Before/after inventory proves the umbrella root and sibling folders are unchanged, and only servable `game/` files were copied.
-- [ ] Captures cover every named state/viewport and are explicitly unapproved candidates.
-- [ ] The consumer report separates observed evidence, game-local decisions, and upstream proposals; every required candidate has a complete `VV-CAND-*` row, source paths resolve, tests/captures are cited, and proposals do not authorize framework edits.
-- [ ] A reviewer check confirms each `VV-CAND-*` row's source paths resolve, its cited evidence exists, its game-rule dependencies are named, and its proposed generalization is stated. No report validator or negative fixture is built for this; an architectural recommendation is judged by a reader, not by a test.
-- [ ] Review entries ask whether the shell reads as one coherent technical instrument, remains legible, and preserves the palette roles without presuming acceptance.
+- [x] Preview marker and page load at the target URL; a second publish is byte-identical.
+- [x] Before/after inventory proves the umbrella root and sibling folders are unchanged, and only servable `game/` files were copied.
+- [x] Captures cover every named state/viewport and are explicitly unapproved candidates.
+- [x] The consumer report separates observed evidence, game-local decisions, and upstream proposals; every required candidate has a complete `VV-CAND-*` row, source paths resolve, tests/captures are cited, and proposals do not authorize framework edits.
+- [x] A reviewer check confirms each `VV-CAND-*` row's source paths resolve, its cited evidence exists, its game-rule dependencies are named, and its proposed generalization is stated. No report validator or negative fixture is built for this; an architectural recommendation is judged by a reader, not by a test.
+- [x] Review entries ask whether the shell reads as one coherent technical instrument, remains legible, and preserves the palette roles without presuming acceptance.
+
+Completion record (2026-09-19): `vector-vortex/publish.sh` resolves its own game root, guards the `vector-vortex` destination basename, wipes and repopulates only its own preview child, and writes a deterministic content-digest marker. The candidate is published at `retrogaming.donfather.site/vector-vortex/`. Eight named-state captures (title, running, paused, three settings tabs, survived end, lost end, all 1280x720) are committed under `vector-vortex/docs/evidence/` as unapproved candidates. The GameUI consumer report (`vector-vortex/docs/game-ui-consumer-report.md`) carries the pinned revision, the consumed public surface, accessibility findings, missing surfaces, rejected upstream ideas, the complete seven-row `VV-CAND-*` backport map, and the MVP review surface with one closed question per surface and the two review outcomes. Proven by `vector-vortex/tests/core/publish.test.js` (scoped copy, sibling invariance, byte-identical double publish, guard mutation) and `vector-vortex/tests/browser/preview.spec.js` (published tree serves, marker serves, live shell on the preview origin).
 
 #### Deliverable 5: Documentation and closeout
 

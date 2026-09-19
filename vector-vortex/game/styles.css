@@ -325,6 +325,8 @@
   #vv-volume {
     flex: 1;
     min-width: 120px;
+    /* Keep the native range's fill and thumb inside the frozen palette. */
+    accent-color: var(--gc-accent);
   }
 
   .vv-controls-map {
