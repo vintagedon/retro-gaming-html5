@@ -224,10 +224,12 @@ test('gameplay key ev.repeat guard: repeats re-dispatch nothing (D2.9, closing)'
   // The input adapter must drop auto-repeat keydowns for every gameplay
   // key (pause AND movement AND fire) before any dispatch branch runs,
   // so a key still physically held across a pause cannot restart its
-  // action after resume without a fresh press.
+  // action after resume without a fresh press. Spec 02: the pause key
+  // routes to the shell through onPauseKey instead of a direct dispatch;
+  // the repeat guard precedes it all the same.
   const guardIdx = src.indexOf('if (ev.repeat) return;');
   assert.ok(guardIdx > -1, 'input adapter must drop auto-repeat keydowns');
-  for (const dispatched of ["dispatch({ type: 'left-down' })", "dispatch({ type: 'fire-down' })", "dispatch({ type: 'pause' })"]) {
+  for (const dispatched of ["dispatch({ type: 'left-down' })", "dispatch({ type: 'fire-down' })", 'onPauseKey()']) {
     assert.ok(src.indexOf(dispatched) > guardIdx,
       `repeat guard must precede ${dispatched}`);
   }

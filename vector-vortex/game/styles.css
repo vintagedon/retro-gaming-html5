@@ -1,173 +1,383 @@
-:root {
-  --vv-bg: #05060a;
-  --vv-fg: #d6e7ff;
-  --vv-accent: #59c0ff;
-  --vv-grid: #1a2330;
-  --vv-focus: #ffd166;
-  --vv-font: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
-}
+/*
+ * Vector Vortex game layout.
+ *
+ * Game-owned shell layout (vv- namespace, Spec 02 deliverable 1). Selects
+ * vv- classes and game elements only; every framework component keeps its
+ * own published presentation. Colors are consumed from documented public
+ * tokens (var(--gc-*)) so the frozen palette roles hold on every surface.
+ * Lives in the overrides layer beneath the theme file so cascade precedence
+ * is expressed by layer order, not selector weight.
+ */
+@layer overrides {
+  :root {
+    /* vv- game layout constants (not theme colors). */
+    --vv-safe-x: 16px;
+    --vv-safe-y: 12px;
+    --vv-max-shell: 1600px;
+  }
 
-* {
-  box-sizing: border-box;
-}
+  * {
+    box-sizing: border-box;
+  }
 
-html, body {
-  margin: 0;
-  padding: 0;
-  background: var(--vv-bg);
-  color: var(--vv-fg);
-  font-family: var(--vv-font);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--gc-surface-canvas);
+    color: var(--gc-text-primary);
+    font-family: var(--gc-font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
 
-#vv-root {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  padding: 12px;
-  gap: 12px;
-  max-width: 1600px;
-  margin: 0 auto;
-}
+  #vv-root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: var(--vv-safe-y) var(--vv-safe-x);
+    gap: 12px;
+    max-width: var(--vv-max-shell);
+    margin: 0 auto;
+  }
 
-.vv-header h1 {
-  font-size: clamp(18px, 2.4vw, 28px);
-  margin: 0 0 8px;
-  color: var(--vv-accent);
-  letter-spacing: 0.04em;
-}
+  .vv-header h1 {
+    /* Fixed compact sizes (not viewport clamps) keep the non-canvas chrome
+       uniform across the supported viewports, which is what the canvas
+       height reserve below depends on. */
+    font-size: 20px;
+    margin: 0 0 6px;
+    color: var(--gc-accent);
+    letter-spacing: 0.04em;
+    font-weight: var(--gc-type-title-weight);
+  }
 
-.vv-objective,
-.vv-controls {
-  font-size: clamp(12px, 1.2vw, 14px);
-  line-height: 1.4;
-  margin: 0 0 4px;
-  color: var(--vv-fg);
-  opacity: 0.92;
-}
+  .vv-objective,
+  .vv-controls {
+    font-size: 12px;
+    line-height: 1.35;
+    margin: 0 0 3px;
+    color: var(--gc-text-muted);
+  }
 
-.vv-main {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  flex: 1;
-  min-height: 0;
-}
+  .vv-main {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+  }
 
-.vv-status {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 8px;
-  background: #0a1020;
-  border: 1px solid var(--vv-grid);
-  border-radius: 6px;
-  padding: 8px 10px;
-}
+  .vv-hud-top {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+  }
 
-.vv-status-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 6px;
-  background: #0e1426;
-  border-radius: 4px;
-}
+  .vv-hud-cell {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+  }
 
-.vv-status-label {
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #7d99c2;
-}
+  .vv-hud-label {
+    font-size: var(--gc-type-label-size);
+    letter-spacing: var(--gc-type-label-tracking);
+    text-transform: var(--gc-type-label-transform);
+    color: var(--gc-text-muted);
+  }
 
-.vv-status-value {
-  font-size: clamp(14px, 1.6vw, 18px);
-  font-weight: 600;
-  color: var(--vv-accent);
-}
+  .vv-hud-value {
+    font-size: clamp(14px, 1.6vw, 18px);
+    font-weight: var(--gc-type-label-weight);
+    color: var(--gc-accent);
+  }
 
-.vv-canvas-wrap {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #02040a;
-  border: 1px solid var(--vv-grid);
-  border-radius: 6px;
-  padding: 8px;
-}
+  .vv-hud-score .vv-hud-value {
+    font-size: clamp(18px, 2vw, 24px);
+  }
 
-#vv-canvas {
-  display: block;
-  /* 01c gate 1: size against available height so the smallest supported
-     viewport (1024x576) does not push controls below the fold. Width is
-     still capped at 960 for larger screens. 01c continuation gate 1: the
-     height reserve is the measured non-canvas chrome (header, status,
-     gaps, root padding, buttons, wrap padding/border, about 284px) plus
-     margin, so the bottom edge of the lowest control stays inside the
-     viewport at 1024x576 and 1280x720 alike. */
-  width: min(100%, 960px, calc((100vh - 300px) * 16 / 9));
-  height: auto;
-  aspect-ratio: 16 / 9;
-  background: #000;
-  outline: none;
-}
+  .vv-hud-meter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
 
-#vv-canvas:focus-visible,
-#vv-canvas:focus {
-  outline: 2px solid var(--vv-focus);
-  outline-offset: 2px;
-}
+  /* Positional layout for the game-owned meter slot only; the component's
+     own presentation stays entirely the framework's. */
+  .vv-hud-meter > * {
+    flex: 1;
+    min-width: 0;
+  }
 
-.vv-viewport-warning {
-  position: absolute;
-  left: 50%;
-  bottom: 8px;
-  transform: translateX(-50%);
-  margin: 0;
-  font-size: 12px;
-  color: var(--vv-focus);
-  background: rgba(0,0,0,0.6);
-  padding: 4px 10px;
-  border-radius: 4px;
-  display: none;
-}
+  /* Depletion meter role flip at the final minute: the game toggles this
+     vv- class and the rule sets only the documented public fill token. */
+  .vv-meter--warning {
+    --gc-meter-fill: var(--gc-status-warning);
+  }
 
-.vv-buttons {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+  .vv-lives {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
 
-.vv-buttons button {
-  font-family: var(--vv-font);
-  font-size: clamp(13px, 1.3vw, 15px);
-  background: #0e1426;
-  color: var(--vv-fg);
-  border: 1px solid var(--vv-grid);
-  border-radius: 4px;
-  padding: 8px 14px;
-  cursor: pointer;
-}
+  .vv-life {
+    inline-size: 16px;
+    block-size: 16px;
+    color: var(--gc-accent);
+  }
 
-.vv-buttons button:focus,
-.vv-buttons button:focus-visible {
-  outline: 2px solid var(--vv-focus);
-  outline-offset: 2px;
-}
+  .vv-life--spent {
+    opacity: var(--gc-disabled-opacity);
+  }
 
-.vv-buttons button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+  .vv-hud-bottom {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    align-items: center;
+    gap: 16px;
+  }
 
-.vv-buttons button:hover:not(:disabled) {
-  background: #162042;
-}
+  .vv-hud-status {
+    justify-self: center;
+    font-size: var(--gc-type-label-size);
+    letter-spacing: var(--gc-type-label-tracking);
+    text-transform: var(--gc-type-label-transform);
+    color: var(--gc-text-muted);
+  }
 
-@media (max-width: 960px) {
-  .vv-viewport-warning {
+  .vv-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .vv-canvas-wrap {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--gc-surface-canvas);
+    border: var(--gc-border-width) solid var(--gc-border-default);
+    border-radius: var(--gc-radius-panel);
+    padding: 8px;
+  }
+
+  #vv-canvas {
     display: block;
+    /* 01c gate 1: size against available height so the smallest supported
+       viewport (1024x576) does not push controls below the fold. Width is
+       still capped at 960 for larger screens. 01c continuation gate 1: the
+       height reserve is the measured non-canvas chrome plus margin, so the
+       bottom edge of the lowest control stays inside the viewport at
+       1024x576 and 1280x720 alike. Spec 02 deliverable 2 re-measured the
+       chrome for the frozen HUD (top bar, bottom bar, compact header) at
+       its worst supported viewport (1024x576, where the controls paragraph
+       wraps to three lines): 296px, plus 16 margin by the same rule. */
+    width: min(100%, 960px, calc((100vh - 312px) * 16 / 9));
+    height: auto;
+    aspect-ratio: 16 / 9;
+    background: var(--gc-surface-canvas);
+    outline: none;
+  }
+
+  #vv-canvas:focus-visible,
+  #vv-canvas:focus {
+    outline: var(--gc-focus-width) solid var(--gc-focus-ring);
+    outline-offset: var(--gc-focus-offset);
+  }
+
+  .vv-viewport-warning {
+    position: absolute;
+    left: 50%;
+    bottom: 8px;
+    transform: translateX(-50%);
+    margin: 0;
+    font-size: 12px;
+    color: var(--gc-status-warning);
+    background: var(--gc-overlay-fill);
+    padding: 4px 10px;
+    border-radius: var(--gc-radius-small);
+    display: none;
+  }
+
+  .vv-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .vv-actions[data-vv-bar="hidden"] {
+    display: none;
+  }
+
+  /* --- Shell (Spec 02 deliverable 3) --- */
+
+  .vv-shell {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: var(--gc-z-modal);
+    background: var(--gc-scrim-fill);
+  }
+
+  .vv-shell[data-vv-state="title"],
+  .vv-shell[data-vv-state="paused"],
+  .vv-shell[data-vv-state="settings"],
+  .vv-shell[data-vv-state="ended"] {
+    display: grid;
+    place-items: center;
+    padding: 16px;
+  }
+
+  .vv-surface {
+    display: none;
+    width: 100%;
+    max-width: 560px;
+    max-height: 100%;
+  }
+
+  .vv-surface[data-vv-active="true"] {
+    display: block;
+  }
+
+  .vv-dialog {
+    max-height: calc(100vh - 32px);
+    overflow: auto;
+  }
+
+  .vv-dialog h2 {
+    margin: 0 0 8px;
+    color: var(--gc-accent);
+    font-size: var(--gc-type-title-size);
+    letter-spacing: var(--gc-type-title-tracking);
+    text-transform: var(--gc-type-label-transform);
+  }
+
+  .vv-dialog-copy {
+    margin: 0 0 8px;
+    color: var(--gc-text-secondary);
+    font-size: var(--gc-type-body-size);
+    line-height: var(--gc-type-body-line-height);
+  }
+
+  .vv-dialog-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .vv-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .vv-tab[aria-selected="true"] {
+    --gc-button-fill: var(--gc-control-fill-selected);
+    color: var(--gc-button-selected-text);
+  }
+
+  .vv-tab-panel {
+    border-top: var(--gc-border-width) solid var(--gc-divider);
+    padding-top: 12px;
+  }
+
+  .vv-tab-panel[data-vv-panel="hidden"] {
+    display: none;
+  }
+
+  .vv-setting-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .vv-setting-label {
+    color: var(--gc-text-muted);
+    font-size: var(--gc-type-label-size);
+    letter-spacing: var(--gc-type-label-tracking);
+    text-transform: var(--gc-type-label-transform);
+  }
+
+  .vv-setting-value {
+    color: var(--gc-text-primary);
+    font-size: var(--gc-type-body-size);
+    min-width: 3ch;
+    text-align: right;
+  }
+
+  .vv-motion-group {
+    flex-wrap: wrap;
+  }
+
+  #vv-volume {
+    flex: 1;
+    min-width: 120px;
+    /* Keep the native range's fill and thumb inside the frozen palette. */
+    accent-color: var(--gc-accent);
+  }
+
+  .vv-controls-map {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+  }
+
+  .vv-controls-map th,
+  .vv-controls-map td {
+    text-align: left;
+    padding: 4px 8px 4px 0;
+    font-size: var(--gc-type-body-size);
+    color: var(--gc-text-primary);
+    border-bottom: var(--gc-border-width) solid var(--gc-divider);
+  }
+
+  .vv-controls-map th {
+    color: var(--gc-text-muted);
+    font-weight: var(--gc-type-label-weight);
+  }
+
+  .vv-end-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 16px;
+    margin-bottom: 8px;
+  }
+
+  /* --- Motion preference (display setting) --- */
+
+  /* Reduced (explicit) maps the public motion tokens to instant; system
+     defers to the OS reduce preference; full pins the normal durations
+     against a system reduce. */
+  html[data-vv-motion="reduced"] {
+    --gc-motion-fast: var(--gc-time-0);
+    --gc-motion-base: var(--gc-time-0);
+    --gc-motion-slow: var(--gc-time-0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html:not([data-vv-motion]) {
+      --gc-motion-fast: var(--gc-time-0);
+      --gc-motion-base: var(--gc-time-0);
+      --gc-motion-slow: var(--gc-time-0);
+    }
+  }
+
+  @media (max-width: 960px) {
+    .vv-viewport-warning {
+      display: block;
+    }
   }
 }

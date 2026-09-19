@@ -3,10 +3,12 @@
 // no longer activate the focused button.
 
 import { test, expect } from '@playwright/test';
+import { startRun } from './helpers.js';
 
 test('Space on focused pause button activates pause', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  await startRun(page);
   await page.locator('#vv-pause').focus();
   const beforeStatus = await page.locator('[data-testid="vv-current-status"]').textContent();
   expect(beforeStatus).toBe('running');
@@ -20,22 +22,26 @@ test('Space on focused pause button activates pause', async ({ page }) => {
   expect(after).toBe('paused');
 });
 
-test('ArrowRight on focused restart button does NOT change the player lane (D2.4)', async ({ page }) => {
+test('ArrowRight on a focused DOM control does NOT change the player lane (D2.4)', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  await startRun(page);
   await page.evaluate(() => { window.__vv.pauseRaf = true; });
-  await page.locator('#vv-restart').focus();
+  // The restart control is disabled while a run is live, so the enabled
+  // pause button stands in for the DOM-control half of the gate contract.
+  await page.locator('#vv-pause').focus();
   const before = await page.evaluate(() => window.__vv.getSnapshot().lane);
   await page.keyboard.down('ArrowRight');
   await page.evaluate(() => window.__vv.advanceTicks(3));
-  const after = await page.evaluate(() => window.__vv.getSnapshot().lane);
   await page.keyboard.up('ArrowRight');
-  expect(after).toBe(before, 'lane must not change while focus is on the restart button');
+  const after = await page.evaluate(() => window.__vv.getSnapshot().lane);
+  expect(after).toBe(before, 'lane must not change while focus is on a DOM control');
 });
 
 test('Space on focused pause button does NOT spawn a shot (D2.4)', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  await startRun(page);
   await page.evaluate(() => { window.__vv.pauseRaf = true; });
   await page.locator('#vv-pause').focus();
   const before = await page.evaluate(() => window.__vv.getSnapshot().shotsSpawned);
@@ -48,6 +54,7 @@ test('MUTATION: disabling the focus gate spawns shots even when pause is focused
   await page.addInitScript(() => { window.__vv = Object.assign(window.__vv || {}, { disableFocusGate: true }); });
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  await startRun(page);
   await page.evaluate(() => { window.__vv.pauseRaf = true; });
   await page.locator('#vv-pause').focus();
   const before = await page.evaluate(() => window.__vv.getSnapshot().shotsSpawned);
@@ -62,6 +69,7 @@ test('MUTATION: preventing Space at window level breaks button activation', asyn
   await page.addInitScript(() => { window.__vv = Object.assign(window.__vv || {}, { preventSpaceAtWindow: true }); });
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  await startRun(page);
   await page.locator('#vv-pause').focus();
   await page.keyboard.press('Space');
   // Give the click handler time to fire (or not).

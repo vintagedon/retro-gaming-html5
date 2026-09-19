@@ -3,6 +3,7 @@
 // from changing while ArrowRight is held.
 
 import { test, expect } from '@playwright/test';
+import { startRun } from './helpers.js';
 
 test.use({ viewport: { width: 1280, height: 720 } });
 
@@ -66,7 +67,7 @@ test('D3.8 keyboard flow: lane wrap 23→0, hold-fire through cooldown, pause an
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
   await page.evaluate(() => { window.__vv.pauseRaf = true; });
-  await page.locator('#vv-canvas').focus();
+  await startRun(page);
 
   // 1. Lane wrap 23→0: from lane 0, advance 24 right-steps; the wrap must
   //    return to lane 0.
@@ -94,7 +95,7 @@ test('D3.8 keyboard flow: lane wrap 23→0, hold-fire through cooldown, pause an
   await page.keyboard.down('ArrowRight');
   await page.evaluate(() => window.__vv.advanceTicks(3));
   await page.keyboard.up('ArrowRight');
-  // Pause: dispatch via the pause button click (what production wiring does).
+  // Pause: activate the focused pause button (production wiring).
   await page.locator('#vv-pause').focus();
   await page.keyboard.press('Space'); // activates the focused pause button
   const pausedSnap = await page.evaluate(() => window.__vv.getSnapshot());
@@ -103,9 +104,9 @@ test('D3.8 keyboard flow: lane wrap 23→0, hold-fire through cooldown, pause an
   await page.evaluate(() => window.__vv.advanceTicks(60));
   const stillPaused = await page.evaluate(() => window.__vv.getSnapshot());
   expect(stillPaused.elapsedTicks).toBe(before);
-  // Resume via the pause button.
-  await page.locator('#vv-pause').focus();
-  await page.keyboard.press('Space');
+  // Resume via the pause dialog's Resume control (the shell owns pause focus).
+  await page.locator('#vv-resume').focus();
+  await page.keyboard.press('Enter');
   await page.evaluate(() => window.__vv.advanceTicks(3));
   const resumed = await page.evaluate(() => window.__vv.getSnapshot());
   expect(resumed.paused).toBe(false);
