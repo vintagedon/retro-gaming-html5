@@ -108,7 +108,7 @@ try {
       });
       window.__vv.advanceTicks(1);
     });
-    await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+    await page.waitForFunction(() => ['wave-complete','game-over'].includes(window.__vv.getShellState()));
     await page.waitForTimeout(120);
   } else if (state === 'game-over') {
     await page.evaluate(() => {
@@ -126,7 +126,7 @@ try {
       });
       window.__vv.advanceTicks(1);
     });
-    await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+    await page.waitForFunction(() => ['wave-complete','game-over'].includes(window.__vv.getShellState()));
     await page.waitForTimeout(120);
   }
 

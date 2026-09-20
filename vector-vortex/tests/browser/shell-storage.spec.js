@@ -50,7 +50,7 @@ test.describe('storage fixtures reach an operable title', () => {
       await page.locator('#vv-start').click();
       await page.waitForFunction(() => window.__vv.getShellState() === 'running');
       await page.evaluate(() => window.__vv.advanceTicks(18000));
-      await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+      await page.waitForFunction(() => window.__vv.getShellState() === 'game-over');
       expect(await page.evaluate(() => window.__vv.getSnapshot().outcome)).toBe('game-over');
     });
   }
@@ -67,9 +67,9 @@ test.describe('storage fixtures reach an operable title', () => {
     await page.locator('#vv-start').click();
     await page.waitForFunction(() => window.__vv.getShellState() === 'running');
     await page.evaluate(() => window.__vv.advanceTicks(18000));
-    await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+    await page.waitForFunction(() => window.__vv.getShellState() === 'game-over');
     // The persistence failure is silent: no error surfaced, game complete.
-    expect(await page.evaluate(() => document.querySelector('[data-testid="vv-end-outcome"]').textContent)).toBe('Game Over');
+    expect(await page.evaluate(() => document.querySelector('[data-testid="vv-go-heading"]').textContent)).toBe('Game Over');
   });
 });
 
@@ -118,7 +118,7 @@ test('a completed run writes its best score and it survives a reload; valid pref
     });
   });
   await page.evaluate(() => window.__vv.advanceTicks(1));
-  await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+  await page.waitForFunction(() => window.__vv.getShellState() === 'wave-complete');
   const finalScore = await page.evaluate(() => window.__vv.getSnapshot().score);
   expect(finalScore).toBeGreaterThanOrEqual(500);
 

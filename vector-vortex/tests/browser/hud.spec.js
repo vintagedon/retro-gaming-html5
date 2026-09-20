@@ -51,7 +51,6 @@ async function readHud(page) {
     return {
       score: document.querySelector('[data-testid="vv-score"]').textContent,
       best: document.querySelector('[data-testid="vv-best"]').textContent,
-      kills: document.querySelector('[data-testid="vv-kills"]').textContent,
       status: document.querySelector('[data-testid="vv-current-status"]').textContent,
       activeGlyphs: glyphs.filter(g => !g.classList.contains('vv-life--spent')).length,
       glyphCount: glyphs.length
@@ -74,7 +73,6 @@ test('fresh run: three life glyphs, BEST renders from provider', async ({ page }
   expect(hud.glyphCount).toBe(3);
   expect(hud.best).toBe('4321');
   expect(hud.score).toBe(String(snap.score));
-  expect(hud.kills).toBe(String(snap.kills));
   expect(hud.status).toBe('running');
 });
 
@@ -97,7 +95,6 @@ test('scripted run: shots, a deterministic hit, and a life loss all match the sa
   expect(snap.kills).toBeGreaterThanOrEqual(1);
   expect(snap.hits).toBeGreaterThanOrEqual(1);
   expect(hud.score).toBe(String(snap.score));
-  expect(hud.kills).toBe(String(snap.kills));
 
   // Let the second spawn (tick 240, lane 0) reach the rim untouched.
   await page.evaluate(() => window.__vv.advanceTicks(820));
@@ -129,7 +126,7 @@ test('a lost run flips the status mirror and spends every life glyph', async ({ 
   expect(snap.outcome).toBe('game-over');
   expect(snap.lives).toBe(0);
   expect(hud.activeGlyphs).toBe(0);
-  expect(hud.status).toBe('ended');
+  expect(hud.status).toBe('game-over');
 });
 
 for (const v of VIEWPORTS) {
@@ -152,7 +149,6 @@ for (const v of VIEWPORTS) {
         canvas: rect('#vv-canvas'),
         hudBottom: rect('[data-testid="vv-hud-bottom"]'),
         lives: rect('[data-testid="vv-lives"]'),
-        kills: rect('[data-testid="vv-kills"]'),
         status: rect('[data-testid="vv-current-status"]'),
         pause: rect('#vv-pause'),
         restart: rect('#vv-restart')

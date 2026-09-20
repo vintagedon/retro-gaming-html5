@@ -132,7 +132,10 @@ test('game JavaScript invents no gc- string API, event, or selector', () => {
 test('every game-owned class and test id in HTML and CSS is vv- namespaced', () => {
   const offenders = [];
   for (const f of cssFiles) {
-    const src = stripCssComments(readFileSync(f, 'utf8'));
+    let src = stripCssComments(readFileSync(f, 'utf8'));
+    // url(...) strings are resource paths (the shipped font, Spec 03 gate
+    // 3), not selectors; strip them before the class scan.
+    src = src.replace(/url\([^)]*\)/g, 'url()');
     // Class selectors in game CSS must all be vv- namespaced.
     const classSelectors = src.match(/\.[a-z][a-z0-9_-]*/g) || [];
     for (const c of classSelectors) {

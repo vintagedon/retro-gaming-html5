@@ -1,5 +1,5 @@
 // Vector Vortex runtime entry. Wires core + renderer + input + frame runner
-// + shell + UI audio + persistence (Spec 02).
+// + shell + game audio + persistence (Spec 03).
 
 import { createRenderer } from './renderer.js';
 import { createInputAdapter } from './input.js';
@@ -17,10 +17,10 @@ function q(sel) {
 
 function start() {
   const canvas = document.getElementById('vv-canvas');
+  const root = document.getElementById('vv-root');
   const score = q('[data-testid="vv-score"]');
   const best = q('[data-testid="vv-best"]');
   const lives = document.getElementById('vv-lives');
-  const kills = q('[data-testid="vv-kills"]');
   const currentStatus = q('[data-testid="vv-current-status"]');
   const pauseButton = document.getElementById('vv-pause');
   const restartButton = document.getElementById('vv-restart');
@@ -30,8 +30,8 @@ function start() {
     title: q('[data-vv-surface="title"]'),
     paused: q('[data-vv-surface="paused"]'),
     settings: q('[data-vv-surface="settings"]'),
-    ended: q('[data-vv-surface="ended"]'),
-    howto: q('[data-vv-surface="howto"]')
+    'wave-complete': q('[data-vv-surface="wave-complete"]'),
+    'game-over': q('[data-vv-surface="game-over"]')
   };
   const actions = {
     bar: document.getElementById('vv-controls-buttons'),
@@ -39,8 +39,7 @@ function start() {
     restart: restartButton,
     title: {
       start: document.getElementById('vv-start'),
-      settings: document.getElementById('vv-title-settings'),
-      howto: document.getElementById('vv-howto')
+      settings: document.getElementById('vv-title-settings')
     },
     paused: {
       resume: document.getElementById('vv-resume'),
@@ -48,8 +47,12 @@ function start() {
       restart: document.getElementById('vv-pause-restart'),
       returnTitle: document.getElementById('vv-return-title')
     },
-    ended: {
-      newRun: document.getElementById('vv-new-run'),
+    waveComplete: {
+      playAgain: document.getElementById('vv-play-again'),
+      returnTitle: document.getElementById('vv-wc-return-title')
+    },
+    gameOver: {
+      playAgain: document.getElementById('vv-new-run'),
       returnTitle: document.getElementById('vv-end-return-title')
     }
   };
@@ -75,26 +78,25 @@ function start() {
     reset: document.getElementById('vv-reset-defaults'),
     close: document.getElementById('vv-settings-close')
   };
-  const ended = {
-    outcome: q('[data-testid="vv-end-outcome"]'),
-    score: q('[data-testid="vv-end-score"]'),
-    kills: q('[data-testid="vv-end-kills"]'),
-    newRun: actions.ended.newRun,
-    returnTitle: actions.ended.returnTitle
+  const results = {
+    wcScore: q('[data-testid="vv-wc-score"]'),
+    goScore: q('[data-testid="vv-go-score"]'),
+    goWave: q('[data-testid="vv-go-wave"]'),
+    goBest: q('[data-testid="vv-go-best"]')
   };
-  const howto = { close: document.getElementById('vv-howto-close') };
 
-  // Persistence (deliverable 3): one defensive load at boot; writes only
-  // through persistPatch from the shell's preference and run-ended paths.
+  // Persistence (Spec 02 deliverable 3): one defensive load at boot; writes
+  // only through persistPatch from the shell's preference and outcome paths.
   const persisted = loadPersistence();
   let bestValue = persisted.bestScore;
 
-  // UI audio (deliverable 3): synthesized cues after the first deliberate
-  // gesture. The no-op replacement exists for the audio-equivalence
-  // validation and is selected only through the tracked seam toggle.
+  // Game audio (Spec 03 gate 3): synthesized cues plus the one shipped
+  // music loop after the first deliberate gesture. The no-op replacement
+  // exists for the audio-equivalence validation and is selected only
+  // through the tracked seam toggle.
   const audio = (typeof window.__vv !== 'undefined' && window.__vv.disableUiAudio === true)
     ? createNoopUiAudio()
-    : createUiAudio();
+    : createUiAudio({ musicUrl: 'assets/music/chrome-hamster.ogg' });
 
   const bestProvider = (typeof window.__vv !== 'undefined' && typeof window.__vv.bestProvider === 'function')
     ? window.__vv.bestProvider
@@ -104,8 +106,32 @@ function start() {
   renderer.resize();
   window.addEventListener('resize', () => renderer.resize());
 
+  // Shipped effect sprites (attribution in game/assets/ATTRIBUTION.md):
+  // fire on the player shot, hit and destruction on the enemy.
+  function sprite(name) {
+    const img = new Image();
+    img.src = `assets/effects/${name}`;
+    return img;
+  }
+  renderer.setSprites({
+    fire: sprite('muzzle-01.png'),
+    hit: sprite('flame-01.png'),
+    destruction: sprite('flame-03.png')
+  });
+
+  // Decorative title web: the same renderer draws one static frame on the
+  // title canvas. Purely decorative and independent of any run.
+  const titleCanvas = document.getElementById('vv-title-web');
+  const titleRenderer = createRenderer({ canvas: titleCanvas });
+  const drawTitleWeb = () => {
+    titleRenderer.resize();
+    titleRenderer.render({ lane: 0, shots: [], enemies: [] });
+  };
+  drawTitleWeb();
+  window.addEventListener('resize', drawTitleWeb);
+
   const dom = createDom({
-    score, best, lives, kills,
+    score, best, lives,
     pauseButton, restartButton, bestProvider
   });
 
@@ -116,39 +142,57 @@ function start() {
     surfaces,
     actions,
     settings,
-    ended,
-    howto,
+    results,
     currentStatus,
     canvas,
+    root,
     runner: null, // rebound below once the runner exists
     audio,
     persistence: { preferences: persisted.preferences, bestScore: persisted.bestScore, persistPatch },
     onBestChange: (v) => { bestValue = v; }
   });
 
-  // Destruction fragments and hit feedback (Spec 03 gate 2) are
-  // renderer-only cosmetics. The seen-set deduplicates events, which the
-  // snapshot re-carries for up to 200 ticks, and is pruned as it grows.
-  const seenDestructions = new Set();
+  // Destruction fragments, effect sprites, combat sounds, and the hit
+  // flash are cosmetics. The seen-sets deduplicate events, which the
+  // snapshot re-carries for up to 200 ticks, and are pruned as they grow.
+  const seenEvents = new Set();
+  function remember(key) {
+    if (seenEvents.has(key)) return false;
+    seenEvents.add(key);
+    if (seenEvents.size > 800) {
+      for (const k of seenEvents) { seenEvents.delete(k); if (seenEvents.size <= 400) break; }
+    }
+    return true;
+  }
+
   function publish(snapshot) {
     for (const ev of snapshot.recentEvents) {
-      if (ev.type !== 'enemy-destroyed') continue;
-      const key = `${ev.enemyId}:${ev.tick}`;
-      if (seenDestructions.has(key)) continue;
-      seenDestructions.add(key);
-      if (seenDestructions.size > 500) {
-        for (const k of seenDestructions) { seenDestructions.delete(k); if (seenDestructions.size <= 250) break; }
+      if (ev.type === 'enemy-destroyed' && remember(`destroyed:${ev.enemyId}:${ev.tick}`)) {
+        renderer.spawnFragments(ev.lane, ev.depth);
+        renderer.spawnSprite('hit', ev.lane, ev.depth);
+        renderer.spawnSprite('destruction', ev.lane, ev.depth);
+        audio.play('hit');
+        audio.play('destroyed');
+      } else if (ev.type === 'shot-fired' && remember(`fired:${ev.shotId}`)) {
+        renderer.spawnSprite('fire', ev.lane, 0);
+        audio.play('fire');
+      } else if (ev.type === 'life-lost' && remember(`lost:${ev.tick}:${ev.cause}`)) {
+        renderer.flashPlayer();
       }
-      renderer.spawnFragments(ev.lane, ev.depth, ev.kind);
-    }
-    if (snapshot.recentEvents.some(e => e.type === 'life-lost')) {
-      renderer.flashPlayer();
     }
     dom.project(snapshot);
     shell.observeSnapshot(snapshot);
   }
 
-  runner = createFrameRunner({ renderer, dom, onSnapshot: publish, initialSeed: 1 });
+  // The shell owns real time: the runner's clock gate consults the shell
+  // state on every focus or visibility transition.
+  runner = createFrameRunner({
+    renderer,
+    dom,
+    onSnapshot: publish,
+    initialSeed: 1,
+    clockGate: () => shell.getState() === 'running'
+  });
   shell.rebindRunner(runner);
   runner.start();
 
@@ -156,10 +200,10 @@ function start() {
   publish(runner.getSnapshot());
 
   const input = createInputAdapter({
-    // 01c continuation gate 1: the adapter's gameSurface is the Canvas, not
-    // the game root. The focus gate accepts only the canvas, and the shell
-    // returns focus here after a keyboard pause, so keyboard control works
-    // after resume without another click.
+    // The adapter's gameSurface is the Canvas, not the game root. The
+    // focus gate accepts only the canvas, and the shell returns focus
+    // here after a keyboard pause, so keyboard control works after
+    // resume without another click.
     gameSurface: canvas,
     dispatch: (a) => runner.dispatch(a),
     onBlur: () => shell.pause({ source: canvas }),
@@ -167,8 +211,8 @@ function start() {
     onPauseKey: () => shell.pause({ source: canvas })
   });
 
-  // First deliberate gesture unlocks the UI audio context. The calls are
-  // idempotent; no cue plays before a real gesture happened.
+  // First deliberate gesture unlocks the audio context. The calls are
+  // idempotent; nothing plays before a real gesture happened.
   const unlock = () => audio.unlock();
   window.addEventListener('pointerdown', unlock, true);
   window.addEventListener('keydown', unlock, true);

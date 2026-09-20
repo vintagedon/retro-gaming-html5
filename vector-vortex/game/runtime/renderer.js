@@ -130,6 +130,49 @@ export function createRenderer({ canvas }) {
   let flashFrames = 0;
   let lastRenderTs = null;
 
+  // Sprite effects (Spec 03 gate 3): shipped raster effect sprites drawn
+  // additively for fire, hit, and destruction. Renderer-only cosmetics.
+  const SPRITE_LIFE_MS = 220;
+  const sprites = {};
+  const spriteEffects = [];
+
+  function setSprites(next) {
+    Object.assign(sprites, next);
+  }
+
+  function spawnSprite(kind, lane, depth) {
+    const img = sprites[kind];
+    if (!img || !img.complete || !img.naturalWidth) return;
+    const L = projectionLayout(cssWidth, cssHeight);
+    const p = projectLanePoint(L, lane, depth);
+    spriteEffects.push({
+      img,
+      x: p.x,
+      y: p.y,
+      size: kind === 'fire' ? L.nearRadius * 0.1 : L.nearRadius * 0.22,
+      age: 0
+    });
+  }
+
+  function stepSprites(dt) {
+    for (let i = spriteEffects.length - 1; i >= 0; i--) {
+      spriteEffects[i].age += dt;
+      if (spriteEffects[i].age >= SPRITE_LIFE_MS) spriteEffects.splice(i, 1);
+    }
+  }
+
+  function drawSprites() {
+    if (spriteEffects.length === 0) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const s of spriteEffects) {
+      const alpha = Math.max(0, 1 - s.age / SPRITE_LIFE_MS);
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(s.img, s.x - s.size / 2, s.y - s.size / 2, s.size, s.size);
+    }
+    ctx.restore();
+  }
+
   function spawnFragments(lane, depth) {
     if (typeof window !== 'undefined' && window.__vv && window.__vv.disableFragments === true) return;
     const L = projectionLayout(cssWidth, cssHeight);
@@ -237,6 +280,7 @@ export function createRenderer({ canvas }) {
     const dt = lastRenderTs === null ? 0 : Math.min(100, now - lastRenderTs);
     lastRenderTs = now;
     stepFragments(dt);
+    stepSprites(dt);
     if (flashFrames > 0) flashFrames -= 1;
 
     let saveCount = 0;
@@ -380,6 +424,7 @@ export function createRenderer({ canvas }) {
     ctx.save();
     saveCount++;
     drawFragments();
+    drawSprites();
     ctx.restore();
     restoreCount++;
 
@@ -390,5 +435,5 @@ export function createRenderer({ canvas }) {
     lastCounters.restoreCount = restoreCount;
   }
 
-  return { render, resize, getKeyCounters, spawnFragments, flashPlayer };
+  return { render, resize, getKeyCounters, spawnFragments, flashPlayer, setSprites, spawnSprite };
 }

@@ -1,17 +1,26 @@
 /*
  * Vector Vortex game layout.
  *
- * Game-owned layout (vv- namespace, Spec 03 gate 1). The playfield fills
- * the viewport; the HUD floats over it as compact arcade chrome. Selects
- * vv- classes and game elements only; colors are consumed from documented
+ * Game-owned layout (vv- namespace, Spec 03). The playfield fills the
+ * viewport; the HUD floats over it as compact arcade chrome in the shipped
+ * pixel font; each presentation state owns the viewport. Selects vv-
+ * classes and game elements only; colors are consumed from documented
  * public tokens (var(--gc-*)). Lives in the overrides layer beneath the
  * theme file so cascade precedence is expressed by layer order, not
  * selector weight.
  */
 @layer overrides {
+  /* Shipped pixel font (game/assets, attribution in game/assets/ATTRIBUTION.md). */
+  @font-face {
+    font-family: 'Owlish Pixel';
+    src: url('assets/fonts/opf-medium.ttf') format('truetype');
+    font-display: block;
+  }
+
   :root {
     /* vv- game layout constants (not theme colors). */
     --vv-hud-inset: 12px;
+    --vv-pixel-font: 'Owlish Pixel', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
 
   * {
@@ -61,7 +70,23 @@
     outline-offset: calc(-1 * var(--gc-focus-offset));
   }
 
-  /* HUD: compact arcade chrome floating over the playfield. */
+  /* HUD: compact arcade chrome floating over the playfield, shipped pixel
+     font, fixed compact sizes so it stays legible at the smallest
+     supported viewport. */
+  .vv-hud {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    font-family: var(--vv-pixel-font);
+  }
+
+  /* On the title the gameplay HUD is hidden and its controls disabled. */
+  #vv-root[data-vv-state="title"] .vv-hud,
+  #vv-root[data-vv-state="title"] .vv-actions {
+    display: none;
+  }
+
   .vv-hud-top {
     position: fixed;
     top: var(--vv-hud-inset);
@@ -71,8 +96,6 @@
     justify-content: space-between;
     align-items: baseline;
     gap: 12px;
-    pointer-events: none;
-    z-index: 2;
   }
 
   .vv-hud-bottom {
@@ -84,8 +107,6 @@
     justify-content: space-between;
     align-items: center;
     gap: 16px;
-    pointer-events: none;
-    z-index: 2;
   }
 
   .vv-hud-cell {
@@ -95,20 +116,21 @@
   }
 
   .vv-hud-label {
-    font-size: var(--gc-type-label-size);
-    letter-spacing: var(--gc-type-label-tracking);
-    text-transform: var(--gc-type-label-transform);
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     color: var(--gc-text-muted);
   }
 
   .vv-hud-value {
-    font-size: clamp(14px, 1.6vw, 18px);
-    font-weight: var(--gc-type-label-weight);
+    font-size: 20px;
     color: var(--gc-accent);
   }
 
+  /* Score large and plain at top left; best smaller beside it. */
   .vv-hud-score .vv-hud-value {
-    font-size: clamp(18px, 2vw, 24px);
+    font-size: 30px;
+    line-height: 1;
   }
 
   .vv-lives {
@@ -118,8 +140,8 @@
   }
 
   .vv-life {
-    inline-size: 16px;
-    block-size: 16px;
+    inline-size: 18px;
+    block-size: 18px;
     color: var(--gc-accent);
   }
 
@@ -127,21 +149,24 @@
     opacity: var(--gc-disabled-opacity);
   }
 
-  .vv-hud-status {
-    font-size: var(--gc-type-label-size);
-    letter-spacing: var(--gc-type-label-tracking);
-    text-transform: var(--gc-type-label-transform);
-    color: var(--gc-text-muted);
+  .vv-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .vv-actions {
     position: fixed;
-    top: var(--vv-hud-inset);
-    left: 50%;
-    transform: translateX(-50%);
+    top: 44px;
+    left: var(--vv-hud-inset);
     display: flex;
     gap: 10px;
-    flex-wrap: wrap;
     z-index: 2;
   }
 
@@ -149,47 +174,143 @@
     display: none;
   }
 
-  /* --- Shell (Spec 02 deliverable 3) --- */
+  /* --- Shell: five states, each owning the viewport (Spec 03) --- */
 
   .vv-shell {
-    display: none;
     position: fixed;
     inset: 0;
     z-index: var(--gc-z-modal);
-    background: var(--gc-scrim-fill);
   }
 
-  .vv-shell[data-vv-state="title"],
-  .vv-shell[data-vv-state="paused"],
-  .vv-shell[data-vv-state="settings"],
-  .vv-shell[data-vv-state="ended"] {
-    display: grid;
-    place-items: center;
-    padding: 16px;
+  .vv-shell[data-vv-state="running"] {
+    display: none;
   }
 
   .vv-surface {
+    position: absolute;
+    inset: 0;
     display: none;
-    width: 100%;
-    max-width: 560px;
-    max-height: 100%;
   }
 
   .vv-surface[data-vv-active="true"] {
     display: block;
   }
 
-  .vv-dialog {
-    max-height: calc(100vh - 32px);
-    overflow: auto;
+  /* Title: dedicated composition over a decorative vector web. */
+  .vv-surface-title {
+    background: #000;
   }
 
-  .vv-dialog h2 {
-    margin: 0 0 8px;
+  #vv-title-web {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.4;
+  }
+
+  .vv-title-composition {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    text-align: center;
+  }
+
+  .vv-title-heading {
+    margin: 0;
+    font-family: var(--vv-pixel-font);
+    font-size: clamp(34px, 6vw, 64px);
+    line-height: 1;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     color: var(--gc-accent);
-    font-size: var(--gc-type-title-size);
-    letter-spacing: var(--gc-type-title-tracking);
-    text-transform: var(--gc-type-label-transform);
+  }
+
+  /* Paused: a small overlay over the frozen game. */
+  .vv-surface-overlay {
+    background: var(--gc-scrim-fill);
+    display: none;
+    place-items: center;
+  }
+
+  .vv-surface-overlay[data-vv-active="true"] {
+    display: grid;
+  }
+
+  /* Wave complete and game over: composed results screens. */
+  .vv-surface-results {
+    background: color-mix(in oklch, #000 78%, transparent);
+  }
+
+  .vv-results-heading {
+    margin: 0;
+    font-family: var(--vv-pixel-font);
+    font-size: clamp(26px, 4.4vw, 46px);
+    line-height: 1;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gc-accent);
+  }
+
+  .vv-results-grid {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 6px 22px;
+    justify-content: center;
+  }
+
+  .vv-results-label {
+    font-family: var(--vv-pixel-font);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gc-text-muted);
+  }
+
+  .vv-results-value {
+    font-family: var(--vv-pixel-font);
+    font-size: 20px;
+    color: var(--gc-text-primary);
+  }
+
+  .vv-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .vv-menu-item {
+    min-width: 220px;
+    font-family: var(--vv-pixel-font);
+    font-size: 16px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .vv-panel {
+    width: min(520px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    overflow: auto;
+    padding: 20px;
+  }
+
+  .vv-panel-wide {
+    width: min(620px, calc(100vw - 32px));
+  }
+
+  .vv-panel-heading {
+    margin: 0 0 14px;
+    font-family: var(--vv-pixel-font);
+    font-size: clamp(20px, 3vw, 30px);
+    line-height: 1;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gc-accent);
   }
 
   .vv-dialog-copy {
@@ -277,13 +398,6 @@
   .vv-controls-map th {
     color: var(--gc-text-muted);
     font-weight: var(--gc-type-label-weight);
-  }
-
-  .vv-end-grid {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 6px 16px;
-    margin-bottom: 8px;
   }
 
   /* --- Motion preference (display setting) --- */

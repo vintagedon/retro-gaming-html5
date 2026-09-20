@@ -32,8 +32,10 @@ test('keyboard-only flow: title → run → pause → settings → resume → ou
   expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-resume');
 
   // Settings from the pause dialog; focus lands on the active tab. Escape
-  // returns to paused and restores the invoking control.
-  await page.keyboard.press('Tab'); // resume -> settings
+  // returns to paused and restores the invoking control. The menu order
+  // is Resume, Restart, Settings, Return to Title.
+  await page.keyboard.press('Tab'); // resume -> restart
+  await page.keyboard.press('Tab'); // restart -> settings
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => window.__vv.getShellState() === 'settings');
   expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-tab-audio');
@@ -46,16 +48,16 @@ test('keyboard-only flow: title → run → pause → settings → resume → ou
   await page.waitForFunction(() => window.__vv.getShellState() === 'running');
   expect(await page.evaluate(() => document.activeElement.id || document.activeElement.tagName)).toBe('vv-canvas');
 
-  // Reach an outcome; the ended surface takes focus; New Run by keyboard.
-  await page.evaluate(() => window.__vv.advanceTicks(18000));
-  await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+  // Reach an outcome; the game-over screen takes focus; Play Again by keyboard.
+  await page.evaluate(() => window.__vv.advanceTicks(6000));
+  await page.waitForFunction(() => window.__vv.getShellState() === 'game-over');
   expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-new-run');
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => window.__vv.getShellState() === 'running');
 
   // A second outcome, then Return to Title by keyboard.
-  await page.evaluate(() => window.__vv.advanceTicks(18000));
-  await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+  await page.evaluate(() => window.__vv.advanceTicks(6000));
+  await page.waitForFunction(() => window.__vv.getShellState() === 'game-over');
   await page.locator('#vv-end-return-title').focus();
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => window.__vv.getShellState() === 'title');
@@ -87,21 +89,19 @@ test('relabeling a shell item in a fixture does not alter the named command; eac
   expect(log.filter(e => e === 'pause').length).toBe(1);
 });
 
-test('dialog focus containment: Tab cycles inside the active dialog', async ({ page }) => {
+test('title menu focus containment: Tab cycles inside the title surface', async ({ page }) => {
   await boot(page);
-  // Title dialog: Tab from Start wraps forward through the dialog.
+  // Title surface: Tab from Start wraps forward through the vertical menu.
   await page.locator('#vv-start').focus();
   await page.keyboard.press('Tab');
   expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-title-settings');
   await page.keyboard.press('Tab');
-  expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-howto');
-  await page.keyboard.press('Tab');
-  // Wraps back to the first focusable inside the dialog, never to the page.
+  // Wraps back to the first focusable inside the surface, never to the page.
   expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-start');
 
   // Shift-Tab from the first control wraps to the last.
   await page.keyboard.press('Shift+Tab');
-  expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-howto');
+  expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-title-settings');
 });
 
 test('below 960x540 the title and settings surfaces stay operable', async ({ page }) => {
@@ -124,8 +124,8 @@ test('below 960x540 the title and settings surfaces stay operable', async ({ pag
   // The ended surface is reachable and operable too.
   await page.locator('#vv-settings-close').click();
   await page.locator('#vv-resume').click();
-  await page.evaluate(() => window.__vv.advanceTicks(18000));
-  await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+  await page.evaluate(() => window.__vv.advanceTicks(6000));
+  await page.waitForFunction(() => window.__vv.getShellState() === 'game-over');
   await page.locator('#vv-new-run').focus();
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => window.__vv.getShellState() === 'running');
@@ -162,4 +162,49 @@ test('blur during running enters paused once and clears held actions; blur elsew
   expect(after.paused).toBe(before.paused);
   expect(after.elapsedTicks).toBe(before.elapsedTicks);
   expect(after.heldInput).toEqual(before.heldInput);
+});
+
+test('paused and wave-complete are reachable and leavable by keyboard with focus contained and restored', async ({ page }) => {
+  await boot(page);
+  await page.locator('#vv-start').focus();
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => window.__vv.getShellState() === 'running');
+
+  // Keyboard pause lands focus on the paused surface's first control.
+  await page.keyboard.press('p');
+  await page.waitForFunction(() => window.__vv.getShellState() === 'paused');
+  expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-resume');
+  // Shift-Tab from the first control wraps to the last; the cycle never
+  // leaves the surface.
+  await page.keyboard.press('Shift+Tab');
+  expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-return-title');
+  await page.keyboard.press('Tab');
+  expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-resume');
+
+  // Escape resumes and focus returns to the canvas.
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => window.__vv.getShellState() === 'running');
+  expect(await page.evaluate(() => document.activeElement.id || document.activeElement.tagName)).toBe('vv-canvas');
+
+  // Wave complete is reachable by keyboard: Play Again restarts, focus
+  // returns to the canvas, and the run is fresh.
+  await page.evaluate(() => {
+    const s = window.__vv.getSnapshot();
+    window.__vv.setState({ ...s, waveSpawned: 12, enemies: [], enemyShots: [], outcome: null });
+    window.__vv.advanceTicks(1);
+  });
+  await page.waitForFunction(() => window.__vv.getShellState() === 'wave-complete');
+  expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-play-again');
+  // Tab containment on the results surface cycles between the two controls.
+  await page.keyboard.press('Tab');
+  expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-wc-return-title');
+  // Return to Title is leavable by keyboard; the title then starts fresh.
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => window.__vv.getShellState() === 'title');
+  expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-start');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => window.__vv.getShellState() === 'running');
+  const fresh = await page.evaluate(() => window.__vv.getSnapshot());
+  expect(fresh.elapsedTicks).toBeLessThan(5);
+  expect(fresh.outcome).toBe(null);
 });

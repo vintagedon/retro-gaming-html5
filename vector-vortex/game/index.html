@@ -21,28 +21,28 @@
         ></canvas>
       </div>
 
-      <div class="vv-hud-top" data-testid="vv-hud-top">
-        <div class="vv-hud-cell vv-hud-score">
-          <span class="vv-hud-label">Score</span>
-          <span class="vv-hud-value" data-testid="vv-score">0</span>
+      <div class="vv-hud" data-testid="vv-hud">
+        <div class="vv-hud-top" data-testid="vv-hud-top">
+          <span class="vv-hud-cell vv-hud-score">
+            <span class="vv-hud-value" data-testid="vv-score">0</span>
+          </span>
+          <span class="vv-hud-cell vv-hud-best">
+            <span class="vv-hud-label">Best</span>
+            <span class="vv-hud-value" data-testid="vv-best">0</span>
+          </span>
         </div>
-        <div class="vv-hud-cell vv-hud-best">
-          <span class="vv-hud-label">Best</span>
-          <span class="vv-hud-value" data-testid="vv-best">0</span>
+        <div class="vv-hud-bottom" data-testid="vv-hud-bottom">
+          <span class="vv-lives" id="vv-lives" data-testid="vv-lives" role="img" aria-label="Lives: 3">
+            <svg class="vv-life" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 3 L8 8.5 L14 3 L14 6.5 L8 12.5 L2 6.5 Z" fill="currentColor"></path></svg>
+            <svg class="vv-life" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 3 L8 8.5 L14 3 L14 6.5 L8 12.5 L2 6.5 Z" fill="currentColor"></path></svg>
+            <svg class="vv-life" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 3 L8 8.5 L14 3 L14 6.5 L8 12.5 L2 6.5 Z" fill="currentColor"></path></svg>
+          </span>
+          <span class="vv-hud-cell vv-hud-wave">
+            <span class="vv-hud-label">Wave</span>
+            <span class="vv-hud-value" data-testid="vv-wave">1</span>
+          </span>
+          <span class="vv-sr-only" data-testid="vv-current-status" aria-live="polite">title</span>
         </div>
-      </div>
-
-      <div class="vv-hud-bottom" data-testid="vv-hud-bottom">
-        <span class="vv-lives" id="vv-lives" data-testid="vv-lives" role="img" aria-label="Lives: 3">
-          <svg class="vv-life" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.5 L14.5 14 L8 10.5 L1.5 14 Z" fill="currentColor"></path></svg>
-          <svg class="vv-life" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.5 L14.5 14 L8 10.5 L1.5 14 Z" fill="currentColor"></path></svg>
-          <svg class="vv-life" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.5 L14.5 14 L8 10.5 L1.5 14 Z" fill="currentColor"></path></svg>
-        </span>
-        <span class="vv-hud-cell vv-hud-kills">
-          <span class="vv-hud-label">Kills</span>
-          <span class="vv-hud-value" data-testid="vv-kills">0</span>
-        </span>
-        <span class="vv-hud-status" data-testid="vv-current-status" aria-live="polite">running</span>
       </div>
 
       <div class="vv-actions" id="vv-controls-buttons" data-vv-bar="hidden">
@@ -51,46 +51,33 @@
       </div>
     </main>
 
-    <div class="vv-shell" id="vv-shell" data-vv-state="title" data-vv-howto="closed">
-      <section class="vv-surface" data-vv-surface="title" data-vv-active="true" aria-label="Vector Vortex title">
-        <div class="gc-panel vv-dialog" role="dialog" aria-modal="true" aria-labelledby="vv-title-heading">
-          <h2 id="vv-title-heading">Vector Vortex</h2>
-          <p class="vv-dialog-copy">Clear the Crawler wave on a 24-lane wireframe tube.</p>
-          <div class="vv-dialog-actions">
-            <button type="button" class="gc-button" id="vv-start">Start</button>
-            <button type="button" class="gc-button" id="vv-title-settings">Settings</button>
-            <button type="button" class="gc-button" id="vv-howto">How to Play</button>
+    <div class="vv-shell" id="vv-shell" data-vv-state="title">
+      <section class="vv-surface vv-surface-title" data-vv-surface="title" data-vv-active="true" aria-label="Vector Vortex title">
+        <canvas id="vv-title-web" aria-hidden="true"></canvas>
+        <div class="vv-title-composition">
+          <h1 class="vv-title-heading" data-testid="vv-title-heading">Vector Vortex</h1>
+          <nav class="vv-menu" aria-label="Main menu">
+            <button type="button" class="gc-button vv-menu-item" id="vv-start">Start</button>
+            <button type="button" class="gc-button vv-menu-item" id="vv-title-settings">Settings</button>
+          </nav>
+        </div>
+      </section>
+
+      <section class="vv-surface vv-surface-overlay" data-vv-surface="paused" data-vv-active="false" aria-label="Paused">
+        <div class="gc-panel vv-panel">
+          <h2 class="vv-panel-heading">Paused</h2>
+          <div class="vv-menu">
+            <button type="button" class="gc-button vv-menu-item" id="vv-resume">Resume</button>
+            <button type="button" class="gc-button vv-menu-item" id="vv-pause-restart">Restart</button>
+            <button type="button" class="gc-button vv-menu-item" id="vv-pause-settings">Settings</button>
+            <button type="button" class="gc-button vv-menu-item" id="vv-return-title">Return to Title</button>
           </div>
         </div>
       </section>
 
-      <section class="vv-surface" data-vv-surface="howto" data-vv-active="false" aria-label="How to play">
-        <div class="gc-panel vv-dialog" role="dialog" aria-modal="true" aria-labelledby="vv-howto-heading">
-          <h2 id="vv-howto-heading">How to Play</h2>
-          <p class="vv-dialog-copy">Ride the rim of the 24-lane tube. Crawlers advance outward from the far end; a Crawler that reaches your rim costs a life, and so does a Crawler shot that crosses your lane. Three hits end the run.</p>
-          <p class="vv-dialog-copy">Left Arrow or A moves left around the rim. Right Arrow or D moves right, wrapping at the seam. Hold Space to fire inward along your lane; shots have a short cooldown and six may be active at once.</p>
-          <p class="vv-dialog-copy">Escape or P pauses. A kill scores 100. Clear the wave when every Crawler has spawned and been resolved.</p>
-          <div class="vv-dialog-actions">
-            <button type="button" class="gc-button" id="vv-howto-close">Close</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="vv-surface" data-vv-surface="paused" data-vv-active="false" aria-label="Paused">
-        <div class="gc-panel vv-dialog" role="dialog" aria-modal="true" aria-labelledby="vv-paused-heading">
-          <h2 id="vv-paused-heading">Paused</h2>
-          <div class="vv-dialog-actions">
-            <button type="button" class="gc-button" id="vv-resume">Resume</button>
-            <button type="button" class="gc-button" id="vv-pause-settings">Settings</button>
-            <button type="button" class="gc-button" id="vv-pause-restart">Restart</button>
-            <button type="button" class="gc-button" id="vv-return-title">Return to Title</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="vv-surface" data-vv-surface="settings" data-vv-active="false" aria-label="Settings">
-        <div class="gc-panel vv-dialog" role="dialog" aria-modal="true" aria-labelledby="vv-settings-heading">
-          <h2 id="vv-settings-heading">Settings</h2>
+      <section class="vv-surface vv-surface-overlay" data-vv-surface="settings" data-vv-active="false" aria-label="Settings">
+        <div class="gc-panel vv-panel vv-panel-wide">
+          <h2 class="vv-panel-heading">Settings</h2>
           <div class="vv-tabs" role="tablist" aria-label="Settings sections">
             <button type="button" class="gc-button vv-tab" id="vv-tab-audio" role="tab" aria-selected="true" tabindex="0" aria-controls="vv-panel-audio">Audio</button>
             <button type="button" class="gc-button vv-tab" id="vv-tab-display" role="tab" aria-selected="false" tabindex="-1" aria-controls="vv-panel-display">Display</button>
@@ -98,7 +85,7 @@
           </div>
           <div class="vv-tab-panel" id="vv-panel-audio" role="tabpanel" aria-labelledby="vv-tab-audio" data-vv-panel="active">
             <div class="vv-setting-row">
-              <span class="vv-setting-label" id="vv-mute-label">Mute all UI sound</span>
+              <span class="vv-setting-label" id="vv-mute-label">Mute all game sound</span>
               <button type="button" class="gc-button" id="vv-mute-toggle" aria-pressed="false" aria-labelledby="vv-mute-label">Mute</button>
             </div>
             <div class="vv-setting-row">
@@ -133,18 +120,34 @@
         </div>
       </section>
 
-      <section class="vv-surface" data-vv-surface="ended" data-vv-active="false" aria-label="Run ended">
-        <div class="gc-panel vv-dialog" role="dialog" aria-modal="true" aria-labelledby="vv-ended-heading">
-          <h2 id="vv-ended-heading" data-testid="vv-end-outcome">Lost</h2>
-          <div class="vv-end-grid">
-            <span class="vv-setting-label">Final score</span>
-            <span class="vv-hud-value" data-testid="vv-end-score">0</span>
-            <span class="vv-setting-label">Kills</span>
-            <span class="vv-hud-value" data-testid="vv-end-kills">0</span>
+      <section class="vv-surface vv-surface-results" data-vv-surface="wave-complete" data-vv-active="false" aria-label="Wave complete">
+        <div class="vv-title-composition">
+          <h2 class="vv-results-heading" data-testid="vv-wc-heading">Wave 1 Complete</h2>
+          <div class="vv-results-grid">
+            <span class="vv-results-label">Score</span>
+            <span class="vv-results-value" data-testid="vv-wc-score">0</span>
           </div>
-          <div class="vv-dialog-actions">
-            <button type="button" class="gc-button" id="vv-new-run">New Run</button>
-            <button type="button" class="gc-button" id="vv-end-return-title">Return to Title</button>
+          <div class="vv-menu">
+            <button type="button" class="gc-button vv-menu-item" id="vv-play-again">Play Again</button>
+            <button type="button" class="gc-button vv-menu-item" id="vv-wc-return-title">Return to Title</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="vv-surface vv-surface-results" data-vv-surface="game-over" data-vv-active="false" aria-label="Game over">
+        <div class="vv-title-composition">
+          <h2 class="vv-results-heading" data-testid="vv-go-heading">Game Over</h2>
+          <div class="vv-results-grid">
+            <span class="vv-results-label">Score</span>
+            <span class="vv-results-value" data-testid="vv-go-score">0</span>
+            <span class="vv-results-label">Wave reached</span>
+            <span class="vv-results-value" data-testid="vv-go-wave">1</span>
+            <span class="vv-results-label">Best</span>
+            <span class="vv-results-value" data-testid="vv-go-best">0</span>
+          </div>
+          <div class="vv-menu">
+            <button type="button" class="gc-button vv-menu-item" id="vv-new-run">Play Again</button>
+            <button type="button" class="gc-button vv-menu-item" id="vv-end-return-title">Return to Title</button>
           </div>
         </div>
       </section>

@@ -150,7 +150,7 @@ test('new run from the ended surface produces a running fresh run', async ({ pag
   // observes the outcome and opens the ended surface.
   await page.evaluate(() => window.__vv.advanceTicks(18000));
   expect(await page.evaluate(() => window.__vv.getSnapshot().outcome)).not.toBe(null);
-  await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+  await page.waitForFunction(() => window.__vv.getShellState() === 'game-over');
   // Click New Run on the ended surface.
   await page.click('#vv-new-run');
   const snap = await page.evaluate(() => window.__vv.getSnapshot());
@@ -269,7 +269,7 @@ test('mouse pause and resume follow the shell focus contract; ended surface rest
   // Reach an outcome; the shell opens the ended surface, whose New Run
   // control receives focus and restarts by keyboard.
   await page.evaluate(() => window.__vv.advanceTicks(18000));
-  await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+  await page.waitForFunction(() => window.__vv.getShellState() === 'game-over');
   expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-new-run');
   await page.keyboard.press('Enter');
   const afterRestart = await page.evaluate(() => window.__vv.getSnapshot());

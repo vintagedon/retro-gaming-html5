@@ -189,15 +189,15 @@ Five full-screen states. Arcade HUD in the pixel font. Font, effects and one mus
 
 The replacement shell demonstrates the lifecycle contract rather than inheriting it. Update the existing shell tests to exercise the replacement screens and preserve the repaired behavior. The wave-complete outcome already exists from gate 2.
 
-- [ ] The title state hides and disables the gameplay HUD and instructional text, and the simulation advances zero ticks while it is shown.
-- [ ] Returning focus, or restoring a hidden document, while on the title or on settings reached from the title advances zero ticks and never starts gameplay behind the menu.
-- [ ] Holding the pause key past the operating system repeat delay produces exactly one pause and does not resume.
-- [ ] Keyboard focus stays inside the active dialog, including Shift+Tab from the first control and traversal across settings tabs; controls in inactive tabs are not reachable.
-- [ ] Start from title begins a fresh run at tick zero and wave one.
-- [ ] Paused, wave complete, game over and title are each reachable and leavable by keyboard alone, with focus contained and restored.
-- [ ] Score, best, lives and wave render in the shipped font and are legible at the smallest supported viewport. A capture of each state is attached.
-- [ ] Audio plays after the first deliberate gesture, mute silences it, volume scales it, and replacing audio with a no-op leaves gameplay state identical at equal completed ticks.
-- [ ] `ATTRIBUTION.md` lists every shipped asset with pack, author, licence and source, and every listed licence permits redistribution in a public repository.
+- [x] The title state hides and disables the gameplay HUD and instructional text, and the simulation advances zero ticks while it is shown. `tests/browser/title-lifecycle.spec.js`.
+- [x] Returning focus, or restoring a hidden document, while on the title or on settings reached from the title advances zero ticks and never starts gameplay behind the menu. `tests/browser/title-lifecycle.spec.js`; the clock gate consults the shell state on every transition (`game/runtime/frame-runner.js`).
+- [x] Holding the pause key past the operating system repeat delay produces exactly one pause and does not resume. `tests/browser/title-lifecycle.spec.js`; the shell's keydown ignores pause-key auto-repeat (`game/runtime/shell.js`).
+- [x] Keyboard focus stays inside the active dialog, including Shift+Tab from the first control and traversal across settings tabs; controls in inactive tabs are not reachable. `tests/browser/shell-flow.spec.js` and `tests/browser/shell-storage.spec.js` (tab traversal and hidden-panel reachability).
+- [x] Start from title begins a fresh run at tick zero and wave one. `tests/browser/title-lifecycle.spec.js`.
+- [x] Paused, wave complete, game over and title are each reachable and leavable by keyboard alone, with focus contained and restored. `tests/browser/shell-flow.spec.js`.
+- [x] Score, best, lives and wave render in the shipped font and are legible at the smallest supported viewport. A capture of each state is attached. `tests/browser/viewport.spec.js` (pixel font at 1024x576); captures under `vector-vortex/docs/evidence/` for title, running, paused, wave complete, game over.
+- [x] Audio plays after the first deliberate gesture, mute silences it, volume scales it, and replacing audio with a no-op leaves gameplay state identical at equal completed ticks. `tests/browser/shell-audio.spec.js` (music lifecycle, mute, volume, no-op parity).
+- [x] `ATTRIBUTION.md` lists every shipped asset with pack, author, licence and source, and every listed licence permits redistribution in a public repository. `tests/core/assets.test.js` enforces the record; the pixel-fx-effects-5750 conflict is reported in the attribution file itself.
 
 #### Gate 4: Final validation, publish, and the record
 

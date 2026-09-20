@@ -5,7 +5,7 @@
 // collision, timing, or outcome. Values come from the snapshot.
 
 export function createDom({
-  score, best, lives, kills,
+  score, best, lives,
   pauseButton, restartButton, bestProvider
 }) {
   const last = {};
@@ -30,7 +30,6 @@ export function createDom({
         lives.setAttribute('aria-label', `Lives: ${v}`);
       }, snapshot.lives);
     }
-    setIfChanged('kills', v => { kills.textContent = v; }, String(snapshot.kills ?? 0));
     // The paused/status label is the shell state mirror and is owned by the
     // shell (Spec 02 deliverable 3), not by the snapshot projection.
 

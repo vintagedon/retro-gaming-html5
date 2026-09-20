@@ -36,17 +36,17 @@ test('DOM status values are projections, no duplicate calculation', async ({ pag
   const projected = await page.evaluate(() => {
     const s = window.__vv.getSnapshot();
     return {
-      snapshot: { score: s.score, lives: s.lives, kills: s.kills },
+      snapshot: { score: s.score, lives: s.lives, wave: 1 },
       dom: {
         score: Number(document.querySelector('[data-testid="vv-score"]').textContent),
         livesLabel: document.querySelector('[data-testid="vv-lives"]').getAttribute('aria-label'),
-        kills: Number(document.querySelector('[data-testid="vv-kills"]').textContent)
+        wave: document.querySelector('[data-testid="vv-wave"]').textContent
       }
     };
   });
   expect(projected.dom.score).toBe(projected.snapshot.score);
   expect(projected.dom.livesLabel).toBe(`Lives: ${projected.snapshot.lives}`);
-  expect(projected.dom.kills).toBe(projected.snapshot.kills);
+  expect(projected.dom.wave).toBe('1');
 });
 
 test('MUTATION: skipFrameRunnerRebind leaves the orphaned core visible through the seam', async ({ page }) => {

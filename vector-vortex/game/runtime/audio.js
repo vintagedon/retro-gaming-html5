@@ -1,11 +1,12 @@
-// Vector Vortex UI audio adapter (Spec 02 deliverable 3).
-// Synthesizes bounded UI cues after the first deliberate gesture. One
+// Vector Vortex game audio adapter (Spec 02 deliverable 3, extended in
+// Spec 03 gate 3). Synthesizes bounded UI and combat cues after the first
+// deliberate gesture, and loops the one shipped music track. One
 // AudioContext, one gain bus: volume scales the bus, mute silences it.
 // Audio callbacks and time never advance shell or core state: this module
 // receives no reference to either, and nothing schedules game work from a
 // cue. Active node counts are bounded; finished nodes disconnect.
 
-const MAX_ACTIVE_CUES = 8;
+const MAX_ACTIVE_CUES = 12;
 
 // Each cue is a short note list: { f0, f1, type, at, dur, gain }. Total
 // envelope per note is bounded well under a quarter second.
@@ -22,12 +23,21 @@ const CUES = {
   toggle: [{ f0: 880, f1: 880, type: 'sine', at: 0, dur: 0.05, gain: 0.14 }],
   pause: [{ f0: 520, f1: 300, type: 'triangle', at: 0, dur: 0.12, gain: 0.18 }],
   resume: [{ f0: 300, f1: 520, type: 'triangle', at: 0, dur: 0.12, gain: 0.18 }],
-  transition: [{ f0: 440, f1: 880, type: 'sine', at: 0, dur: 0.16, gain: 0.14 }]
+  transition: [{ f0: 440, f1: 880, type: 'sine', at: 0, dur: 0.16, gain: 0.14 }],
+  // Combat cues (Spec 03): fire, hit, destruction.
+  fire: [{ f0: 980, f1: 420, type: 'square', at: 0, dur: 0.07, gain: 0.12 }],
+  hit: [{ f0: 240, f1: 90, type: 'sawtooth', at: 0, dur: 0.14, gain: 0.16 }],
+  destroyed: [{ f0: 180, f1: 40, type: 'sawtooth', at: 0, dur: 0.22, gain: 0.18 }]
 };
 
-export function createUiAudio() {
+export function createUiAudio({ musicUrl } = {}) {
   let ctx = null;
   let bus = null;
+  let musicGain = null;
+  let musicBuffer = null;
+  let musicLoading = false;
+  let musicSource = null;
+  let musicWanted = false;
   let unlocked = false;
   let muted = false;
   let volume = 80;
@@ -38,6 +48,9 @@ export function createUiAudio() {
     ctx = new AudioContext();
     bus = ctx.createGain();
     bus.connect(ctx.destination);
+    musicGain = ctx.createGain();
+    musicGain.gain.value = 0.5;
+    musicGain.connect(bus);
     applyBus();
   }
 
@@ -52,6 +65,60 @@ export function createUiAudio() {
     unlocked = true;
     ensureContext();
     if (ctx.state === 'suspended') ctx.resume();
+    loadMusic();
+    if (musicWanted) startMusic();
+  }
+
+  // The one shipped music loop (game/assets, attribution in
+  // game/assets/ATTRIBUTION.md). Loading is passive: a failure leaves the
+  // game silent and never touches shell or core state.
+  function loadMusic() {
+    if (!musicUrl || musicBuffer || musicLoading || typeof fetch !== 'function') return;
+    musicLoading = true;
+    fetch(musicUrl)
+      .then(res => (res.ok ? res.arrayBuffer() : Promise.reject(new Error(`music ${res.status}`))))
+      .then(buf => {
+        ensureContext();
+        return ctx.decodeAudioData(buf);
+      })
+      .then(decoded => {
+        musicBuffer = decoded;
+        if (musicWanted) startMusic();
+      })
+      .catch(() => {
+        musicBuffer = null;
+      })
+      .finally(() => {
+        musicLoading = false;
+      });
+  }
+
+  function startMusic() {
+    musicWanted = true;
+    if (!unlocked || !musicBuffer || musicSource) return;
+    ensureContext();
+    const source = ctx.createBufferSource();
+    source.buffer = musicBuffer;
+    source.loop = true;
+    source.connect(musicGain);
+    source.onended = () => {
+      if (musicSource === source) musicSource = null;
+    };
+    musicSource = source;
+    source.start();
+  }
+
+  function stopMusic() {
+    musicWanted = false;
+    if (musicSource) {
+      const source = musicSource;
+      musicSource = null;
+      try {
+        source.stop();
+      } catch {
+        // Already stopped.
+      }
+    }
   }
 
   function play(name) {
@@ -103,11 +170,13 @@ export function createUiAudio() {
       volume,
       busGain: bus ? bus.gain.value : null,
       activeNodes: active.size,
-      contextState: ctx ? ctx.state : null
+      contextState: ctx ? ctx.state : null,
+      musicLoaded: musicBuffer != null,
+      musicPlaying: musicSource != null
     };
   }
 
-  return { unlock, play, setMuted, setVolume, getState };
+  return { unlock, play, setMuted, setVolume, startMusic, stopMusic, getState };
 }
 
 // The no-op replacement used by the audio-equivalence validation: same
@@ -118,8 +187,13 @@ export function createNoopUiAudio() {
     play() {},
     setMuted() {},
     setVolume() {},
+    startMusic() {},
+    stopMusic() {},
     getState() {
-      return { unlocked: false, muted: true, volume: 0, busGain: null, activeNodes: 0, contextState: null, noop: true };
+      return {
+        unlocked: false, muted: true, volume: 0, busGain: null, activeNodes: 0,
+        contextState: null, musicLoaded: false, musicPlaying: false, noop: true
+      };
     }
   };
 }

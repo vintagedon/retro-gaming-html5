@@ -86,7 +86,10 @@ test('required rendered primitives exist and carry computed theme roles', async 
     }
     const panels = [...document.querySelectorAll('.gc-panel')];
     const buttons = [...document.querySelectorAll('.gc-button')];
-    const pauseButton = document.querySelector('#vv-pause');
+    // The probe uses an enabled control (the title menu's Start): on the
+    // title the gameplay HUD controls are disabled by design, and the
+    // framework styles disabled controls with its own muted text.
+    const startButton = document.querySelector('#vv-start');
     const body = document.body;
     return {
       panelCount: panels.length,
@@ -97,11 +100,12 @@ test('required rendered primitives exist and carry computed theme roles', async 
       text: probeToken('--gc-text-primary', 'color'),
       muted: probeToken('--gc-text-muted', 'color'),
       warning: probeToken('--gc-status-warning', 'color'),
-      pauseColor: pauseButton ? computedColor(pauseButton, 'color') : null,
+      startColor: startButton ? computedColor(startButton, 'color') : null,
+      startFont: startButton ? computedColor(startButton, 'fontFamily') : null,
       panelBackground: panels[0] ? computedColor(panels[0], 'backgroundColor') : null,
       raisedProbe: probeToken('--gc-surface-raised', 'backgroundColor'),
       bodyFont: computedColor(body, 'fontFamily'),
-      labelTransform: pauseButton ? computedColor(pauseButton, 'textTransform') : null
+      labelTransform: startButton ? computedColor(startButton, 'textTransform') : null
     };
   });
 
@@ -118,11 +122,12 @@ test('required rendered primitives exist and carry computed theme roles', async 
   expect(result.warning).toBe(FROZEN.warning);
 
   // Buttons carry the text role; panels consume the themed raised surface.
-  expect(result.pauseColor).toBe(FROZEN.text);
+  expect(result.startColor).toBe(FROZEN.text);
   expect(result.panelBackground).toBe(result.raisedProbe);
 
-  // Frozen monospace stack and compact uppercase labels.
+  // The shipped pixel font drives the menu, over the monospace body stack.
   expect(result.bodyFont).toBe('ui-monospace, SFMono-Regular, Menlo, Consolas, monospace');
+  expect(result.startFont).toContain('Owlish Pixel');
   expect(result.labelTransform).toBe('uppercase');
 });
 

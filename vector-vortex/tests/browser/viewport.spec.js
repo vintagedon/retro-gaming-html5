@@ -85,3 +85,37 @@ test('DPR 1 probe: playfield and HUD have no overlap-driven overflow and are not
   }
   await context.close();
 });
+
+test('the HUD renders in the shipped pixel font and stays legible at 1024x576', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 576 });
+  await page.goto('/');
+  await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  await startRun(page);
+  const probe = await page.evaluate(() => {
+    const hud = document.querySelector('[data-testid="vv-hud"]');
+    const score = document.querySelector('[data-testid="vv-score"]');
+    const best = document.querySelector('[data-testid="vv-best"]');
+    const wave = document.querySelector('[data-testid="vv-wave"]');
+    const lives = document.querySelector('[data-testid="vv-lives"]');
+    const size = (el) => parseFloat(getComputedStyle(el).fontSize);
+    const box = (el) => {
+      const r = el.getBoundingClientRect();
+      return { w: r.width, h: r.height };
+    };
+    return {
+      hudFont: getComputedStyle(hud).fontFamily,
+      scoreSize: size(score),
+      bestBox: box(best),
+      waveBox: box(wave),
+      livesBox: box(lives),
+      innerH: window.innerHeight,
+      innerW: window.innerWidth
+    };
+  });
+  expect(probe.hudFont).toContain('Owlish Pixel');
+  expect(probe.scoreSize).toBeGreaterThanOrEqual(20);
+  for (const b of [probe.bestBox, probe.waveBox, probe.livesBox]) {
+    expect(b.w).toBeGreaterThan(0);
+    expect(b.h).toBeGreaterThan(0);
+  }
+});
