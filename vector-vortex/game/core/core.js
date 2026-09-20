@@ -6,21 +6,22 @@ import {
   tickCooldown
 } from './shots.js';
 import { advanceEnemiesWithDepth } from './enemies.js';
+import {
+  tryEnemyFire,
+  advanceEnemyShotsWithDepth,
+  expireEnemyShotsAtRim,
+  initialFireTick,
+  ENEMY_SHOT_SPEED,
+  ENEMY_FIRE_INTERVAL_TICKS
+} from './enemy-shots.js';
 import { resolveCollisions } from './collision.js';
 import { resolveBreaches } from './breach.js';
-import { createDirector, bandForTick, shouldSpawnOnTick } from './director.js';
-import { computeAccuracyBonus, computeAccuracyPercent, SURVIVAL_BONUS } from './scoring.js';
+import { createWaveDirector, waveCleared } from './director.js';
+import { DAMAGE_GRACE_TICKS } from './breach.js';
 
 export const TICK_HZ = 60;
-export const RUN_LENGTH_TICKS = 18000;
 export const STARTING_LIVES = 3;
-export const DAMAGE_GRACE_TICKS = 30;
 export const CRAWLER_SCORE = 100;
-// Vocabulary constant for the run's final minute (60 s at 60 Hz). The
-// director's band 4 already begins at RUN_LENGTH_TICKS - FINAL_MINUTE_TICKS;
-// exporting the constant lets presentation read the threshold without
-// restating timing arithmetic (Spec 02 HUD contract).
-export const FINAL_MINUTE_TICKS = 3600;
 
 export function initialState(seed) {
   return {
@@ -32,6 +33,7 @@ export function initialState(seed) {
     cooldown: 0,
     shots: [],
     enemies: [],
+    enemyShots: [],
     breaches: [],
     damageGraceRemaining: 0,
     shotsSpawned: 0,
@@ -39,6 +41,11 @@ export function initialState(seed) {
     kills: 0,
     nextShotId: 1,
     nextEnemyId: 1,
+    nextEnemyShotId: 1,
+    waveSpawned: 0,
+    moveDir: 0,
+    moveHeldTicks: 0,
+    moveCooldown: 0,
     heldInput: { left: false, right: false, fire: false },
     recentEvents: [],
     paused: false,
@@ -49,7 +56,7 @@ export function initialState(seed) {
 
 export function createCore({ seed = 1, initialState: provided } = {}) {
   let state = provided ?? initialState(seed);
-  const director = createDirector({ seed });
+  const director = createWaveDirector({ seed });
   // If the provided state carries a persisted RNG position, restore it on
   // the director's RNG so a JSON round-trip yields identical lane draws.
   if (provided && provided.rngState != null) {
@@ -128,7 +135,31 @@ export function createCore({ seed = 1, initialState: provided } = {}) {
     // 3. advance enemies (carries prev/next)
     const enemyAdv = advanceEnemiesWithDepth(state);
     state = enemyAdv.state;
-    const enemyForCollision = enemyAdv.enemies;
+    // 3b. enemy fire: each enemy fires along its own lane toward the rim
+    // once its fire tick is due, under the active-shot cap. A fire past
+    // the cap stays due and retries on the next tick.
+    for (const enemy of state.enemies) {
+      if (state.elapsedTicks < enemy.nextFireTick) continue;
+      const r = tryEnemyFire(state, enemy);
+      if (!r) continue;
+      state = {
+        ...r.state,
+        enemyShots: [...r.state.enemyShots, { ...r.shot, prev: r.shot.depth, next: r.shot.depth }]
+      };
+      state = {
+        ...state,
+        enemies: state.enemies.map(e => e.id === enemy.id
+          ? { ...e, nextFireTick: state.elapsedTicks + ENEMY_FIRE_INTERVAL_TICKS }
+          : e)
+      };
+      emit({ type: 'enemy-shot-fired', shotId: r.shot.id, lane: r.shot.lane, tick: state.elapsedTicks });
+    }
+    // 3c. advance enemy shots (carries prev/next for swept resolution)
+    const enemyShotAdv = advanceEnemyShotsWithDepth(state);
+    state = enemyShotAdv.state;
+    // Collision reads the enemy roster as of after fire scheduling, so the
+    // nextFireTick updates above survive into the committed state.
+    const enemyForCollision = state.enemies;
     // 4. resolve swept collisions (ascending stable enemy ID)
     const coll = resolveCollisions({
       shots: shotForCollision,
@@ -145,7 +176,15 @@ export function createCore({ seed = 1, initialState: provided } = {}) {
       kills: state.kills + coll.kills.length
     };
     for (const k of coll.kills) {
-      emit({ type: 'enemy-destroyed', enemyId: k.enemyId, shotId: k.shotId, tick: state.elapsedTicks });
+      emit({
+        type: 'enemy-destroyed',
+        enemyId: k.enemyId,
+        shotId: k.shotId,
+        lane: k.lane,
+        depth: k.depth,
+        kind: 'enemy',
+        tick: state.elapsedTicks
+      });
     }
     // 5. expire shots at/past far (AFTER collision so the final sweep participates)
     const exp = expireShotsAtFarWithEvents(state);
@@ -163,46 +202,69 @@ export function createCore({ seed = 1, initialState: provided } = {}) {
       }
     }
     if (br.lifeLost) {
-      emit({ type: 'life-lost', lives: state.lives, tick: state.elapsedTicks });
+      emit({ type: 'life-lost', lives: state.lives, tick: state.elapsedTicks, cause: 'breach' });
     }
-    // 7. director/spawn (deterministic lane via injected seeded RNG)
-    const band = bandForTick(state.elapsedTicks);
-    if (shouldSpawnOnTick(state.elapsedTicks, band)) {
-      const spawn = director.tickSpawned(state);
-      if (spawn) {
-        const id = state.nextEnemyId;
-        const enemy = { id, lane: spawn.lane, depth: 1, hp: 1 };
-        state = {
-          ...state,
-          enemies: [...state.enemies, enemy],
-          nextEnemyId: id + 1,
-          rngState: director._rng.getState()
-        };
-        emit({ type: 'director-spawn', enemyId: id, lane: spawn.lane, tick: state.elapsedTicks });
+    // 6b. enemy-shot hits on the player, AFTER breach resolution so a
+    // breach and a shot resolving on the same tick cost at most one life
+    // (the shot finds the player already in grace). Ascending shot ID;
+    // swept-interval rule: a shot that crossed depth 0 this tick hits the
+    // player only while the player occupies its lane.
+    {
+      const ordered = [...state.enemyShots].sort((a, b) => a.id - b.id);
+      let lives = state.lives;
+      let grace = state.damageGraceRemaining;
+      let shotLifeLost = false;
+      for (const s of ordered) {
+        const crossedRim = s.prev > 0 && s.next <= 0;
+        if (crossedRim && s.lane === state.lane && lives > 0 && grace <= 0) {
+          lives = Math.max(0, lives - 1);
+          grace = DAMAGE_GRACE_TICKS;
+          shotLifeLost = true;
+        }
+      }
+      if (shotLifeLost) {
+        state = { ...state, lives, damageGraceRemaining: grace };
+        emit({ type: 'life-lost', lives: state.lives, tick: state.elapsedTicks, cause: 'enemy-shot' });
       }
     }
-    // 8. evaluate run boundary.
-    // The "lost" check fires immediately when breach empties lives (any tick).
-    // The "survived" check fires after elapsedTicks is incremented to 17999,
-    // which is the post-increment state of the final tick.
-    if (state.outcome === null && state.lives <= 0) {
-      state = { ...state, outcome: 'lost' };
-      emit({ type: 'run-ended', outcome: 'lost', tick: state.elapsedTicks });
-    }
-    // 9. advance elapsed
-    const finalTickIndex = state.elapsedTicks;
-    state = { ...state, elapsedTicks: state.elapsedTicks + 1 };
-    // After the final tick has been fully processed (elapsedTicks now equals
-    // RUN_LENGTH_TICKS) and the player is still alive, the run survived.
-    if (state.outcome === null && state.elapsedTicks === RUN_LENGTH_TICKS) {
-      const bonus = computeAccuracyBonus(state.hits, state.shotsSpawned);
+    // 6c. expire enemy shots at the rim, AFTER hit resolution so the
+    // final sweep participates, matching the player-shot expiry ordering.
+    state = expireEnemyShotsAtRim(state);
+    // 7. director/spawn (deterministic lane via injected seeded RNG)
+    const spawn = director.tickSpawned(state);
+    if (spawn) {
+      const id = state.nextEnemyId;
+      const enemy = {
+        id,
+        lane: spawn.lane,
+        depth: 1,
+        hp: 1,
+        spawnedTick: state.elapsedTicks,
+        nextFireTick: initialFireTick(state.elapsedTicks)
+      };
       state = {
         ...state,
-        score: state.score + SURVIVAL_BONUS + bonus,
-        outcome: 'survived'
+        enemies: [...state.enemies, enemy],
+        nextEnemyId: id + 1,
+        waveSpawned: state.waveSpawned + 1,
+        rngState: director._rng.getState()
       };
-      emit({ type: 'run-ended', outcome: 'survived', tick: finalTickIndex });
+      emit({ type: 'director-spawn', enemyId: id, lane: spawn.lane, tick: state.elapsedTicks });
     }
+    // 8. evaluate outcomes. Player damage and death resolve before any
+    // wave-clear grant: death on the final enemy is death, not a clear.
+    if (state.outcome === null && state.lives <= 0) {
+      state = { ...state, outcome: 'game-over' };
+      emit({ type: 'run-ended', outcome: 'game-over', tick: state.elapsedTicks });
+    }
+    if (state.outcome === null && waveCleared(state)) {
+      // Clearing the wave discards enemy shots still in flight and
+      // freezes gameplay with the wave-complete outcome.
+      state = { ...state, outcome: 'wave-complete', enemyShots: [] };
+      emit({ type: 'run-ended', outcome: 'wave-complete', tick: state.elapsedTicks });
+    }
+    // 9. advance elapsed
+    state = { ...state, elapsedTicks: state.elapsedTicks + 1 };
     // 10. emit tick event and flush
     emit({ type: 'tick', index: state.elapsedTicks });
     flushEvents();
@@ -213,30 +275,25 @@ export function createCore({ seed = 1, initialState: provided } = {}) {
   }
 
   function snapshot() {
-    const acc = computeAccuracyPercent(state.hits, state.shotsSpawned);
     return {
       seed: state.seed,
       lane: state.lane,
       lives: state.lives,
       score: state.score,
       elapsedTicks: state.elapsedTicks,
-      // Read-only projection for presentation (Spec 02 HUD): remaining run
-      // budget derived from values the core already owns. It adds no rule
-      // and does not change simulation behavior.
-      remainingTicks: Math.max(0, RUN_LENGTH_TICKS - state.elapsedTicks),
+      waveSpawned: state.waveSpawned,
       cooldown: state.cooldown,
       paused: state.paused,
       outcome: state.outcome,
       heldInput: { ...state.heldInput },
       shots: state.shots.map(s => ({ id: s.id, lane: s.lane, depth: s.depth })),
       enemies: state.enemies.map(e => ({ id: e.id, lane: e.lane, depth: e.depth, hp: e.hp })),
+      enemyShots: state.enemyShots.map(s => ({ id: s.id, lane: s.lane, depth: s.depth })),
       breaches: state.breaches.map(b => ({ id: b.id, lane: b.lane })),
       damageGraceRemaining: state.damageGraceRemaining,
       shotsSpawned: state.shotsSpawned,
       hits: state.hits,
       kills: state.kills,
-      accuracyPercent: acc.percent,
-      accuracyDisplay: acc.display,
       recentEvents: state.recentEvents.slice()
     };
   }

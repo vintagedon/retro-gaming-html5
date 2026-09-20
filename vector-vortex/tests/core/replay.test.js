@@ -28,20 +28,25 @@ function digest(core) {
     cooldown: s.cooldown,
     shots: s.shots,
     enemies: s.enemies,
+    enemyShots: s.enemyShots,
     breaches: s.breaches,
     damageGraceRemaining: s.damageGraceRemaining,
     elapsedTicks: s.elapsedTicks,
     outcome: s.outcome,
     shotsSpawned: s.shotsSpawned,
     hits: s.hits,
-    kills: s.kills
+    kills: s.kills,
+    waveSpawned: s.waveSpawned,
+    moveDir: s.moveDir,
+    moveHeldTicks: s.moveHeldTicks,
+    moveCooldown: s.moveCooldown
   });
 }
 
 function actionLog() {
   // Ordered by (tick, seq). Entry identity is seq: the three entries at
   // tick 5 share a tick and all three must be delivered, in order, once.
-  // Right is held from tick 30 to tick 39 so held movement actually occurs.
+  // Right is held from tick 30 to tick 69 so held movement actually occurs.
   return [
     { seq: 0, tick: 0, type: 'fire-down' },
     { seq: 1, tick: 5, type: 'fire-up' },
@@ -50,7 +55,7 @@ function actionLog() {
     { seq: 4, tick: 8, type: 'fire-down' },
     { seq: 5, tick: 16, type: 'fire-up' },
     { seq: 6, tick: 30, type: 'right-down' },
-    { seq: 7, tick: 40, type: 'right-up' }
+    { seq: 7, tick: 70, type: 'right-up' }
   ];
 }
 
@@ -120,8 +125,9 @@ test('every action-log entry is delivered once, in order, before its named tick'
 test('the delivered log produces the expected movement and firing', () => {
   const run = runSchedule(0xC0FFEE, () => 1 / 60, 100);
   const s = run.core.snapshot();
-  // Right held from tick 30 through tick 39: exactly ten lane steps.
-  assert.equal(s.lane, 10, `expected ten right steps, got lane ${s.lane}`);
+  // Right held from tick 30 through tick 69: a press step at 30, then
+  // tap-and-repeat steps at 42, 47, 52, 57, 62 and 67: seven lane steps.
+  assert.equal(s.lane, 7, `expected seven right steps, got lane ${s.lane}`);
   // Fire held at ticks 0-4 and 8-15 with an 8-tick cooldown: exactly two shots.
   assert.equal(s.shotsSpawned, 2, `expected two shots, got ${s.shotsSpawned}`);
 });

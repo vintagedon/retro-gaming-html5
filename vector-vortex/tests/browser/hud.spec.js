@@ -1,12 +1,9 @@
-// Vector Vortex Spec 02 deliverable 2 validation: the frozen DOM HUD.
+// Vector Vortex HUD validation (Spec 03 gate 1 rewrite).
 // Every HUD value is checked against the same core snapshot after shots,
-// hits, a life loss, final-minute entry, survival, and loss; the depletion
-// meter hits its Warning threshold at exactly 3,600 remaining ticks and
-// zero at elapsed tick 18,000 including a final-tick loss; a loss before
-// the final tick freezes the remaining value; and geometry probes at the
-// four supported viewports keep the HUD, playfield, and actions visible,
-// ordered, and inside the viewport with keyboard- and pointer-operable
-// actions.
+// hits, and a life loss; the wide horizontal time bar is removed and the
+// playfield owns the viewport; geometry probes at the four supported
+// viewports keep the HUD and actions inside the viewport with keyboard- and
+// pointer-operable actions and no horizontal scroll.
 //
 // Determinism: window.__vv.disableFrameRunner is set before boot so no
 // real-time frame advances the simulation; every tick advance goes through
@@ -24,9 +21,8 @@ const VIEWPORTS = [
   { width: 1920, height: 1080, label: '1920x1080' }
 ];
 
-// Seed 1: the director's first spawn is lane 15 at tick 59 (verified against
-// the tracked core). Firing from lane 15 across tick 59 guarantees a hit.
-const HIT_SEED_LANE = 15;
+// Seed 1: the wave director's first spawn is lane 15 at tick 90 (verified
+// against the tracked core). Firing from lane 15 across tick 90 lands a hit.
 
 async function boot(page) {
   await page.goto('/');
@@ -51,29 +47,18 @@ function stage(page, overrides) {
 
 async function readHud(page) {
   return page.evaluate(() => {
-    const meter = document.getElementById('vv-meter');
     const glyphs = [...document.querySelectorAll('.vv-life')];
     return {
       score: document.querySelector('[data-testid="vv-score"]').textContent,
       best: document.querySelector('[data-testid="vv-best"]').textContent,
-      kills: document.querySelector('[data-testid="vv-kills"]').textContent,
-      accuracy: document.querySelector('[data-testid="vv-accuracy"]').textContent,
       status: document.querySelector('[data-testid="vv-current-status"]').textContent,
-      meterValue: meter.style.getPropertyValue('--gc-meter-value'),
-      meterNow: meter.getAttribute('aria-valuenow'),
-      meterMax: meter.getAttribute('aria-valuemax'),
-      meterText: meter.getAttribute('aria-valuetext'),
-      meterWarning: meter.classList.contains('vv-meter--warning'),
-      meterFill: getComputedStyle(meter.querySelector('.gc-meter__fill')).backgroundColor,
-      meterFillGeometry: 'rgb(94, 231, 255)',
-      meterFillWarning: 'rgb(255, 191, 71)',
       activeGlyphs: glyphs.filter(g => !g.classList.contains('vv-life--spent')).length,
       glyphCount: glyphs.length
     };
   });
 }
 
-test('fresh run: meter starts full, ACC shows --, three life glyphs, BEST renders from provider', async ({ page }) => {
+test('fresh run: three life glyphs, BEST renders from provider', async ({ page }) => {
   await page.addInitScript(() => {
     window.__vv = Object.assign(window.__vv || {}, {
       disableFrameRunner: true,
@@ -84,19 +69,10 @@ test('fresh run: meter starts full, ACC shows --, three life glyphs, BEST render
   const hud = await readHud(page);
   const snap = await page.evaluate(() => window.__vv.getSnapshot());
 
-  expect(snap.remainingTicks).toBe(18000);
-  expect(hud.meterValue).toBe('100%');
-  expect(hud.meterNow).toBe('18000');
-  expect(hud.meterMax).toBe('18000');
-  expect(hud.meterText).toBe('05:00 remaining');
-  expect(hud.meterWarning).toBe(false);
-  expect(hud.meterFill).toBe(hud.meterFillGeometry);
-  expect(hud.accuracy).toBe('ACC --');
   expect(hud.activeGlyphs).toBe(3);
   expect(hud.glyphCount).toBe(3);
   expect(hud.best).toBe('4321');
   expect(hud.score).toBe(String(snap.score));
-  expect(hud.kills).toBe(String(snap.kills));
   expect(hud.status).toBe('running');
 });
 
@@ -106,11 +82,12 @@ test('scripted run: shots, a deterministic hit, and a life loss all match the sa
   });
   await boot(page);
 
-  // Move to the seeded first-spawn lane before the shot sequence.
-  await page.evaluate(l => window.__vv.setLane(l), HIT_SEED_LANE);
-  // Hold fire across the tick-59 spawn so a shot crosses the Crawler.
+  // Move to the seeded first-spawn lane before the shot sequence (seed 1
+  // draws lane 15 at tick 90).
+  await page.evaluate(() => window.__vv.setLane(15));
+  // Hold fire across the tick-90 spawn so a shot crosses the Crawler.
   await page.evaluate(() => window.__vv.setFire(true));
-  await page.evaluate(() => window.__vv.advanceTicks(100));
+  await page.evaluate(() => window.__vv.advanceTicks(130));
   await page.evaluate(() => window.__vv.setFire(false));
 
   let snap = await page.evaluate(() => window.__vv.getSnapshot());
@@ -118,63 +95,17 @@ test('scripted run: shots, a deterministic hit, and a life loss all match the sa
   expect(snap.kills).toBeGreaterThanOrEqual(1);
   expect(snap.hits).toBeGreaterThanOrEqual(1);
   expect(hud.score).toBe(String(snap.score));
-  expect(hud.kills).toBe(String(snap.kills));
-  expect(hud.accuracy).toBe(`ACC ${snap.accuracyPercent}%`);
 
-  // Let the second spawn (tick 119, lane 0) reach the rim untouched.
-  await page.evaluate(() => window.__vv.advanceTicks(700));
+  // Let the second spawn (tick 240, lane 0) reach the rim untouched.
+  await page.evaluate(() => window.__vv.advanceTicks(820));
   snap = await page.evaluate(() => window.__vv.getSnapshot());
   hud = await readHud(page);
   expect(snap.lives).toBe(2);
   expect(hud.activeGlyphs).toBe(2);
   expect(hud.status).toBe('running');
-  // A loss has not happened, so nothing is frozen yet; the meter tracks remaining.
-  expect(hud.meterNow).toBe(String(snap.remainingTicks));
 });
 
-test('depletion meter switches to Warning at exactly 3,600 remaining ticks', async ({ page }) => {
-  await page.addInitScript(() => {
-    window.__vv = Object.assign(window.__vv || {}, { disableFrameRunner: true });
-  });
-  await boot(page);
-
-  await stage(page, { elapsedTicks: 14398, lives: 3, enemies: [], shots: [], breaches: [], damageGraceRemaining: 0 });
-  await page.evaluate(() => window.__vv.advanceTicks(1));
-  let hud = await readHud(page);
-  expect(hud.meterNow).toBe('3601');
-  expect(hud.meterWarning).toBe(false);
-  expect(hud.meterFill).toBe(hud.meterFillGeometry);
-
-  await page.evaluate(() => window.__vv.advanceTicks(1));
-  hud = await readHud(page);
-  expect(hud.meterNow).toBe('3600');
-  expect(hud.meterWarning).toBe(true);
-  expect(hud.meterFill).toBe(hud.meterFillWarning);
-  expect(hud.meterText).toBe('01:00 remaining');
-});
-
-test('survived run: meter reaches zero at elapsed tick 18,000 with cash-out shown', async ({ page }) => {
-  await page.addInitScript(() => {
-    window.__vv = Object.assign(window.__vv || {}, { disableFrameRunner: true });
-  });
-  await boot(page);
-
-  await stage(page, { elapsedTicks: 17998, lives: 3, enemies: [], shots: [], breaches: [], damageGraceRemaining: 0 });
-  await page.evaluate(() => window.__vv.advanceTicks(2));
-  const snap = await page.evaluate(() => window.__vv.getSnapshot());
-  const hud = await readHud(page);
-
-  expect(snap.outcome).toBe('survived');
-  expect(snap.elapsedTicks).toBe(18000);
-  expect(snap.remainingTicks).toBe(0);
-  expect(snap.score).toBeGreaterThanOrEqual(5000);
-  expect(hud.meterValue).toBe('0%');
-  expect(hud.meterNow).toBe('0');
-  expect(hud.status).toBe('ended');
-  expect(hud.score).toBe(String(snap.score));
-});
-
-test('loss before the final tick freezes the remaining value rather than emptying it', async ({ page }) => {
+test('a lost run flips the status mirror and spends every life glyph', async ({ page }) => {
   await page.addInitScript(() => {
     window.__vv = Object.assign(window.__vv || {}, { disableFrameRunner: true });
   });
@@ -192,43 +123,14 @@ test('loss before the final tick freezes the remaining value rather than emptyin
   const snap = await page.evaluate(() => window.__vv.getSnapshot());
   const hud = await readHud(page);
 
-  expect(snap.outcome).toBe('lost');
+  expect(snap.outcome).toBe('game-over');
   expect(snap.lives).toBe(0);
-  expect(snap.elapsedTicks).toBe(5001);
-  expect(snap.remainingTicks).toBe(12999);
-  expect(hud.meterNow).toBe('12999');
-  expect(hud.meterValue).not.toBe('0%');
   expect(hud.activeGlyphs).toBe(0);
-  expect(hud.status).toBe('ended');
-});
-
-test('final-tick breach is lethal and the meter still reads zero at 18,000', async ({ page }) => {
-  await page.addInitScript(() => {
-    window.__vv = Object.assign(window.__vv || {}, { disableFrameRunner: true });
-  });
-  await boot(page);
-
-  await stage(page, {
-    elapsedTicks: 17999,
-    lives: 1,
-    enemies: [{ id: 9002, lane: 5, depth: 0.0008, hp: 1 }],
-    shots: [],
-    breaches: [],
-    damageGraceRemaining: 0
-  });
-  await page.evaluate(() => window.__vv.advanceTicks(1));
-  const snap = await page.evaluate(() => window.__vv.getSnapshot());
-  const hud = await readHud(page);
-
-  expect(snap.outcome).toBe('lost');
-  expect(snap.elapsedTicks).toBe(18000);
-  expect(snap.remainingTicks).toBe(0);
-  expect(hud.meterValue).toBe('0%');
-  expect(hud.status).toBe('ended');
+  expect(hud.status).toBe('game-over');
 });
 
 for (const v of VIEWPORTS) {
-  test(`HUD geometry at ${v.label}: ordered, inside the viewport, actions operable`, async ({ page }) => {
+  test(`HUD geometry at ${v.label}: inside the viewport, no horizontal scroll, actions operable`, async ({ page }) => {
     await page.setViewportSize({ width: v.width, height: v.height });
     await boot(page);
 
@@ -238,18 +140,15 @@ for (const v of VIEWPORTS) {
       const rect = sel => {
         const el = typeof sel === 'string' ? document.querySelector(sel) : sel;
         const r = el.getBoundingClientRect();
-        return { x: r.x, y: r.y, top: r.top, w: r.width, h: r.height, bottom: r.bottom, right: r.right };
+        return { x: r.x, y: r.y, w: r.width, h: r.height, bottom: r.bottom, right: r.right };
       };
       const required = {
         hudTop: rect('[data-testid="vv-hud-top"]'),
         score: rect('[data-testid="vv-score"]'),
         best: rect('[data-testid="vv-best"]'),
-        meter: rect('[data-testid="vv-meter"]'),
         canvas: rect('#vv-canvas'),
         hudBottom: rect('[data-testid="vv-hud-bottom"]'),
         lives: rect('[data-testid="vv-lives"]'),
-        kills: rect('[data-testid="vv-kills"]'),
-        accuracy: rect('[data-testid="vv-accuracy"]'),
         status: rect('[data-testid="vv-current-status"]'),
         pause: rect('#vv-pause'),
         restart: rect('#vv-restart')
@@ -262,10 +161,7 @@ for (const v of VIEWPORTS) {
       return {
         innerW, innerH,
         scrollW: document.documentElement.scrollWidth,
-        results,
-        topOrder: required.hudTop.bottom <= required.canvas.top,
-        bottomOrder: required.canvas.bottom <= required.hudBottom.top,
-        actionsOrder: required.hudBottom.bottom <= rect('#vv-controls-buttons').top
+        results
       };
     });
 
@@ -273,9 +169,6 @@ for (const v of VIEWPORTS) {
     for (const [name, r] of Object.entries(layout.results)) {
       expect(r.ok, `${name} bounds inside viewport at its viewport`).toBe(true);
     }
-    expect(layout.topOrder).toBe(true);
-    expect(layout.bottomOrder).toBe(true);
-    expect(layout.actionsOrder).toBe(true);
 
     await page.screenshot({ path: `test-results/hud-geometry-${v.label}.png`, fullPage: true });
 

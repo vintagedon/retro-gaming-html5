@@ -6,6 +6,8 @@
 import { test, expect } from '@playwright/test';
 import { startRun } from './helpers.js';
 
+const LANE_COUNT = 24;
+
 test.use({ viewport: { width: 1280, height: 720 } });
 
 async function ticks(page) {
@@ -148,7 +150,7 @@ test('new run from the ended surface produces a running fresh run', async ({ pag
   // observes the outcome and opens the ended surface.
   await page.evaluate(() => window.__vv.advanceTicks(18000));
   expect(await page.evaluate(() => window.__vv.getSnapshot().outcome)).not.toBe(null);
-  await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+  await page.waitForFunction(() => window.__vv.getShellState() === 'game-over');
   // Click New Run on the ended surface.
   await page.click('#vv-new-run');
   const snap = await page.evaluate(() => window.__vv.getSnapshot());
@@ -247,17 +249,27 @@ test('mouse pause and resume follow the shell focus contract; ended surface rest
   await page.click('#vv-resume');
   expect(await page.evaluate(() => window.__vv.getSnapshot().paused)).toBe(false);
   expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-pause');
-  // Canvas control returns with the canvas focused; ~25 ticks of held
-  // movement lands the lane safely away from 0 and the wrap.
+  // Canvas control returns with the canvas focused; held movement lands
+  // the lane safely inside the tube before release, away from the wrap
+  // seam, so scheduling jitter cannot land the release on lane 0.
   await page.locator('#vv-canvas').focus();
   await page.keyboard.down('ArrowRight');
-  await page.waitForFunction(() => window.__vv.getSnapshot().elapsedTicks >= 31, null, { timeout: 5000 });
+  await page.waitForFunction(
+    () => {
+      const s = window.__vv.getSnapshot();
+      return s.elapsedTicks >= 31 && s.lane >= 4 && s.lane <= 18;
+    },
+    null,
+    { timeout: 5000 }
+  );
   await page.keyboard.up('ArrowRight');
-  expect(await page.evaluate(() => window.__vv.getSnapshot().lane)).toBeGreaterThan(0);
+  const released = await page.evaluate(() => window.__vv.getSnapshot().lane);
+  expect(released).toBeGreaterThan(0);
+  expect(released).toBeLessThan(LANE_COUNT);
   // Reach an outcome; the shell opens the ended surface, whose New Run
   // control receives focus and restarts by keyboard.
   await page.evaluate(() => window.__vv.advanceTicks(18000));
-  await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+  await page.waitForFunction(() => window.__vv.getShellState() === 'game-over');
   expect(await page.evaluate(() => document.activeElement.id)).toBe('vv-new-run');
   await page.keyboard.press('Enter');
   const afterRestart = await page.evaluate(() => window.__vv.getSnapshot());
@@ -276,12 +288,17 @@ test('mouse pause and resume follow the shell focus contract; ended surface rest
   );
   await page.keyboard.down('ArrowRight');
   await page.waitForFunction(
-    (t) => window.__vv.getSnapshot().elapsedTicks >= t + 25,
+    (t) => {
+      const s = window.__vv.getSnapshot();
+      return s.elapsedTicks >= t + 25 && s.lane >= 4 && s.lane <= 18;
+    },
     atRestart + 15,
     { timeout: 5000 }
   );
   await page.keyboard.up('ArrowRight');
-  expect(await page.evaluate(() => window.__vv.getSnapshot().lane)).toBeGreaterThan(0);
+  const releasedAfterRestart = await page.evaluate(() => window.__vv.getSnapshot().lane);
+  expect(releasedAfterRestart).toBeGreaterThan(0);
+  expect(releasedAfterRestart).toBeLessThan(LANE_COUNT);
 });
 
 test('at 1024x576 the bottom edge of the lowest control is inside the viewport', async ({ page }) => {

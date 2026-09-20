@@ -1,24 +1,27 @@
-// Vector Vortex shell (Spec 02 deliverable 3).
-// Game-owned screen-space state machine on the vendored framework
-// primitives: title, running, paused, settings, ended. The core remains
-// authoritative; the shell owns only lifecycle, focus, preferences, and UI
-// sound. Every game-owned name here carries the vv- namespace.
+// Vector Vortex shell (Spec 03 gate 3 replacement).
+// Five presentation states, each owning the viewport: title, running,
+// paused, settings (reached from title or paused), wave-complete and
+// game-over. The core remains authoritative; the shell owns lifecycle,
+// focus, preferences, and sound.
 //
-// Clock discipline: the frame-runner's clock runs only in the running
-// state. Title keeps a fresh unpaused core with a paused clock, so the
-// tracked seam's advanceTicks still drives deterministic tests from any
-// state, and no tick advances by real time outside running.
+// Clock discipline: the frame-runner's clock runs ONLY while the shell is
+// in the running state. Every state transition re-asserts that discipline
+// centrally, so no focus or visibility transition can leave the clock
+// running behind the title, settings, or a results screen.
+//
+// The pause keys never act on their own auto-repeat: a held Escape or P
+// produces exactly one pause and no self-resume.
 
-import { SURVIVAL_BONUS, computeAccuracyBonus } from '../core/scoring.js';
 import { DEFAULT_PREFERENCES } from './storage.js';
 
-const STATES = ['title', 'running', 'paused', 'settings', 'ended'];
+const STATES = ['title', 'running', 'paused', 'settings', 'wave-complete', 'game-over'];
 const CUE_FOR_STATE_ENTRY = {
   title: 'transition',
   running: null,
   paused: 'pause',
   settings: 'transition',
-  ended: 'transition'
+  'wave-complete': 'confirm',
+  'game-over': 'cancel'
 };
 
 function focusables(within) {
@@ -27,13 +30,12 @@ function focusables(within) {
 }
 
 export function createShell({
-  shell, surfaces, actions, settings, ended, howto, currentStatus, canvas,
+  shell, surfaces, actions, settings, results, currentStatus, canvas, root,
   runner: runnerArg, audio, persistence, onBestChange
 }) {
   let state = 'title';
   let settingsOrigin = 'title';
   let invoker = null;
-  let howtoOpen = false;
   let persistedBest = persistence.bestScore;
   let runner = runnerArg;
   const log = [];
@@ -55,24 +57,23 @@ export function createShell({
 
   function render() {
     shell.setAttribute('data-vv-state', state);
-    shell.setAttribute('data-vv-howto', howtoOpen ? 'open' : 'closed');
+    root.setAttribute('data-vv-state', state);
     label(state);
-    // Action bar belongs to the running state only; dialogs own the
-    // keyboard everywhere else.
+    // The action bar and its controls belong to the running state only.
     const barVisible = state === 'running';
     actions.bar.setAttribute('data-vv-bar', barVisible ? 'visible' : 'hidden');
-    const surfaceFor = state === 'title'
-      ? (howtoOpen ? surfaces.howto : surfaces.title)
-      : state === 'paused' ? surfaces.paused
-        : state === 'settings' ? surfaces.settings
-          : state === 'ended' ? surfaces.ended
-            : null;
+    actions.pause.disabled = state !== 'running';
+    actions.restart.disabled = state !== 'running';
+    const surfaceFor = surfaces[state] ?? null;
     setActiveSurface(surfaceFor);
   }
 
   function setState(next, { cueName = CUE_FOR_STATE_ENTRY[next] } = {}) {
     state = next;
     render();
+    // Central clock discipline: real time ticks only while running.
+    if (next === 'running') runner.resumeClock();
+    else runner.pauseClock();
     if (cueName) cue(cueName);
   }
 
@@ -97,8 +98,8 @@ export function createShell({
     if (state !== 'title') return;
     logPush('start');
     invoker = null;
-    runner.resumeClock();
     setState('running', { cueName: 'activate' });
+    audio.startMusic();
     canvas.focus();
   }
 
@@ -111,8 +112,8 @@ export function createShell({
     runner.dispatch({ type: 'right-up' });
     runner.dispatch({ type: 'fire-up' });
     runner.dispatch({ type: 'pause' });
-    runner.pauseClock();
     setState('paused');
+    audio.stopMusic();
     focusFirstControl(surfaces.paused);
   }
 
@@ -120,8 +121,8 @@ export function createShell({
     if (state !== 'paused') return;
     logPush(via === 'escape' ? 'resume-escape' : 'resume');
     runner.dispatch({ type: 'pause' });
-    runner.resumeClock();
     setState('running', { cueName: 'resume' });
+    audio.startMusic();
     if (invoker instanceof Element && document.contains(invoker)) invoker.focus();
     else canvas.focus();
     invoker = null;
@@ -144,65 +145,41 @@ export function createShell({
     invoker = null;
   }
 
-  function newRun(from) {
-    if (state !== 'ended' && state !== 'paused') return;
-    logPush(from === 'ended' ? 'new-run' : 'restart-from-pause');
+  function playAgain(from) {
+    if (state !== 'game-over' && state !== 'wave-complete' && state !== 'paused') return;
+    logPush(from === 'game-over' ? 'play-again' : 'restart');
     runner.reset(1);
-    runner.resumeClock();
     setState('running', { cueName: 'confirm' });
+    audio.startMusic();
     canvas.focus();
   }
 
   function returnToTitle() {
-    if (state !== 'ended' && state !== 'paused') return;
+    if (state !== 'game-over' && state !== 'wave-complete' && state !== 'paused') return;
     logPush('return-to-title');
     runner.reset(1);
-    runner.pauseClock();
     setState('title');
+    audio.stopMusic();
     focusFirstControl(surfaces.title);
   }
 
-  function openHowto() {
-    if (state !== 'title' || howtoOpen) return;
-    logPush('howto-open');
-    howtoOpen = true;
-    invoker = document.activeElement instanceof Element ? document.activeElement : null;
-    render();
-    cue('transition');
-    focusFirstControl(surfaces.howto);
-  }
-
-  function closeHowto({ viaEscape = false } = {}) {
-    if (!howtoOpen) return;
-    logPush(viaEscape ? 'howto-close-escape' : 'howto-close');
-    howtoOpen = false;
-    render();
-    cue(viaEscape ? 'cancel' : 'confirm');
-    if (invoker instanceof Element && document.contains(invoker)) invoker.focus();
-    invoker = null;
-  }
-
-  function enterEnded(snapshot) {
+  function enterResults(snapshot) {
     if (state !== 'running') return;
     logPush(`run-ended:${snapshot.outcome}`);
     runner.pauseClock();
+    audio.stopMusic();
     if (snapshot.score > persistedBest) {
       persistedBest = snapshot.score;
       persistence.persistPatch({ bestScore: persistedBest });
       if (typeof onBestChange === 'function') onBestChange(persistedBest);
     }
-    ended.outcome.textContent = snapshot.outcome === 'survived' ? 'Survived' : 'Lost';
-    ended.score.textContent = String(snapshot.score);
-    ended.kills.textContent = String(snapshot.kills);
-    ended.accuracy.textContent = snapshot.accuracyPercent === null
-      ? 'ACC --'
-      : `ACC ${snapshot.accuracyPercent}%`;
-    ended.survival.textContent = snapshot.outcome === 'survived' ? `+${SURVIVAL_BONUS}` : '+0';
-    ended.accuracyBonus.textContent = snapshot.outcome === 'survived'
-      ? `+${computeAccuracyBonus(snapshot.hits, snapshot.shotsSpawned)}`
-      : '+0';
-    setState('ended');
-    focusFirstControl(surfaces.ended);
+    const resultState = snapshot.outcome === 'wave-complete' ? 'wave-complete' : 'game-over';
+    results.wcScore.textContent = String(snapshot.score);
+    results.goScore.textContent = String(snapshot.score);
+    results.goWave.textContent = '1';
+    results.goBest.textContent = String(persistedBest);
+    setState(resultState);
+    focusFirstControl(surfaces[resultState]);
   }
 
   // --- Settings model ---
@@ -217,7 +194,6 @@ export function createShell({
   }
 
   const prefs = { ...persistence.preferences };
-  let motionInitialized = false;
 
   function refreshSettingsControls() {
     settings.mute.setAttribute('aria-pressed', prefs.muted ? 'true' : 'false');
@@ -291,11 +267,7 @@ export function createShell({
     if (active === '' || active === 'running') return;
 
     if (ev.key === 'Tab') {
-      const surface = state === 'settings'
-        ? surfaces.settings
-        : state === 'paused' ? surfaces.paused
-          : state === 'ended' ? surfaces.ended
-            : howtoOpen ? surfaces.howto : surfaces.title;
+      const surface = surfaces[state] ?? surfaces.title;
       const items = focusables(surface);
       if (items.length === 0) return;
       const first = items[0];
@@ -313,6 +285,11 @@ export function createShell({
       return;
     }
 
+    // The pause keys act only on a fresh press: a held key's operating
+    // system auto-repeat must not pause again or resume on its own.
+    const isPauseKey = ev.key === 'Escape' || ev.key === 'p' || ev.key === 'P';
+    if (isPauseKey && ev.repeat) return;
+
     if (ev.key === 'Escape') {
       if (state === 'settings') {
         ev.preventDefault();
@@ -321,10 +298,6 @@ export function createShell({
         // act on the same event.
         ev.stopPropagation();
         closeSettings({ viaEscape: true });
-      } else if (howtoOpen) {
-        ev.preventDefault();
-        ev.stopPropagation();
-        closeHowto({ viaEscape: true });
       } else if (state === 'paused') {
         ev.preventDefault();
         ev.stopPropagation();
@@ -333,7 +306,7 @@ export function createShell({
       return;
     }
 
-    if ((ev.key === 'p' || ev.key === 'P') && state === 'paused' && !howtoOpen) {
+    if ((ev.key === 'p' || ev.key === 'P') && state === 'paused') {
       ev.preventDefault();
       ev.stopPropagation();
       resume({ via: 'key' });
@@ -344,7 +317,7 @@ export function createShell({
 
   function observeSnapshot(snapshot) {
     if (snapshot.outcome && state === 'running') {
-      enterEnded(snapshot);
+      enterResults(snapshot);
     }
   }
 
@@ -362,17 +335,17 @@ export function createShell({
 
   actions.title.start.addEventListener('click', startRun);
   actions.title.settings.addEventListener('click', () => openSettings(state));
-  actions.title.howto.addEventListener('click', openHowto);
 
   actions.paused.resume.addEventListener('click', () => resume({ via: 'button' }));
   actions.paused.settings.addEventListener('click', () => openSettings(state));
-  actions.paused.restart.addEventListener('click', () => newRun('paused'));
+  actions.paused.restart.addEventListener('click', () => playAgain('paused'));
   actions.paused.returnTitle.addEventListener('click', returnToTitle);
 
-  actions.ended.newRun.addEventListener('click', () => newRun('ended'));
-  actions.ended.returnTitle.addEventListener('click', returnToTitle);
+  actions.waveComplete.playAgain.addEventListener('click', () => playAgain('wave-complete'));
+  actions.waveComplete.returnTitle.addEventListener('click', returnToTitle);
 
-  howto.close.addEventListener('click', () => closeHowto({ viaEscape: false }));
+  actions.gameOver.playAgain.addEventListener('click', () => playAgain('game-over'));
+  actions.gameOver.returnTitle.addEventListener('click', returnToTitle);
 
   settings.close.addEventListener('click', () => closeSettings({ viaEscape: false }));
   settings.reset.addEventListener('click', resetDefaults);
@@ -419,7 +392,6 @@ export function createShell({
     rebindRunner,
     getState: () => state,
     getLog: () => log.slice(),
-    getBest: () => persistedBest,
-    isHowtoOpen: () => howtoOpen
+    getBest: () => persistedBest
   };
 }

@@ -1,138 +1,80 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bandForTick, shouldSpawnOnTick, nextSpawnTickAfter, createDirector, BANDS, firstSpawnForBand } from '../../game/core/director.js';
+import {
+  shouldSpawnOnTick,
+  createWaveDirector,
+  WAVE_SPAWN_BUDGET,
+  WAVE_SPAWN_INTERVAL_TICKS,
+  WAVE_FIRST_SPAWN_TICK,
+  budgetExhausted,
+  waveCleared
+} from '../../game/core/director.js';
 
-test('BANDS table carries window and interval only; first spawn is computed uniformly per the corrected construction', () => {
-  for (const b of BANDS) {
-    assert.ok(typeof b.start === 'number' && typeof b.end === 'number' && typeof b.interval === 'number');
-    assert.equal(b.firstSpawn, undefined, 'per-band explicit firstSpawn removed; construction is authoritative');
-  }
+test('the wave constants carry the recorded budget, interval, and first spawn', () => {
+  assert.equal(WAVE_SPAWN_BUDGET, 12);
+  assert.equal(WAVE_SPAWN_INTERVAL_TICKS, 150);
+  assert.equal(WAVE_FIRST_SPAWN_TICK, 90);
 });
 
-test('bandForTick maps every tick 0..17999 to its band', () => {
-  for (let t = 0; t < 18000; t++) {
-    const b = bandForTick(t);
-    assert.ok(b.start <= t && t <= b.end, `tick ${t} not in band ${b.start}..${b.end}`);
-  }
-  assert.equal(bandForTick(0).interval, 60);
-  assert.equal(bandForTick(3599).interval, 60);
-  assert.equal(bandForTick(3600).interval, 48);
-  assert.equal(bandForTick(10799).interval, 48);
-  assert.equal(bandForTick(10800).interval, 36);
-  assert.equal(bandForTick(14399).interval, 36);
-  assert.equal(bandForTick(14400).interval, 27);
-  assert.equal(bandForTick(17999).interval, 27);
+test('spawn ticks: first at 90, then every 150, never before', () => {
+  assert.equal(shouldSpawnOnTick(0), false);
+  assert.equal(shouldSpawnOnTick(89), false);
+  assert.equal(shouldSpawnOnTick(90), true);
+  assert.equal(shouldSpawnOnTick(91), false);
+  assert.equal(shouldSpawnOnTick(239), false);
+  assert.equal(shouldSpawnOnTick(240), true);
+  assert.equal(shouldSpawnOnTick(390), true);
 });
 
-test('shouldSpawnOnTick: exact band-1 spawn ticks 59 and 119', () => {
-  const b1 = bandForTick(59);
-  assert.equal(shouldSpawnOnTick(59, b1), true);
-  assert.equal(shouldSpawnOnTick(119, b1), true);
-  assert.equal(shouldSpawnOnTick(60, b1), false);
-  assert.equal(shouldSpawnOnTick(0, b1), false);
-  assert.equal(shouldSpawnOnTick(58, b1), false);
+test('MUTATION one-tick offset in either direction fails the first-spawn check', () => {
+  assert.notEqual(shouldSpawnOnTick(89), true, 'tick 89 must NOT spawn (off-by-one)');
+  assert.notEqual(shouldSpawnOnTick(91), true, 'tick 91 must NOT spawn (off-by-one)');
 });
 
-test('shouldSpawnOnTick: exact band-2 first spawn 3647, second 3695', () => {
-  const b2 = bandForTick(3647);
-  assert.equal(shouldSpawnOnTick(3647, b2), true);
-  assert.equal(shouldSpawnOnTick(3695, b2), true);
-  assert.equal(shouldSpawnOnTick(3646, b2), false);
-  assert.equal(shouldSpawnOnTick(3648, b2), false);
-  assert.equal(shouldSpawnOnTick(3659, b2), false, 'the erroneous 3659 explicit value must NOT spawn under the corrected construction');
+test('budgetExhausted and waveCleared count resolved enemies, not kills', () => {
+  assert.equal(budgetExhausted({ waveSpawned: 0 }), false);
+  assert.equal(budgetExhausted({ waveSpawned: WAVE_SPAWN_BUDGET - 1 }), false);
+  assert.equal(budgetExhausted({ waveSpawned: WAVE_SPAWN_BUDGET }), true);
+  // A breach removes its enemy, so an empty roster with a full budget
+  // clears even when no kill was ever scored.
+  assert.equal(waveCleared({ waveSpawned: WAVE_SPAWN_BUDGET, enemies: [] }), true);
+  assert.equal(waveCleared({ waveSpawned: WAVE_SPAWN_BUDGET, enemies: [{ id: 1 }] }), false);
+  assert.equal(waveCleared({ waveSpawned: 0, enemies: [] }), false);
 });
 
-test('shouldSpawnOnTick: exact band-3 first spawn 10835, second 10871', () => {
-  const b3 = bandForTick(10835);
-  assert.equal(shouldSpawnOnTick(10835, b3), true);
-  assert.equal(shouldSpawnOnTick(10871, b3), true);
-  assert.equal(shouldSpawnOnTick(10800, b3), false);
-  assert.equal(shouldSpawnOnTick(10834, b3), false);
+test('MUTATION counting kills instead of resolved enemies would strand the player after a survivable breach', () => {
+  // A survivable breach resolves the enemy without a kill; the clear
+  // condition reads the roster, so this passes only under the correct rule.
+  const state = { waveSpawned: WAVE_SPAWN_BUDGET, enemies: [] };
+  assert.equal(waveCleared(state), true);
 });
 
-test('shouldSpawnOnTick: exact band-4 first spawn 14426, second 14453', () => {
-  const b4 = bandForTick(14426);
-  assert.equal(shouldSpawnOnTick(14426, b4), true);
-  assert.equal(shouldSpawnOnTick(14453, b4), true);
-  assert.equal(shouldSpawnOnTick(14400, b4), false);
-  assert.equal(shouldSpawnOnTick(14425, b4), false);
-});
-
-test('MUTATION one-tick offset in either direction makes a band-1/band-2 spawn assertion fail', () => {
-  const b1 = bandForTick(59);
-  assert.notEqual(shouldSpawnOnTick(58, b1), true, 'tick 58 must NOT spawn (off-by-one)');
-  assert.notEqual(shouldSpawnOnTick(60, b1), true, 'tick 60 must NOT spawn (off-by-one)');
-  const b2 = bandForTick(3647);
-  assert.notEqual(shouldSpawnOnTick(3646, b2), true);
-  assert.notEqual(shouldSpawnOnTick(3648, b2), true);
-});
-
-test('director with fixed seed produces identical lane sequence across two runs', () => {
+test('the wave director with a fixed seed produces an identical lane sequence across two runs', () => {
   function runSequence(seed) {
-    const dir = createDirector({ seed });
+    const dir = createWaveDirector({ seed });
     const lanes = [];
-    for (let t = 0; t < 3660; t++) {
-      const out = dir.tickSpawned({ elapsedTicks: t });
-      if (out) lanes.push(out.lane);
+    let spawned = 0;
+    for (let t = 0; t < 4000 && spawned < WAVE_SPAWN_BUDGET; t++) {
+      const out = dir.tickSpawned({ elapsedTicks: t, waveSpawned: spawned });
+      if (out) {
+        lanes.push(out.lane);
+        spawned += 1;
+      }
     }
     return lanes;
   }
   const a = runSequence(0xC0FFEE);
   const b = runSequence(0xC0FFEE);
   assert.deepEqual(a, b);
-  assert.ok(a.length > 0);
+  assert.equal(a.length, WAVE_SPAWN_BUDGET, 'the director stops at the budget');
   for (const l of a) {
     assert.ok(Number.isInteger(l));
     assert.ok(l >= 0 && l <= 23);
   }
 });
 
-test('nextSpawnTickAfter returns the next spawn tick within the band', () => {
-  const b1 = bandForTick(59);
-  assert.equal(nextSpawnTickAfter(0, b1), 59);
-  assert.equal(nextSpawnTickAfter(59, b1), 119);
-  assert.equal(nextSpawnTickAfter(60, b1), 119);
-});
-
-test('firstSpawnForBand computes bandStart + interval - 1 uniformly for every band', () => {
-  for (const b of BANDS) {
-    const expected = b.start + (b.interval - 1);
-    assert.equal(firstSpawnForBand(b), expected, `band ${b.start} expected first spawn ${expected}`);
-  }
-  const b1 = BANDS[0];
-  const b2 = BANDS[1];
-  const b3 = BANDS[2];
-  const b4 = BANDS[3];
-  assert.equal(firstSpawnForBand(b1), 59);
-  assert.equal(firstSpawnForBand(b2), 3647);
-  assert.equal(firstSpawnForBand(b3), 10835);
-  assert.equal(firstSpawnForBand(b4), 14426);
-});
-
-test('MUTATION off-by-one in firstSpawnForBand construction fails the uniform-value assertion', () => {
-  for (const b of BANDS) {
-    const correct = b.start + (b.interval - 1);
-    const minus1 = b.start + (b.interval - 2);
-    const plus1 = b.start + b.interval;
-    assert.notEqual(firstSpawnForBand(b), minus1, `band ${b.start}: minus1 must not equal correct`);
-    assert.notEqual(firstSpawnForBand(b), plus1, `band ${b.start}: plus1 must not equal correct`);
-    assert.equal(firstSpawnForBand(b), correct);
-  }
-});
-
-test('D1 validation: director first-spawn indices 59, 3647, 10835, 14426 are produced at the fixed seed', () => {
-  const dir = createDirector({ seed: 0xC0FFEE });
-  const expectedFirsts = [59, 3647, 10835, 14426];
-  const seenFirsts = new Set();
-  const lanes = [];
-  for (let t = 0; t < 18000; t++) {
-    const out = dir.tickSpawned({ elapsedTicks: t });
-    if (out) {
-      if (expectedFirsts.includes(t)) seenFirsts.add(t);
-      lanes.push({ tick: t, lane: out.lane });
-    }
-  }
-  for (const f of expectedFirsts) {
-    assert.ok(seenFirsts.has(f), `expected first-spawn tick ${f} to be produced; got firsts ${[...seenFirsts].sort((a,b)=>a-b)}`);
-  }
+test('the director refuses to spawn past the budget even on a schedule tick', () => {
+  const dir = createWaveDirector({ seed: 1 });
+  const out = dir.tickSpawned({ elapsedTicks: WAVE_FIRST_SPAWN_TICK, waveSpawned: WAVE_SPAWN_BUDGET });
+  assert.equal(out, null);
 });

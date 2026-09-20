@@ -32,6 +32,10 @@ function walkMarkdown(dir) {
   if (!existsSync(dir)) return out;
   for (const name of readdirSync(dir)) {
     if (name === 'node_modules') continue;
+    // Generated and gitignored output is not part of a fresh clone; the
+    // isolated publish destinations (Spec 03 gate 1) land under
+    // test-results/ and must never enter the link scan.
+    if (['test-results', 'playwright-report', '.playwright', 'recycle-bin'].includes(name)) continue;
     if (name.startsWith('.')) continue;
     const p = join(dir, name);
     const s = statSync(p);

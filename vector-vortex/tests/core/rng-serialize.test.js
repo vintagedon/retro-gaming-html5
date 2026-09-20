@@ -8,7 +8,7 @@ import { createCore } from '../../game/core/core.js';
 
 function nextTenLaneSequence(core) {
   const lanes = [];
-  for (let t = 0; t < 18000 && lanes.length < 10; t++) {
+  for (let t = 0; t < 2000 && lanes.length < 10; t++) {
     core.dispatch({ type: 'fire-down' });
     core.dispatch({ type: 'fire-up' });
     core.tick();
@@ -24,11 +24,15 @@ function nextTenLaneSequence(core) {
   return lanes.slice(0, 10);
 }
 
-test('director with seed 0xC0FFEE produces 10 spawns over 720 ticks (D2.3 baseline)', () => {
+test('director with seed 0xC0FFEE produces 10 spawns over 1,500 ticks (D2.3 baseline)', () => {
   const a = createCore({ seed: 0xC0FFEE });
   let lastEnemyId = 0;
   let spawnCount = 0;
-  for (let t = 0; t < 720; t++) {
+  for (let t = 0; t < 1500; t++) {
+    const st = a.getState();
+    if (st.enemies.length > 0 || st.enemyShots.length > 0) {
+      a.setState({ ...st, enemies: [], enemyShots: [] });
+    }
     a.tick();
     for (const e of a.getState().enemies) {
       if (e.id > lastEnemyId) { spawnCount++; lastEnemyId = e.id; }
@@ -38,17 +42,22 @@ test('director with seed 0xC0FFEE produces 10 spawns over 720 ticks (D2.3 baseli
 });
 
 test('round-tripped state at the same seed produces the next 10 lanes identical to a fresh run (D2.3)', () => {
-  // Run A to tick 60, snapshot state, reconstruct core B with the snapshot.
+  // Run A to tick 95 (past the first spawn at tick 90, so rngState is
+  // set), snapshot state, reconstruct core B with the snapshot.
   const a = createCore({ seed: 0xC0FFEE });
-  for (let t = 0; t < 60; t++) a.tick();
+  for (let t = 0; t < 95; t++) a.tick();
   const snapshotA = a.getState();
   assert.ok(snapshotA.rngState != null, 'state must persist rngState after a spawn');
   // The next 10 spawn lanes of A.
   function nextTen(core) {
     const seq = [];
     let lastId = 0;
-    let safety = 18000;
+    let safety = 4000;
     while (seq.length < 10 && safety-- > 0) {
+      const st = core.getState();
+      if (st.enemies.length > 0 || st.enemyShots.length > 0) {
+        core.setState({ ...st, enemies: [], enemyShots: [] });
+      }
       core.tick();
       for (const e of core.getState().enemies) {
         if (e.id > lastId) { seq.push(e.lane); lastId = e.id; }
@@ -66,14 +75,15 @@ test('round-tripped state at the same seed produces the next 10 lanes identical 
 });
 
 test('restart resets the director RNG so the next 10 lanes match a fresh run (D2.3)', () => {
-  const a = createCore({ seed: 0xC0FFEE });
-  // Advance to tick 60 and capture next 10 lanes.
-  for (let t = 0; t < 60; t++) a.tick();
   function nextTen(core) {
     const seq = [];
     let lastId = 0;
-    let safety = 18000;
+    let safety = 4000;
     while (seq.length < 10 && safety-- > 0) {
+      const st = core.getState();
+      if (st.enemies.length > 0 || st.enemyShots.length > 0) {
+        core.setState({ ...st, enemies: [], enemyShots: [] });
+      }
       core.tick();
       for (const e of core.getState().enemies) {
         if (e.id > lastId) { seq.push(e.lane); lastId = e.id; }
@@ -81,16 +91,21 @@ test('restart resets the director RNG so the next 10 lanes match a fresh run (D2
     }
     return seq;
   }
-  const aLanes = nextTen(a);
-  // Restart and capture next 10 lanes.
+  // A fresh run's first 10 spawn lanes.
+  const freshLanes = nextTen(createCore({ seed: 0xC0FFEE }));
+  // A run stopped mid-wave draws from the middle of the RNG stream.
+  const a = createCore({ seed: 0xC0FFEE });
+  for (let t = 0; t < 95; t++) a.tick();
+  // Restart resets the RNG, so the restarted run replays the fresh
+  // run's lane sequence from the beginning.
   a.dispatch({ type: 'restart' });
-  const bLanes = nextTen(a);
-  assert.deepEqual(aLanes, bLanes, 'restarted run lanes must match a fresh run continuation');
+  const restartedLanes = nextTen(a);
+  assert.deepEqual(restartedLanes, freshLanes, 'restarted run lanes must match a fresh run');
 });
 
 test('MUTATION: omitting rngState from the snapshot makes round-trip lanes diverge', () => {
   const a = createCore({ seed: 0xC0FFEE });
-  for (let t = 0; t < 60; t++) a.tick();
+  for (let t = 0; t < 95; t++) a.tick();
   const snapshotA = a.getState();
   const mutated = { ...snapshotA, rngState: null };
   const json = JSON.stringify(mutated);
@@ -99,8 +114,12 @@ test('MUTATION: omitting rngState from the snapshot makes round-trip lanes diver
   function nextTen(core) {
     const seq = [];
     let lastId = 0;
-    let safety = 18000;
+    let safety = 4000;
     while (seq.length < 10 && safety-- > 0) {
+      const st = core.getState();
+      if (st.enemies.length > 0 || st.enemyShots.length > 0) {
+        core.setState({ ...st, enemies: [], enemyShots: [] });
+      }
       core.tick();
       for (const e of core.getState().enemies) {
         if (e.id > lastId) { seq.push(e.lane); lastId = e.id; }

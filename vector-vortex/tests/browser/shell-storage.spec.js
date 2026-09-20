@@ -50,8 +50,8 @@ test.describe('storage fixtures reach an operable title', () => {
       await page.locator('#vv-start').click();
       await page.waitForFunction(() => window.__vv.getShellState() === 'running');
       await page.evaluate(() => window.__vv.advanceTicks(18000));
-      await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
-      expect(await page.evaluate(() => window.__vv.getSnapshot().outcome)).toBe('lost');
+      await page.waitForFunction(() => window.__vv.getShellState() === 'game-over');
+      expect(await page.evaluate(() => window.__vv.getSnapshot().outcome)).toBe('game-over');
     });
   }
 
@@ -67,9 +67,9 @@ test.describe('storage fixtures reach an operable title', () => {
     await page.locator('#vv-start').click();
     await page.waitForFunction(() => window.__vv.getShellState() === 'running');
     await page.evaluate(() => window.__vv.advanceTicks(18000));
-    await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+    await page.waitForFunction(() => window.__vv.getShellState() === 'game-over');
     // The persistence failure is silent: no error surfaced, game complete.
-    expect(await page.evaluate(() => document.querySelector('[data-testid="vv-end-outcome"]').textContent)).toBe('Lost');
+    expect(await page.evaluate(() => document.querySelector('[data-testid="vv-go-heading"]').textContent)).toBe('Game Over');
   });
 });
 
@@ -98,17 +98,29 @@ test('a completed run writes its best score and it survives a reload; valid pref
   // HUD BEST renders the stored best through the provider.
   expect(await page.locator('[data-testid="vv-best"]').textContent()).toBe('500');
 
-  // Complete a run whose score beats the stored best.
+  // Complete a run whose score beats the stored best: exhaust the wave
+  // budget with an empty roster, staging kills for the score.
   await page.locator('#vv-start').click();
   await page.waitForFunction(() => window.__vv.getShellState() === 'running');
   await page.evaluate(() => {
     const s = window.__vv.getSnapshot();
-    window.__vv.setState({ ...s, elapsedTicks: 17998, lives: 3, enemies: [], shots: [], breaches: [], damageGraceRemaining: 0 });
+    window.__vv.setState({
+      ...s,
+      waveSpawned: 12,
+      lives: 3,
+      kills: 7,
+      score: 700,
+      enemies: [],
+      shots: [],
+      enemyShots: [],
+      breaches: [],
+      damageGraceRemaining: 0
+    });
   });
-  await page.evaluate(() => window.__vv.advanceTicks(2));
-  await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
+  await page.evaluate(() => window.__vv.advanceTicks(1));
+  await page.waitForFunction(() => window.__vv.getShellState() === 'wave-complete');
   const finalScore = await page.evaluate(() => window.__vv.getSnapshot().score);
-  expect(finalScore).toBeGreaterThanOrEqual(5000);
+  expect(finalScore).toBeGreaterThanOrEqual(500);
 
   // Reload: best and preferences survive.
   await page.reload();

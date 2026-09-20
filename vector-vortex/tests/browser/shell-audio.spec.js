@@ -137,7 +137,7 @@ test('node counts stay bounded and return to zero; audio completion drives no st
     await page.keyboard.press('p');
   }
   const during = await page.evaluate(() => window.__vv.getAudioState());
-  expect(during.activeNodes).toBeLessThanOrEqual(8);
+  expect(during.activeNodes).toBeLessThanOrEqual(12);
 
   // A cue's completion schedules nothing: shell and core state are fixed.
   const shellBefore = await page.evaluate(() => window.__vv.getShellState());
@@ -151,4 +151,25 @@ test('node counts stay bounded and return to zero; audio completion drives no st
   expect(after.st.activeNodes).toBe(0);
   expect(after.shell).toBe(shellBefore);
   expect(after.snap.elapsedTicks).toBe(snapBefore.elapsedTicks);
+});
+
+test('the shipped music loop starts with the run, stops on pause, and resumes with it', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+
+  // Before any gesture: no music, no unlock.
+  const before = await page.evaluate(() => window.__vv.getAudioState());
+  expect(before.unlocked).toBe(false);
+  expect(before.musicPlaying).toBe(false);
+
+  // The pointer gesture unlocks audio and starts the music with the run.
+  await page.locator('#vv-start').click();
+  await page.waitForFunction(() => window.__vv.getShellState() === 'running');
+  await page.waitForFunction(() => window.__vv.getAudioState().musicPlaying === true, null, { timeout: 10000 });
+
+  // Pausing stops the music; resuming brings it back.
+  await page.locator('#vv-pause').click();
+  await page.waitForFunction(() => window.__vv.getAudioState().musicPlaying === false);
+  await page.locator('#vv-resume').click();
+  await page.waitForFunction(() => window.__vv.getAudioState().musicPlaying === true);
 });

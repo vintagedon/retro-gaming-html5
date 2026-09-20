@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { stepLeft, stepRight, LANE_COUNT, applyMovement, applyOppositeCancel } from '../../game/core/lanes.js';
+import { SHAPES, activeShape } from '../../game/core/shapes.js';
 
 test('LANE_COUNT is 24', () => {
   assert.equal(LANE_COUNT, 24);
@@ -39,4 +40,30 @@ test('only left held decrements with wrap', () => {
 
 test('only right held increments with wrap', () => {
   assert.equal(applyOppositeCancel(23, false, true), 0);
+});
+
+// Spec 03 gate 1: player movement routes through the shape's wraps flag.
+// The active shape (Circle) wraps; a non-wrapping shape stops at the ends.
+
+test('movement under a non-wrapping shape clamps at the leftmost lane', () => {
+  assert.equal(stepLeft(0, SHAPES.line), 0);
+  assert.equal(stepLeft(1, SHAPES.line), 0);
+  assert.equal(applyOppositeCancel(0, true, false, SHAPES['true-v']), 0);
+});
+
+test('movement under a non-wrapping shape clamps at the rightmost lane', () => {
+  assert.equal(stepRight(23, SHAPES.line), 23);
+  assert.equal(stepRight(22, SHAPES.line), 23);
+  assert.equal(applyOppositeCancel(23, false, true, SHAPES['stepped-v']), 23);
+});
+
+test('movement under the active shape wraps the seam (Circle)', () => {
+  assert.equal(activeShape().wraps, true);
+  assert.equal(applyMovement({ lane: 23, heldInput: { left: false, right: true } }).lane, 0);
+  assert.equal(applyMovement({ lane: 0, heldInput: { left: true, right: false } }).lane, 23);
+});
+
+test('MUTATION: a non-wrapping shape that wraps fails the clamp check', () => {
+  const mutated = { ...SHAPES.line, wraps: true };
+  assert.notEqual(stepLeft(0, mutated), 0, 'mutation: wrapped line shape must not clamp at lane 0');
 });

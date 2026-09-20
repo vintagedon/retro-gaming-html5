@@ -9,12 +9,16 @@
 import { createCore } from '../core/core.js';
 import { createClock } from '../core/clock.js';
 
-export function createFrameRunner({ renderer, dom, onSnapshot, initialSeed = 1 }) {
+export function createFrameRunner({ renderer, dom, onSnapshot, initialSeed = 1, clockGate }) {
   let core = createCore({ seed: initialSeed });
   const clock = createClock();
   let running = false;
   let lastTs = 0;
   let rafId = 0;
+  // Real time may tick only while the shell state allows it. The shell
+  // owns the gate; core.paused alone is not the rule (Spec 03 gate 3:
+  // a fresh title core is unpaused, and the clock must still not run).
+  const clockAllowed = () => (typeof clockGate === 'function' ? clockGate() : true);
 
   function publish() {
     if (typeof onSnapshot === 'function') onSnapshot(core.snapshot());
@@ -68,7 +72,7 @@ export function createFrameRunner({ renderer, dom, onSnapshot, initialSeed = 1 }
     if (!(window.__vv && window.__vv.skipFrameRunnerRebind === true)) {
       replaceCore(newCore);
     }
-    clock.resume();
+    if (clockAllowed()) clock.resume();
     publish();
     return core.snapshot();
   }
@@ -99,18 +103,18 @@ export function createFrameRunner({ renderer, dom, onSnapshot, initialSeed = 1 }
       lastTs = 0;
       if (document.visibilityState === 'hidden') {
         clock.pause();
-      } else if (!core.snapshot().paused) {
-        // 01c continuation gate 1: the visible transition resumes the
-        // clock only when the core is not manually paused. Resuming
-        // unconditionally let pushDelta accumulate against a paused core
-        // for the whole pause interval and burst on the next unpause.
+      } else if (clockAllowed() && !core.snapshot().paused) {
+        // The visible transition resumes the clock only while the shell
+        // allows real time AND the core is not manually paused. Resuming
+        // unconditionally let pushDelta accumulate against a title-state
+        // or paused core for the whole transition and burst on return.
         clock.resume();
       }
     } else if (action && action.type === 'resume-blur') {
       // 01c continuation gate 1: same guard as the visible transition.
       // A player who paused and then changed focus must not come back to
       // a clock that accumulated delta against the paused core.
-      if (!core.snapshot().paused) clock.resume();
+      if (clockAllowed() && !core.snapshot().paused) clock.resume();
     }
     core.dispatch(action);
     // 01c gate 1: a pause action must pause the clock too, so the
@@ -121,12 +125,12 @@ export function createFrameRunner({ renderer, dom, onSnapshot, initialSeed = 1 }
     if (action && action.type === 'pause') {
       const s = core.snapshot();
       if (s.paused) clock.pause();
-      else clock.resume();
+      else if (clockAllowed()) clock.resume();
     } else if (action && action.type === 'restart') {
       // 01c continuation gate 1: the reset state is always unpaused, so a
       // restart must re-sync the clock to running. Without this, restarting
       // from the outcome screen while paused left the fresh run frozen.
-      clock.resume();
+      if (clockAllowed()) clock.resume();
     }
   }
 

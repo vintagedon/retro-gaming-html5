@@ -36,23 +36,17 @@ test('DOM status values are projections, no duplicate calculation', async ({ pag
   const projected = await page.evaluate(() => {
     const s = window.__vv.getSnapshot();
     return {
-      snapshot: { score: s.score, lives: s.lives, remaining: s.remainingTicks },
+      snapshot: { score: s.score, lives: s.lives, wave: 1 },
       dom: {
         score: Number(document.querySelector('[data-testid="vv-score"]').textContent),
         livesLabel: document.querySelector('[data-testid="vv-lives"]').getAttribute('aria-label'),
-        time: document.querySelector('[data-testid="vv-time"]').textContent,
-        meterNow: Number(document.getElementById('vv-meter').getAttribute('aria-valuenow'))
+        wave: document.querySelector('[data-testid="vv-wave"]').textContent
       }
     };
   });
   expect(projected.dom.score).toBe(projected.snapshot.score);
   expect(projected.dom.livesLabel).toBe(`Lives: ${projected.snapshot.lives}`);
-  const totalSeconds = Math.floor(projected.snapshot.remaining / 60);
-  const mm = Math.floor(totalSeconds / 60);
-  const ss = totalSeconds % 60;
-  const expected = `${mm < 10 ? '0' : ''}${mm}:${ss < 10 ? '0' : ''}${ss}`;
-  expect(projected.dom.time).toBe(`${expected} remaining`);
-  expect(projected.dom.meterNow).toBe(projected.snapshot.remaining);
+  expect(projected.dom.wave).toBe('1');
 });
 
 test('MUTATION: skipFrameRunnerRebind leaves the orphaned core visible through the seam', async ({ page }) => {
@@ -77,6 +71,7 @@ test('MUTATION: skipFrameRunnerRebind leaves the orphaned core visible through t
     const s = window.__vv.getSnapshot();
     return { lane: s.lane, elapsed: s.elapsedTicks };
   });
-  expect(orphaned.lane).toBe(5);
+  // Tap-and-repeat: five held ticks move exactly one lane.
+  expect(orphaned.lane).toBe(1);
   expect(orphaned.elapsed).toBe(5);
 });
