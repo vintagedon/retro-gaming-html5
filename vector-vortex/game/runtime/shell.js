@@ -9,7 +9,6 @@
 // tracked seam's advanceTicks still drives deterministic tests from any
 // state, and no tick advances by real time outside running.
 
-import { SURVIVAL_BONUS, computeAccuracyBonus } from '../core/scoring.js';
 import { DEFAULT_PREFERENCES } from './storage.js';
 
 const STATES = ['title', 'running', 'paused', 'settings', 'ended'];
@@ -191,16 +190,9 @@ export function createShell({
       persistence.persistPatch({ bestScore: persistedBest });
       if (typeof onBestChange === 'function') onBestChange(persistedBest);
     }
-    ended.outcome.textContent = snapshot.outcome === 'survived' ? 'Survived' : 'Lost';
+    ended.outcome.textContent = snapshot.outcome === 'wave-complete' ? 'Wave Complete' : 'Game Over';
     ended.score.textContent = String(snapshot.score);
     ended.kills.textContent = String(snapshot.kills);
-    ended.accuracy.textContent = snapshot.accuracyPercent === null
-      ? 'ACC --'
-      : `ACC ${snapshot.accuracyPercent}%`;
-    ended.survival.textContent = snapshot.outcome === 'survived' ? `+${SURVIVAL_BONUS}` : '+0';
-    ended.accuracyBonus.textContent = snapshot.outcome === 'survived'
-      ? `+${computeAccuracyBonus(snapshot.hits, snapshot.shotsSpawned)}`
-      : '+0';
     setState('ended');
     focusFirstControl(surfaces.ended);
   }

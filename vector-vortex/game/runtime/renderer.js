@@ -121,6 +121,85 @@ export function createRenderer({ canvas }) {
   let dpr = 1;
   const lastCounters = { saveCount: 0, restoreCount: 0 };
 
+  // Destruction fragments (Spec 03 gate 2): the dying entity's own edges
+  // detach, each segment rotating on its own axis and drifting outward
+  // along its lane's depth vector, fading over roughly twenty ticks.
+  // Renderer-only: fragments never touch the simulation.
+  const FRAGMENT_LIFE_MS = 20 * (1000 / 60);
+  const fragments = [];
+  let flashFrames = 0;
+  let lastRenderTs = null;
+
+  function spawnFragments(lane, depth) {
+    if (typeof window !== 'undefined' && window.__vv && window.__vv.disableFragments === true) return;
+    const L = projectionLayout(cssWidth, cssHeight);
+    const p = projectLanePoint(L, lane, depth);
+    const axis = laneAxis(L, lane);
+    const r = entityRadiusAt(depth);
+    // The enemy diamond's four edges detach as individual segments.
+    const corners = [
+      { x: 0, y: -r }, { x: r, y: 0 }, { x: 0, y: r }, { x: -r, y: 0 }
+    ];
+    for (let i = 0; i < corners.length; i++) {
+      const a = corners[i];
+      const b = corners[(i + 1) % corners.length];
+      fragments.push({
+        cx: p.x,
+        cy: p.y,
+        ax: a.x,
+        ay: a.y,
+        bx: b.x,
+        by: b.y,
+        rot: 0,
+        rotVel: (Math.random() - 0.5) * 0.02,
+        dist: 0,
+        distVel: 0.5 + Math.random() * 0.5,
+        dirX: -axis.x,
+        dirY: -axis.y,
+        age: 0
+      });
+    }
+  }
+
+  function flashPlayer() {
+    flashFrames = 12;
+  }
+
+  function stepFragments(dt) {
+    for (let i = fragments.length - 1; i >= 0; i--) {
+      const f = fragments[i];
+      f.age += dt;
+      if (f.age >= FRAGMENT_LIFE_MS) { fragments.splice(i, 1); continue; }
+      f.rot += f.rotVel * dt;
+      f.dist += f.distVel * dt;
+      f.cx += f.dirX * f.distVel * dt * 0.25;
+      f.cy += f.dirY * f.distVel * dt * 0.25;
+    }
+  }
+
+  function drawFragments() {
+    if (fragments.length === 0) return;
+    ctx.save();
+    ctx.strokeStyle = PALETTE.enemy;
+    ctx.lineCap = 'round';
+    for (const f of fragments) {
+      const alpha = Math.max(0, 1 - f.age / FRAGMENT_LIFE_MS);
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = 1.5;
+      const cos = Math.cos(f.rot);
+      const sin = Math.sin(f.rot);
+      const ax = f.cx + (f.ax * cos - f.ay * sin);
+      const ay = f.cy + (f.ax * sin + f.ay * cos);
+      const bx = f.cx + (f.bx * cos - f.by * sin);
+      const by = f.cy + (f.bx * sin + f.by * cos);
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function resize() {
     const rect = canvas.getBoundingClientRect();
     cssWidth = Math.max(1, Math.floor(rect.width));
@@ -152,6 +231,14 @@ export function createRenderer({ canvas }) {
   }
 
   function render(snapshot) {
+    // Fragment lifetime runs on wall-clock frame deltas; the first frame
+    // carries no delta. Cosmetics only: never touches the snapshot.
+    const now = (typeof performance !== 'undefined') ? performance.now() : 0;
+    const dt = lastRenderTs === null ? 0 : Math.min(100, now - lastRenderTs);
+    lastRenderTs = now;
+    stepFragments(dt);
+    if (flashFrames > 0) flashFrames -= 1;
+
     let saveCount = 0;
     let restoreCount = 0;
     let dropOneRestore = false;
@@ -256,7 +343,8 @@ export function createRenderer({ canvas }) {
     }
 
     // Player claw: a wide open chevron straddling its lane on the rim,
-    // opening toward the far end.
+    // opening toward the far end. A player hit flashes it white on the
+    // frames immediately after the resolving tick.
     ctx.save();
     saveCount++;
     {
@@ -274,7 +362,7 @@ export function createRenderer({ canvas }) {
         x: apex.x + axis.x * legLen - perp.x * halfWidth,
         y: apex.y + axis.y * legLen - perp.y * halfWidth
       };
-      ctx.strokeStyle = PALETTE.player;
+      ctx.strokeStyle = flashFrames > 0 ? PALETTE.enemyShot : PALETTE.player;
       ctx.lineWidth = 3;
       ctx.lineJoin = 'miter';
       ctx.lineCap = 'round';
@@ -287,6 +375,14 @@ export function createRenderer({ canvas }) {
     ctx.restore();
     restoreCount++;
 
+    // Destruction fragments beneath the outer restore, so the balanced
+    // save/restore contract holds.
+    ctx.save();
+    saveCount++;
+    drawFragments();
+    ctx.restore();
+    restoreCount++;
+
     ctx.restore();
     restoreCount++;
 
@@ -294,5 +390,5 @@ export function createRenderer({ canvas }) {
     lastCounters.restoreCount = restoreCount;
   }
 
-  return { render, resize, getKeyCounters };
+  return { render, resize, getKeyCounters, spawnFragments, flashPlayer };
 }

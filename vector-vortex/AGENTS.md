@@ -131,11 +131,19 @@ The test script invokes `node --test` with an explicit file list. No shell glob 
 | Crawler speed | 0.0015 depth/tick |
 | Crawler HP | 1 |
 | Crawler score | 100 |
-| Run length | 18,000 ticks (300 s) |
 | Starting lives | 3 |
 | Damage grace | 30 ticks |
-| Survival bonus | 5,000 |
-| Accuracy bonus | `round(2000 * hits / shotsSpawned)` |
+| Move repeat delay (Spec 03) | 12 ticks |
+| Move repeat interval (Spec 03) | 5 ticks |
+| Wave spawn budget (Spec 03) | 12 enemies |
+| Wave spawn interval (Spec 03) | 150 ticks |
+| Wave first spawn tick (Spec 03) | 90 |
+| Enemy fire interval (Spec 03) | 150 ticks per enemy |
+| Enemy fire earliest tick (Spec 03) | 120 ticks since spawn |
+| Enemy shot speed (Spec 03) | 0.010 depth/tick |
+| Maximum active enemy shots (Spec 03) | 4 |
+
+The timed-run rows of the Spec 01 v3.0 table (run length 18,000 ticks, survival bonus, accuracy bonus) are superseded by Spec 03's single-wave play with kill score only; see the supersession table in `docs/specs/spec-03-vector-vortex-tempest-identity-slice.md`.
 
 ## Current Spec Status
 

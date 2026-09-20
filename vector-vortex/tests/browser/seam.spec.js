@@ -71,6 +71,7 @@ test('MUTATION: skipFrameRunnerRebind leaves the orphaned core visible through t
     const s = window.__vv.getSnapshot();
     return { lane: s.lane, elapsed: s.elapsedTicks };
   });
-  expect(orphaned.lane).toBe(5);
+  // Tap-and-repeat: five held ticks move exactly one lane.
+  expect(orphaned.lane).toBe(1);
   expect(orphaned.elapsed).toBe(5);
 });

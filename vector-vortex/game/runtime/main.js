@@ -21,7 +21,6 @@ function start() {
   const best = q('[data-testid="vv-best"]');
   const lives = document.getElementById('vv-lives');
   const kills = q('[data-testid="vv-kills"]');
-  const accuracy = q('[data-testid="vv-accuracy"]');
   const currentStatus = q('[data-testid="vv-current-status"]');
   const pauseButton = document.getElementById('vv-pause');
   const restartButton = document.getElementById('vv-restart');
@@ -80,9 +79,6 @@ function start() {
     outcome: q('[data-testid="vv-end-outcome"]'),
     score: q('[data-testid="vv-end-score"]'),
     kills: q('[data-testid="vv-end-kills"]'),
-    accuracy: q('[data-testid="vv-end-accuracy"]'),
-    survival: q('[data-testid="vv-end-survival"]'),
-    accuracyBonus: q('[data-testid="vv-end-accuracy-bonus"]'),
     newRun: actions.ended.newRun,
     returnTitle: actions.ended.returnTitle
   };
@@ -109,7 +105,7 @@ function start() {
   window.addEventListener('resize', () => renderer.resize());
 
   const dom = createDom({
-    score, best, lives, kills, accuracy,
+    score, best, lives, kills,
     pauseButton, restartButton, bestProvider
   });
 
@@ -130,7 +126,24 @@ function start() {
     onBestChange: (v) => { bestValue = v; }
   });
 
+  // Destruction fragments and hit feedback (Spec 03 gate 2) are
+  // renderer-only cosmetics. The seen-set deduplicates events, which the
+  // snapshot re-carries for up to 200 ticks, and is pruned as it grows.
+  const seenDestructions = new Set();
   function publish(snapshot) {
+    for (const ev of snapshot.recentEvents) {
+      if (ev.type !== 'enemy-destroyed') continue;
+      const key = `${ev.enemyId}:${ev.tick}`;
+      if (seenDestructions.has(key)) continue;
+      seenDestructions.add(key);
+      if (seenDestructions.size > 500) {
+        for (const k of seenDestructions) { seenDestructions.delete(k); if (seenDestructions.size <= 250) break; }
+      }
+      renderer.spawnFragments(ev.lane, ev.depth, ev.kind);
+    }
+    if (snapshot.recentEvents.some(e => e.type === 'life-lost')) {
+      renderer.flashPlayer();
+    }
     dom.project(snapshot);
     shell.observeSnapshot(snapshot);
   }
@@ -175,9 +188,15 @@ function start() {
       return renderer.getKeyCounters();
     },
     setLane(lane) {
-      runner.dispatch({ type: 'right-down' });
-      for (let i = 0; i < lane; i++) runner.advanceTicks(1);
-      runner.dispatch({ type: 'right-up' });
+      // Tap-and-repeat: one tap is one lane step. Each tap is a press
+      // tick followed by a release tick, so the core observes the
+      // release and the next tap is a fresh press.
+      for (let i = 0; i < lane; i++) {
+        runner.dispatch({ type: 'right-down' });
+        runner.advanceTicks(1);
+        runner.dispatch({ type: 'right-up' });
+        runner.advanceTicks(1);
+      }
     },
     setFire(pressed) {
       runner.dispatch(pressed ? { type: 'fire-down' } : { type: 'fire-up' });

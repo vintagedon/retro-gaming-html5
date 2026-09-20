@@ -43,9 +43,6 @@
           <span class="vv-hud-value" data-testid="vv-kills">0</span>
         </span>
         <span class="vv-hud-status" data-testid="vv-current-status" aria-live="polite">running</span>
-        <span class="vv-hud-cell vv-hud-acc">
-          <span class="vv-hud-value" data-testid="vv-accuracy">ACC --</span>
-        </span>
       </div>
 
       <div class="vv-actions" id="vv-controls-buttons" data-vv-bar="hidden">
@@ -58,7 +55,7 @@
       <section class="vv-surface" data-vv-surface="title" data-vv-active="true" aria-label="Vector Vortex title">
         <div class="gc-panel vv-dialog" role="dialog" aria-modal="true" aria-labelledby="vv-title-heading">
           <h2 id="vv-title-heading">Vector Vortex</h2>
-          <p class="vv-dialog-copy">Survive the five-minute Crawler wave on a 24-lane wireframe tube.</p>
+          <p class="vv-dialog-copy">Clear the Crawler wave on a 24-lane wireframe tube.</p>
           <div class="vv-dialog-actions">
             <button type="button" class="gc-button" id="vv-start">Start</button>
             <button type="button" class="gc-button" id="vv-title-settings">Settings</button>
@@ -70,9 +67,9 @@
       <section class="vv-surface" data-vv-surface="howto" data-vv-active="false" aria-label="How to play">
         <div class="gc-panel vv-dialog" role="dialog" aria-modal="true" aria-labelledby="vv-howto-heading">
           <h2 id="vv-howto-heading">How to Play</h2>
-          <p class="vv-dialog-copy">Ride the rim of the 24-lane tube. Crawlers advance outward from the far end; a Crawler that reaches your rim costs a life. Three breaches end the run.</p>
+          <p class="vv-dialog-copy">Ride the rim of the 24-lane tube. Crawlers advance outward from the far end; a Crawler that reaches your rim costs a life, and so does a Crawler shot that crosses your lane. Three hits end the run.</p>
           <p class="vv-dialog-copy">Left Arrow or A moves left around the rim. Right Arrow or D moves right, wrapping at the seam. Hold Space to fire inward along your lane; shots have a short cooldown and six may be active at once.</p>
-          <p class="vv-dialog-copy">Escape or P pauses. A kill scores 100. Surviving all five minutes cashes out a 5,000 survival bonus plus an accuracy bonus.</p>
+          <p class="vv-dialog-copy">Escape or P pauses. A kill scores 100. Clear the wave when every Crawler has spawned and been resolved.</p>
           <div class="vv-dialog-actions">
             <button type="button" class="gc-button" id="vv-howto-close">Close</button>
           </div>
@@ -144,12 +141,6 @@
             <span class="vv-hud-value" data-testid="vv-end-score">0</span>
             <span class="vv-setting-label">Kills</span>
             <span class="vv-hud-value" data-testid="vv-end-kills">0</span>
-            <span class="vv-setting-label">Accuracy</span>
-            <span class="vv-hud-value" data-testid="vv-end-accuracy">ACC --</span>
-            <span class="vv-setting-label">Survival bonus</span>
-            <span class="vv-hud-value" data-testid="vv-end-survival">+0</span>
-            <span class="vv-setting-label">Accuracy bonus</span>
-            <span class="vv-hud-value" data-testid="vv-end-accuracy-bonus">+0</span>
           </div>
           <div class="vv-dialog-actions">
             <button type="button" class="gc-button" id="vv-new-run">New Run</button>

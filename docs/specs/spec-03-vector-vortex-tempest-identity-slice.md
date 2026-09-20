@@ -173,15 +173,15 @@ Tap-and-repeat movement. Shot and enemy-shot visuals. Enemy fires back. Line-fra
 
 The wave clears when its spawn budget is exhausted and no enemies remain. A breach removes the enemy, so the clear condition counts resolved enemies rather than kills; a survivable breach must not strand the player. Resolve player damage and death before granting a clear. On clear, discard enemy shots still in flight and freeze gameplay with a wave-complete outcome. Gate 3 binds that outcome to the screen defined above.
 
-- [ ] A single keypress moves exactly one lane. Holding produces the first repeat only after the configured delay, then at the configured interval, verified through the real frame loop.
-- [ ] A synthetic auto-repeat keydown during a held key does not produce an extra step, and does not restart a held action across a pause.
-- [ ] The enemy fires along its own lane, its shot travels toward the rim, and it costs a life only while the player occupies that lane. A shot passing the player's lane between ticks still hits.
-- [ ] Starting outside damage grace, a breach and an enemy shot resolving on the same tick cost exactly one life; while protected by grace they cost none.
-- [ ] Destroying an enemy emits fragments that fade and leave no residual simulation state; a run with destructions produces the same gameplay state at equal completed ticks as one with fragments disabled.
-- [ ] Player and enemy shots are visible at depth 1 and at depth 0.1 at the smallest supported viewport, and the claw and the basic enemy are distinguishable from each other in silhouette at depth 1.
-- [ ] A wave with a fixed budget clears when the budget is exhausted and no enemies remain, including after a survivable breach.
-- [ ] Player death on the final enemy resolves as death rather than a clear.
-- [ ] Clearing the wave discards enemy shots still in flight and freezes gameplay with a wave-complete outcome.
+- [x] A single keypress moves exactly one lane. Holding produces the first repeat only after the configured delay, then at the configured interval, verified through the real frame loop. `tests/browser/keyboard.spec.js` (real-loop tap and repeat timing) and `tests/core/core.test.js` (exact delay and interval ticks).
+- [x] A synthetic auto-repeat keydown during a held key does not produce an extra step, and does not restart a held action across a pause. `tests/browser/keyboard.spec.js`.
+- [x] The enemy fires along its own lane, its shot travels toward the rim, and it costs a life only while the player occupies that lane. A shot passing the player's lane between ticks still hits. `tests/core/enemy-shots.test.js`.
+- [x] Starting outside damage grace, a breach and an enemy shot resolving on the same tick cost exactly one life; while protected by grace they cost none. `tests/core/enemy-shots.test.js`.
+- [x] Destroying an enemy emits fragments that fade and leave no residual simulation state; a run with destructions produces the same gameplay state at equal completed ticks as one with fragments disabled. `tests/browser/combat.spec.js`.
+- [x] Player and enemy shots are visible at depth 1 and at depth 0.1 at the smallest supported viewport, and the claw and the basic enemy are distinguishable from each other in silhouette at depth 1. `tests/browser/combat.spec.js` renders all five kinds at 1024x576 and measures their bounding shapes.
+- [x] A wave with a fixed budget clears when the budget is exhausted and no enemies remain, including after a survivable breach. `tests/core/core.test.js` and `tests/core/director.test.js`.
+- [x] Player death on the final enemy resolves as death rather than a clear. `tests/core/core.test.js`.
+- [x] Clearing the wave discards enemy shots still in flight and freezes gameplay with a wave-complete outcome. `tests/core/core.test.js`.
 
 #### Gate 3: Presentation states, HUD, and audio
 

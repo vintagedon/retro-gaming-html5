@@ -1,50 +1,36 @@
 import { createRng } from './rng.js';
 
-// Director bands per Spec 01b (amendment). A band's first spawn tick index is
-// computed uniformly as `bandStart + (interval - 1)` (i.e. after exactly one
-// full interval of that band has been completed). The per-band explicit
-// `firstSpawn` table that Spec 01 v3.0 carried for band 2 (3,659) has been
-// removed; the corrected construction yields 3,647 for band 2.
-export const BANDS = [
-  { start: 0, end: 3599, interval: 60 },
-  { start: 3600, end: 10799, interval: 48 },
-  { start: 10800, end: 14399, interval: 36 },
-  { start: 14400, end: 17999, interval: 27 }
-];
+// Single-wave director (Spec 03 gate 2). The four elapsed-time bands and
+// the 18,000-tick run boundary are superseded: this slice plays one wave
+// with a fixed spawn budget and interval. Rows are balance values, tuned
+// by feel, and recorded alongside the tunable balance table.
 
-export function firstSpawnForBand(band) {
-  return band.start + (band.interval - 1);
+export const WAVE_SPAWN_BUDGET = 12;
+export const WAVE_SPAWN_INTERVAL_TICKS = 150;
+export const WAVE_FIRST_SPAWN_TICK = 90;
+
+export function shouldSpawnOnTick(tick) {
+  if (tick < WAVE_FIRST_SPAWN_TICK) return false;
+  return (tick - WAVE_FIRST_SPAWN_TICK) % WAVE_SPAWN_INTERVAL_TICKS === 0;
 }
 
-export function bandForTick(tick) {
-  for (const b of BANDS) {
-    if (tick >= b.start && tick <= b.end) return b;
-  }
-  throw new Error(`tick ${tick} outside run bounds`);
+export function budgetExhausted(state) {
+  return (state.waveSpawned ?? 0) >= WAVE_SPAWN_BUDGET;
 }
 
-export function shouldSpawnOnTick(tick, band) {
-  if (tick < band.start || tick > band.end) return false;
-  const firstSpawn = firstSpawnForBand(band);
-  const offset = tick - firstSpawn;
-  if (offset < 0) return false;
-  return offset % band.interval === 0;
+// The wave clears when the spawn budget is exhausted and no enemies
+// remain. A breach removes its enemy, so resolved enemies count, not
+// kills; a survivable breach must not strand the player.
+export function waveCleared(state) {
+  return budgetExhausted(state) && state.enemies.length === 0;
 }
 
-export function nextSpawnTickAfter(tick, band) {
-  const firstSpawn = firstSpawnForBand(band);
-  const start = Math.max(tick + 1, firstSpawn);
-  const k = (start - firstSpawn) % band.interval;
-  const first = k === 0 ? start : start + (band.interval - k);
-  return first <= band.end ? first : null;
-}
-
-export function createDirector({ seed }) {
+export function createWaveDirector({ seed }) {
   const rng = createRng(seed);
   return {
     tickSpawned(state) {
-      const band = bandForTick(state.elapsedTicks);
-      if (!shouldSpawnOnTick(state.elapsedTicks, band)) return null;
+      if (budgetExhausted(state)) return null;
+      if (!shouldSpawnOnTick(state.elapsedTicks)) return null;
       const lane = rng.int(0, 23);
       return { lane };
     },

@@ -1,6 +1,8 @@
 // Vector Vortex D3 validation: physical keydown path drives movement.
 // Named mutation: window.__vv.disableKeydown = true must prevent the lane
-// from changing while ArrowRight is held.
+// from changing while ArrowRight is held. Spec 03 gate 2: movement is
+// tap-and-repeat, so one held tick moves one lane and repeats arrive only
+// after the configured delay.
 
 import { test, expect } from '@playwright/test';
 import { startRun } from './helpers.js';
@@ -17,8 +19,25 @@ test('holding ArrowRight changes lane through the physical keydown path', async 
   await page.evaluate(() => window.__vv.advanceTicks(3));
   const after = await page.evaluate(() => window.__vv.getSnapshot().lane);
   await page.keyboard.up('ArrowRight');
-  expect(after).not.toBe(before);
-  expect(after).toBe((before + 3) % 24);
+  expect(after).toBe((before + 1) % 24);
+});
+
+test('holding ArrowRight repeats only after the configured delay, through the real frame loop', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  await page.locator('#vv-canvas').focus();
+  await startRun(page);
+  const before = await page.evaluate(() => window.__vv.getSnapshot().lane);
+  await page.keyboard.down('ArrowRight');
+  // Hold through 11 ticks: no repeat yet inside the 12-tick delay.
+  await page.waitForFunction(() => window.__vv.getSnapshot().elapsedTicks >= 11, null, { timeout: 5000 });
+  const beforeRepeat = await page.evaluate(() => window.__vv.getSnapshot().lane);
+  // Hold through 30 ticks: press step plus repeats at 12, 17, 22, 27.
+  await page.waitForFunction(() => window.__vv.getSnapshot().elapsedTicks >= 30, null, { timeout: 5000 });
+  const afterRepeat = await page.evaluate(() => window.__vv.getSnapshot().lane);
+  await page.keyboard.up('ArrowRight');
+  expect(afterRepeat).toBe((beforeRepeat + 4) % 24);
+  void before;
 });
 
 test('MUTATION: disabling the keydown handler prevents lane change', async ({ page }) => {
@@ -40,27 +59,27 @@ test('keyboard-only flow reaches both outcomes through the test seam', async ({ 
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
   await page.evaluate(() => { window.__vv.pauseRaf = true; });
 
-  // Without firing, every seed loses to a breach on tick ~847.
+  // Without firing, every seed loses three lives to breaches: game-over.
   const outcomes = await page.evaluate(() => {
-    const seen = { survived: 0, lost: 0 };
+    const seen = { 'wave-complete': 0, 'game-over': 0 };
     for (let s = 1; s <= 10; s++) {
       window.__vv.reset(s);
-      window.__vv.advanceTicks(18000);
+      window.__vv.advanceTicks(6000);
       const o = window.__vv.getSnapshot().outcome;
-      if (o === 'survived' || o === 'lost') seen[o]++;
+      if (o === 'wave-complete' || o === 'game-over') seen[o]++;
     }
-    // Force a survived outcome: set the core to tick 17999 with high lives
-    // and no enemies, then one final tick reaches the run boundary.
+    // Force a wave-complete outcome: exhaust the budget with an empty
+    // roster, then one tick grants the clear.
     window.__vv.reset(1);
-    window.__vv.advanceTicks(17999);
-    const s = window.__vv.getSnapshot();
-    window.__vv.setState({ ...s, lives: 999, enemies: [], damageGraceRemaining: 0, outcome: null, paused: false, elapsedTicks: 17999 });
     window.__vv.advanceTicks(1);
-    if (window.__vv.getSnapshot().outcome === 'survived') seen.survived++;
+    const s = window.__vv.getSnapshot();
+    window.__vv.setState({ ...s, waveSpawned: 12, lives: 999, enemies: [], damageGraceRemaining: 0, outcome: null, paused: false });
+    window.__vv.advanceTicks(1);
+    if (window.__vv.getSnapshot().outcome === 'wave-complete') seen['wave-complete']++;
     return seen;
   });
-  expect(outcomes.survived).toBeGreaterThan(0);
-  expect(outcomes.lost).toBeGreaterThan(0);
+  expect(outcomes['game-over']).toBeGreaterThan(0);
+  expect(outcomes['wave-complete']).toBeGreaterThan(0);
 });
 
 test('D3.8 keyboard flow: lane wrap 23→0, hold-fire through cooldown, pause and resume', async ({ page }) => {
@@ -69,10 +88,11 @@ test('D3.8 keyboard flow: lane wrap 23→0, hold-fire through cooldown, pause an
   await page.evaluate(() => { window.__vv.pauseRaf = true; });
   await startRun(page);
 
-  // 1. Lane wrap 23→0: from lane 0, advance 24 right-steps; the wrap must
-  //    return to lane 0.
+  // 1. Lane wrap 23→0: tap 23 right-steps through the seam, then one
+  //    physical right press must wrap to lane 0.
+  await page.evaluate(() => window.__vv.setLane(23));
   await page.keyboard.down('ArrowRight');
-  await page.evaluate(() => window.__vv.advanceTicks(24));
+  await page.evaluate(() => window.__vv.advanceTicks(1));
   await page.keyboard.up('ArrowRight');
   const afterWrap = await page.evaluate(() => window.__vv.getSnapshot().lane);
   expect(afterWrap).toBe(0);
@@ -111,4 +131,66 @@ test('D3.8 keyboard flow: lane wrap 23→0, hold-fire through cooldown, pause an
   const resumed = await page.evaluate(() => window.__vv.getSnapshot());
   expect(resumed.paused).toBe(false);
   expect(resumed.elapsedTicks).toBeGreaterThan(before);
+});
+
+test('a single tap through the real frame loop moves exactly one lane and stops', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  await startRun(page);
+  const before = await page.evaluate(() => window.__vv.getSnapshot().lane);
+  await page.keyboard.down('ArrowRight');
+  // The press step resolves on the first drained tick.
+  await page.waitForFunction(
+    (b) => window.__vv.getSnapshot().lane === (b + 1) % 24,
+    before,
+    { timeout: 5000 }
+  );
+  await page.keyboard.up('ArrowRight');
+  // Well past the repeat delay with the key released: no further step.
+  await page.waitForTimeout(400);
+  const after = await page.evaluate(() => window.__vv.getSnapshot().lane);
+  expect(after).toBe((before + 1) % 24);
+});
+
+test('a synthetic auto-repeat keydown adds no step and does not restart a held action across a pause', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
+  await page.evaluate(() => { window.__vv.pauseRaf = true; });
+  await startRun(page);
+  await page.locator('#vv-canvas').focus();
+
+  // Fresh press: one step.
+  await page.keyboard.down('ArrowRight');
+  await page.evaluate(() => window.__vv.advanceTicks(1));
+  expect(await page.evaluate(() => window.__vv.getSnapshot().lane)).toBe(1);
+
+  // A synthetic auto-repeat keydown for the held key adds nothing.
+  await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', repeat: true }));
+  });
+  await page.evaluate(() => window.__vv.advanceTicks(3));
+  expect(await page.evaluate(() => window.__vv.getSnapshot().lane)).toBe(1);
+
+  // Pause mid-hold: the shell clears held input. An auto-repeat keydown
+  // that arrives while paused must not re-arm the action.
+  await page.locator('#vv-pause').click();
+  expect(await page.evaluate(() => window.__vv.getSnapshot().paused)).toBe(true);
+  await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', repeat: true }));
+  });
+  await page.locator('#vv-resume').click();
+  expect(await page.evaluate(() => window.__vv.getSnapshot().paused)).toBe(false);
+  // The held action was not restarted: the lane holds until a fresh press.
+  await page.evaluate(() => window.__vv.advanceTicks(15));
+  expect(await page.evaluate(() => window.__vv.getSnapshot().lane)).toBe(1);
+
+  // A fresh press after the pause steps again. Focus returns to the
+  // canvas first: movement dispatch is gated on the game surface.
+  await page.keyboard.up('ArrowRight');
+  await page.evaluate(() => window.__vv.advanceTicks(1));
+  await page.locator('#vv-canvas').focus();
+  await page.keyboard.down('ArrowRight');
+  await page.evaluate(() => window.__vv.advanceTicks(1));
+  await page.keyboard.up('ArrowRight');
+  expect(await page.evaluate(() => window.__vv.getSnapshot().lane)).toBe(2);
 });

@@ -5,7 +5,7 @@
 //
 // Usage: node scripts/capture-state.mjs <state> [viewport]
 //   states: title | running | paused | settings-audio | settings-display |
-//           settings-controls | ended-survived | ended-lost
+//           settings-controls | wave-complete | game-over
 //   viewport: WxH, default 1280x720
 //
 // Captures produced by this tool are UNAPPROVED CANDIDATES for maintainer
@@ -32,7 +32,7 @@ if (viewport.length !== 2 || viewport.some(n => !Number.isInteger(n) || n <= 0))
 
 const STATES = new Set([
   'title', 'running', 'paused', 'settings-audio', 'settings-display',
-  'settings-controls', 'ended-survived', 'ended-lost'
+  'settings-controls', 'wave-complete', 'game-over'
 ]);
 if (!STATES.has(state)) {
   console.error(`unknown state: ${state} (known: ${[...STATES].join(', ')})`);
@@ -91,16 +91,41 @@ try {
     if (state === 'settings-display') await page.locator('#vv-tab-display').click();
     if (state === 'settings-controls') await page.locator('#vv-tab-controls').click();
     await page.waitForTimeout(120);
-  } else if (state === 'ended-survived') {
+  } else if (state === 'wave-complete') {
     await page.evaluate(() => {
       const s = window.__vv.getSnapshot();
-      window.__vv.setState({ ...s, elapsedTicks: 17998, lives: 3, enemies: [], shots: [], breaches: [], damageGraceRemaining: 0 });
-      window.__vv.advanceTicks(2);
+      window.__vv.setState({
+        ...s,
+        waveSpawned: 12,
+        lives: 3,
+        enemies: [],
+        shots: [],
+        enemyShots: [],
+        breaches: [],
+        damageGraceRemaining: 0,
+        outcome: null,
+        paused: false
+      });
+      window.__vv.advanceTicks(1);
     });
     await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
     await page.waitForTimeout(120);
-  } else if (state === 'ended-lost') {
-    await page.evaluate(() => window.__vv.advanceTicks(18000));
+  } else if (state === 'game-over') {
+    await page.evaluate(() => {
+      const s = window.__vv.getSnapshot();
+      window.__vv.setState({
+        ...s,
+        lives: 1,
+        enemies: [{ id: 9001, lane: 0, depth: 0.001, hp: 1, nextFireTick: 999999, spawnedTick: 0 }],
+        shots: [],
+        enemyShots: [],
+        breaches: [],
+        damageGraceRemaining: 0,
+        outcome: null,
+        paused: false
+      });
+      window.__vv.advanceTicks(1);
+    });
     await page.waitForFunction(() => window.__vv.getShellState() === 'ended');
     await page.waitForTimeout(120);
   }

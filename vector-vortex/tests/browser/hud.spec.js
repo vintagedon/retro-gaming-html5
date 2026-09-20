@@ -21,9 +21,8 @@ const VIEWPORTS = [
   { width: 1920, height: 1080, label: '1920x1080' }
 ];
 
-// Seed 1: the director's first spawn is lane 15 at tick 59 (verified against
-// the tracked core). Firing from lane 15 across tick 59 guarantees a hit.
-const HIT_SEED_LANE = 15;
+// Seed 1: the wave director's first spawn is lane 15 at tick 90 (verified
+// against the tracked core). Firing from lane 15 across tick 90 lands a hit.
 
 async function boot(page) {
   await page.goto('/');
@@ -53,7 +52,6 @@ async function readHud(page) {
       score: document.querySelector('[data-testid="vv-score"]').textContent,
       best: document.querySelector('[data-testid="vv-best"]').textContent,
       kills: document.querySelector('[data-testid="vv-kills"]').textContent,
-      accuracy: document.querySelector('[data-testid="vv-accuracy"]').textContent,
       status: document.querySelector('[data-testid="vv-current-status"]').textContent,
       activeGlyphs: glyphs.filter(g => !g.classList.contains('vv-life--spent')).length,
       glyphCount: glyphs.length
@@ -61,7 +59,7 @@ async function readHud(page) {
   });
 }
 
-test('fresh run: ACC shows --, three life glyphs, BEST renders from provider', async ({ page }) => {
+test('fresh run: three life glyphs, BEST renders from provider', async ({ page }) => {
   await page.addInitScript(() => {
     window.__vv = Object.assign(window.__vv || {}, {
       disableFrameRunner: true,
@@ -72,7 +70,6 @@ test('fresh run: ACC shows --, three life glyphs, BEST renders from provider', a
   const hud = await readHud(page);
   const snap = await page.evaluate(() => window.__vv.getSnapshot());
 
-  expect(hud.accuracy).toBe('ACC --');
   expect(hud.activeGlyphs).toBe(3);
   expect(hud.glyphCount).toBe(3);
   expect(hud.best).toBe('4321');
@@ -87,11 +84,12 @@ test('scripted run: shots, a deterministic hit, and a life loss all match the sa
   });
   await boot(page);
 
-  // Move to the seeded first-spawn lane before the shot sequence.
-  await page.evaluate(l => window.__vv.setLane(l), HIT_SEED_LANE);
-  // Hold fire across the tick-59 spawn so a shot crosses the Crawler.
+  // Move to the seeded first-spawn lane before the shot sequence (seed 1
+  // draws lane 15 at tick 90).
+  await page.evaluate(() => window.__vv.setLane(15));
+  // Hold fire across the tick-90 spawn so a shot crosses the Crawler.
   await page.evaluate(() => window.__vv.setFire(true));
-  await page.evaluate(() => window.__vv.advanceTicks(100));
+  await page.evaluate(() => window.__vv.advanceTicks(130));
   await page.evaluate(() => window.__vv.setFire(false));
 
   let snap = await page.evaluate(() => window.__vv.getSnapshot());
@@ -100,10 +98,9 @@ test('scripted run: shots, a deterministic hit, and a life loss all match the sa
   expect(snap.hits).toBeGreaterThanOrEqual(1);
   expect(hud.score).toBe(String(snap.score));
   expect(hud.kills).toBe(String(snap.kills));
-  expect(hud.accuracy).toBe(`ACC ${snap.accuracyPercent}%`);
 
-  // Let the second spawn (tick 119, lane 0) reach the rim untouched.
-  await page.evaluate(() => window.__vv.advanceTicks(700));
+  // Let the second spawn (tick 240, lane 0) reach the rim untouched.
+  await page.evaluate(() => window.__vv.advanceTicks(820));
   snap = await page.evaluate(() => window.__vv.getSnapshot());
   hud = await readHud(page);
   expect(snap.lives).toBe(2);
@@ -129,7 +126,7 @@ test('a lost run flips the status mirror and spends every life glyph', async ({ 
   const snap = await page.evaluate(() => window.__vv.getSnapshot());
   const hud = await readHud(page);
 
-  expect(snap.outcome).toBe('lost');
+  expect(snap.outcome).toBe('game-over');
   expect(snap.lives).toBe(0);
   expect(hud.activeGlyphs).toBe(0);
   expect(hud.status).toBe('ended');
@@ -156,7 +153,6 @@ for (const v of VIEWPORTS) {
         hudBottom: rect('[data-testid="vv-hud-bottom"]'),
         lives: rect('[data-testid="vv-lives"]'),
         kills: rect('[data-testid="vv-kills"]'),
-        accuracy: rect('[data-testid="vv-accuracy"]'),
         status: rect('[data-testid="vv-current-status"]'),
         pause: rect('#vv-pause'),
         restart: rect('#vv-restart')

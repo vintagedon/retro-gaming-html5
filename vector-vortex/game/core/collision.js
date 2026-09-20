@@ -21,7 +21,7 @@ export function resolveCollisions(state) {
     for (const en of enemies) {
       if (sh.lane !== en.lane) continue;
       if (!intervalsOverlap(sh.prev, sh.next, en.prev, en.next)) continue;
-      candidates.push({ enemyId: en.id, shotId: sh.id });
+      candidates.push({ enemyId: en.id, shotId: sh.id, lane: en.lane, depth: en.depth });
     }
   }
   candidates.sort((a, b) => a.enemyId - b.enemyId || a.shotId - b.shotId);
@@ -34,7 +34,7 @@ export function resolveCollisions(state) {
     if (deadShots.has(c.shotId)) continue;
     deadEnemies.add(c.enemyId);
     deadShots.add(c.shotId);
-    kills.push({ enemyId: c.enemyId, shotId: c.shotId });
+    kills.push({ enemyId: c.enemyId, shotId: c.shotId, lane: c.lane, depth: c.depth });
   }
 
   const newEnemies = enemies.filter(e => !deadEnemies.has(e.id));
