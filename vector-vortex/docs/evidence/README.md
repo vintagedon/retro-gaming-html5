@@ -1,10 +1,10 @@
 <!--
 ---
 title: "Evidence Captures"
-description: "Committed review captures for the Vector Vortex shell and MVP run"
+description: "Committed review captures for the Vector Vortex Tempest identity slice"
 author: "VintageDon (https://github.com/vintagedon/)"
-date: "2026-09-19"
-version: "1.1"
+date: "2026-09-20"
+version: "1.2"
 status: "Active"
 tags:
   - type: directory-readme
@@ -29,15 +29,9 @@ in this directory presumes acceptance.
 
 | File | State | Status |
 |---|---|---|
-| `capture-title-1280x720.png` | Title shell | Unapproved candidate |
-| `capture-running-1280x720.png` | Running HUD with live shots and a kill | Unapproved candidate |
-| `capture-paused-1280x720.png` | Pause dialog | Unapproved candidate |
+| `capture-title-1280x720.png` | Title: pixel-font composition over the decorative web | Unapproved candidate |
+| `capture-running-1280x720.png` | Playing: converging web, per-entity colour, arcade HUD | Unapproved candidate |
+| `capture-paused-1280x720.png` | Paused overlay over the frozen game | Unapproved candidate |
 | `capture-settings-audio-1280x720.png` | Settings, Audio tab | Unapproved candidate |
-| `capture-settings-display-1280x720.png` | Settings, Display tab | Unapproved candidate |
-| `capture-settings-controls-1280x720.png` | Settings, Controls tab | Unapproved candidate |
-| `capture-ended-survived-1280x720.png` | Run ended, survived cash-out | Unapproved candidate |
-| `capture-ended-lost-1280x720.png` | Run ended, lost | Unapproved candidate |
-
-Regenerate with `node scripts/capture-state.mjs <state> [WxH]` from
-`vector-vortex/`. The geometry-probe screenshots written by the Playwright
-suite land under `test-results/` and are not tracked.
+| `capture-wave-complete-1280x720.png` | Wave complete results screen | Unapproved candidate |
+| `capture-game-over-1280x720.png` | Game over results screen | Unapproved candidate |
