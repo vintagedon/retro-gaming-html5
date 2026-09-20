@@ -1,11 +1,11 @@
-// Vector Vortex Spec 02 deliverable 2 validation: the core's read-only
-// remainingTicks projection behaves as the HUD contract requires, the
-// FINAL_MINUTE_TICKS vocabulary constant is exported by the core, and the
-// HUD binder consumes core-owned values without restating any scoring,
-// accuracy, timing, or outcome rule.
+// Vector Vortex HUD validation (Spec 03 gate 1 rewrite).
+// The core's read-only remainingTicks projection still behaves as the HUD
+// contract requires (the timed-run contract itself is replaced in gate 2),
+// and the HUD binder consumes core-owned values without restating any
+// scoring, accuracy, timing, or outcome rule.
 //
-// Mutation: deleting the remainingTicks line from the core snapshot, or
-// adding a hits/shotsSpawned ratio to the HUD binder, fails these checks.
+// Mutation: adding a hits/shotsSpawned ratio to the HUD binder fails the
+// purity check.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,11 +17,10 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const CORE_PATH = join(HERE, '..', '..', 'game', 'core', 'core.js');
 const DOM_PATH = join(HERE, '..', '..', 'game', 'runtime', 'dom.js');
 
-const { createCore, initialState, RUN_LENGTH_TICKS, FINAL_MINUTE_TICKS, TICK_HZ } = await import(CORE_PATH);
+const { createCore, initialState, RUN_LENGTH_TICKS, TICK_HZ } = await import(CORE_PATH);
 
 test('core exports the HUD vocabulary constants', () => {
   assert.equal(RUN_LENGTH_TICKS, 18000);
-  assert.equal(FINAL_MINUTE_TICKS, 3600);
   assert.equal(TICK_HZ, 60);
 });
 
@@ -59,14 +58,15 @@ test('lost run projection: remainingTicks freezes at the loss tick, not zero', (
   assert.equal(snap.remainingTicks, 12999);
 });
 
-test('HUD binder consumes the projection and core constants in source', () => {
+test('HUD binder is a pure projection in source', () => {
   const src = readFileSync(DOM_PATH, 'utf8');
-  assert.match(src, /import\s*\{[^}]*RUN_LENGTH_TICKS[^}]*FINAL_MINUTE_TICKS[^}]*TICK_HZ[^}]*\}\s*from\s*'[^']*core\.js'/);
-  assert.match(src, /snapshot\.remainingTicks/);
   // The binder formats the accuracy the core already computed; it never
   // touches the raw ratio inputs.
   assert.doesNotMatch(src, /\bshotsSpawned\b/);
   assert.doesNotMatch(src, /\bhits\b/);
+  // The wide horizontal meter bar was removed in Spec 03 gate 1.
+  assert.doesNotMatch(src, /\bmeter\b/i);
+  assert.doesNotMatch(src, /\bremainingTicks\b/);
 });
 
 test('MUTATION: a hits/shotsSpawned ratio in the HUD binder is detected', () => {

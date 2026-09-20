@@ -19,8 +19,6 @@ function start() {
   const canvas = document.getElementById('vv-canvas');
   const score = q('[data-testid="vv-score"]');
   const best = q('[data-testid="vv-best"]');
-  const meter = document.getElementById('vv-meter');
-  const meterText = q('[data-testid="vv-time"]');
   const lives = document.getElementById('vv-lives');
   const kills = q('[data-testid="vv-kills"]');
   const accuracy = q('[data-testid="vv-accuracy"]');
@@ -111,7 +109,7 @@ function start() {
   window.addEventListener('resize', () => renderer.resize());
 
   const dom = createDom({
-    score, best, meter, meterText, lives, kills, accuracy,
+    score, best, lives, kills, accuracy,
     pauseButton, restartButton, bestProvider
   });
 

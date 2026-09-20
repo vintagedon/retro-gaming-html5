@@ -3,24 +3,27 @@
 import { test, expect } from '@playwright/test';
 import { startRun } from './helpers.js';
 
-test('canvas has aria-label, role=img, and adjacent objective/status', async ({ page }) => {
+test('canvas has aria-label, role=img, and the live status mirror', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
   const a11y = await page.evaluate(() => {
     const c = document.getElementById('vv-canvas');
-    const obj = document.querySelector('[data-testid="vv-objective"]');
     const status = document.querySelector('[data-testid="vv-current-status"]');
     return {
       ariaLabel: c.getAttribute('aria-label'),
       role: c.getAttribute('role'),
-      hasObjective: !!obj,
-      hasStatus: !!status
+      hasStatus: !!status,
+      // Spec 03 gate 1: the instructional paragraph is removed; the
+      // playfield fills the viewport with no header chrome.
+      objectiveGone: !document.querySelector('[data-testid="vv-objective"]'),
+      headerGone: !document.querySelector('.vv-header')
     };
   });
   expect(a11y.ariaLabel).toBeTruthy();
   expect(a11y.role).toBe('img');
-  expect(a11y.hasObjective).toBe(true);
   expect(a11y.hasStatus).toBe(true);
+  expect(a11y.objectiveGone).toBe(true);
+  expect(a11y.headerGone).toBe(true);
 });
 
 test('no <img> and no <audio> elements on the page', async ({ page }) => {

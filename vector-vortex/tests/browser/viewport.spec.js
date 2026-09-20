@@ -1,8 +1,11 @@
-// Vector Vortex D3 validation: all four supported viewports + DPR 1 and DPR 2
-// keep the complete tube, status, and controls visible without overlap or
-// horizontal scrolling, and the sub-960 viewport warning is shown by the
-// stylesheet's media query (display toggling), with no JavaScript or markup
-// class involved (D2.7).
+// Vector Vortex viewport validation (Spec 03 gate 1 rewrite).
+// At all four supported viewports the playfield fills the viewport and the
+// HUD has nonzero bounds entirely inside it, with no horizontal scroll, at
+// DPR 1 and DPR 2. The instructional chrome of the Spec 02 build (header,
+// paragraphs, warning) is gone.
+//
+// Named mutation: a horizontal overflow (scrollWidth beyond the viewport)
+// fails every per-viewport check.
 
 import { test, expect } from '@playwright/test';
 import { startRun } from './helpers.js';
@@ -15,35 +18,51 @@ const VIEWPORTS = [
 ];
 
 for (const v of VIEWPORTS) {
-  test(`viewport ${v.label}: no horizontal scroll, status + canvas visible`, async ({ page }) => {
+  test(`viewport ${v.label}: playfield fills the viewport, HUD inside, no horizontal scroll`, async ({ page }) => {
     await page.setViewportSize({ width: v.width, height: v.height });
     await page.goto('/');
     await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
     await startRun(page);
     const layout = await page.evaluate(() => {
-      const docW = document.documentElement.scrollWidth;
-      const winW = window.innerWidth;
-      const status = document.querySelector('[data-testid="vv-hud-top"]');
+      const innerW = window.innerWidth;
+      const innerH = window.innerHeight;
       const canvas = document.getElementById('vv-canvas');
-      const pause = document.getElementById('vv-pause');
-      const restart = document.getElementById('vv-restart');
+      const hudTop = document.querySelector('[data-testid="vv-hud-top"]');
+      const hudBottom = document.querySelector('[data-testid="vv-hud-bottom"]');
+      const box = el => {
+        const r = el.getBoundingClientRect();
+        return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom };
+      };
+      const inside = b => b.w > 0 && b.h > 0 && b.x >= 0 && b.y >= 0 && b.right <= innerW && b.bottom <= innerH;
       return {
-        docW, winW,
-        statusVisible: status && status.getBoundingClientRect().width > 0,
-        canvasVisible: canvas && canvas.getBoundingClientRect().width > 0,
-        pauseVisible: pause && pause.getBoundingClientRect().width > 0,
-        restartVisible: restart && restart.getBoundingClientRect().width > 0
+        scrollW: document.documentElement.scrollWidth,
+        innerW, innerH,
+        canvas: box(canvas),
+        hudTop: box(hudTop),
+        hudBottom: box(hudBottom)
       };
     });
-    expect(layout.docW).toBeLessThanOrEqual(layout.winW);
-    expect(layout.statusVisible).toBe(true);
-    expect(layout.canvasVisible).toBe(true);
-    expect(layout.pauseVisible).toBe(true);
-    expect(layout.restartVisible).toBe(true);
+    // No horizontal scroll at any supported viewport.
+    expect(layout.scrollW).toBeLessThanOrEqual(layout.innerW);
+    // The playfield fills the viewport.
+    expect(layout.canvas.w).toBe(layout.innerW);
+    expect(layout.canvas.h).toBe(layout.innerH);
+    expect(layout.canvas.x).toBe(0);
+    expect(layout.canvas.y).toBe(0);
+    // The HUD has nonzero bounds entirely inside the viewport.
+    for (const name of ['hudTop', 'hudBottom']) {
+      const b = layout[name];
+      expect(b.w, name).toBeGreaterThan(0);
+      expect(b.h, name).toBeGreaterThan(0);
+      expect(b.x, name).toBeGreaterThanOrEqual(0);
+      expect(b.y, name).toBeGreaterThanOrEqual(0);
+      expect(b.right, name).toBeLessThanOrEqual(layout.innerW);
+      expect(b.bottom, name).toBeLessThanOrEqual(layout.innerH);
+    }
   });
 }
 
-test('DPR 1 probe: tube, status, and controls have no overlap and are not off-screen', async ({ browser }) => {
+test('DPR 1 probe: playfield and HUD have no overlap-driven overflow and are not off-screen', async ({ browser }) => {
   const context = await browser.newContext({ deviceScaleFactor: 1, viewport: { width: 1024, height: 576 } });
   const page = await context.newPage();
   await page.goto('/');
@@ -52,57 +71,17 @@ test('DPR 1 probe: tube, status, and controls have no overlap and are not off-sc
   const layout = await page.evaluate(() => {
     const winW = window.innerWidth;
     const docW = document.documentElement.scrollWidth;
-    const status = document.querySelector('[data-testid="vv-hud-top"]');
-    const canvas = document.getElementById('vv-canvas');
-    const pause = document.getElementById('vv-pause');
-    const restart = document.getElementById('vv-restart');
-    const a = status.getBoundingClientRect();
-    const b = canvas.getBoundingClientRect();
-    const c = pause.getBoundingClientRect();
-    const d = restart.getBoundingClientRect();
-    return {
-      docW, winW,
-      statusBox: { x: a.x, y: a.y, w: a.width, h: a.height },
-      canvasBox: { x: b.x, y: b.y, w: b.width, h: b.height },
-      pauseBox: { x: c.x, y: c.y, w: c.width, h: c.height },
-      restartBox: { x: d.x, y: d.y, w: d.width, h: d.height }
-    };
+    const canvas = document.getElementById('vv-canvas').getBoundingClientRect();
+    const hudTop = document.querySelector('[data-testid="vv-hud-top"]').getBoundingClientRect();
+    const hudBottom = document.querySelector('[data-testid="vv-hud-bottom"]').getBoundingClientRect();
+    return { docW, winW, canvas, hudTop, hudBottom };
   });
   expect(layout.docW).toBeLessThanOrEqual(layout.winW);
-  for (const k of ['statusBox', 'canvasBox', 'pauseBox', 'restartBox']) {
+  for (const k of ['canvas', 'hudTop', 'hudBottom']) {
     const b = layout[k];
-    expect(b.x).toBeGreaterThanOrEqual(0);
-    expect(b.x + b.w).toBeLessThanOrEqual(layout.winW);
-    expect(b.w).toBeGreaterThan(0);
+    expect(b.width).toBeGreaterThan(0);
+    expect(b.left).toBeGreaterThanOrEqual(0);
+    expect(b.right).toBeLessThanOrEqual(layout.winW);
   }
-  expect(layout.statusBox.y + layout.statusBox.h).toBeLessThanOrEqual(layout.canvasBox.y);
-  expect(layout.canvasBox.y + layout.canvasBox.h).toBeLessThanOrEqual(layout.pauseBox.y);
   await context.close();
-});
-
-test('below 960x540: warning is visible; above 960 it is not (D2.7)', async ({ browser }) => {
-  const ctxSmall = await browser.newContext({ viewport: { width: 800, height: 480 } });
-  const pageSmall = await ctxSmall.newPage();
-  await pageSmall.goto('/');
-  await pageSmall.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
-  const visibleSmall = await pageSmall.evaluate(() => {
-    const w = document.querySelector('[data-testid="vv-viewport-warning"]');
-    if (!w) return false;
-    const cs = window.getComputedStyle(w);
-    return cs.display !== 'none' && w.getBoundingClientRect().width > 0;
-  });
-  expect(visibleSmall).toBe(true);
-  await ctxSmall.close();
-  const ctxWide = await browser.newContext({ viewport: { width: 1280, height: 720 } });
-  const pageWide = await ctxWide.newPage();
-  await pageWide.goto('/');
-  await pageWide.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
-  const visibleWide = await pageWide.evaluate(() => {
-    const w = document.querySelector('[data-testid="vv-viewport-warning"]');
-    if (!w) return false;
-    const cs = window.getComputedStyle(w);
-    return cs.display !== 'none' && w.getBoundingClientRect().width > 0;
-  });
-  expect(visibleWide).toBe(false);
-  await ctxWide.close();
 });

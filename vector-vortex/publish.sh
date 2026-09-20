@@ -41,7 +41,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_DIR="${SCRIPT_DIR}/game"
-DEST_ROOT="/opt/agents/www/retrogaming"
+# Destination root override for test isolation (Spec 03 gate 1): the unit and
+# browser suites publish into an isolated temporary root inside the checkout
+# by setting VV_PUBLISH_ROOT. The production default is unchanged.
+DEST_ROOT="${VV_PUBLISH_ROOT:-/opt/agents/www/retrogaming}"
 DESTINATION_DIR="${DEST_ROOT}/vector-vortex"
 MARKER_NAME="vv-preview-marker.txt"
 

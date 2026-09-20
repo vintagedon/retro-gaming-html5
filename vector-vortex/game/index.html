@@ -11,50 +11,25 @@
 </head>
 <body>
   <div id="vv-root">
-    <header class="vv-header">
-      <h1>Vector Vortex</h1>
-      <p class="vv-objective" data-testid="vv-objective">
-        Objective: survive the 5-minute Crawler wave on a 24-lane wireframe tube.
-        Move with Left/Right (or A/D), hold Space to fire, and pause with Escape (or P).
-      </p>
-      <p class="vv-controls" data-testid="vv-controls">
-        Controls: Left Arrow or A = move left. Right Arrow or D = move right. Space = fire. Escape or P = pause. The Restart button is enabled after the run ends.
-      </p>
-    </header>
-
     <main class="vv-main">
+      <div class="vv-canvas-wrap">
+        <canvas
+          id="vv-canvas"
+          role="img"
+          aria-label="Vector Vortex tube: 24 lanes converging to the far end, player on the near rim, shots moving inward, Crawlers moving outward"
+          tabindex="0"
+        ></canvas>
+      </div>
+
       <div class="vv-hud-top" data-testid="vv-hud-top">
         <div class="vv-hud-cell vv-hud-score">
           <span class="vv-hud-label">Score</span>
           <span class="vv-hud-value" data-testid="vv-score">0</span>
         </div>
-        <div class="vv-hud-meter">
-          <div
-            class="gc-meter"
-            id="vv-meter"
-            data-testid="vv-meter"
-            style="--gc-meter-value: 100%"
-          >
-            <div class="gc-meter__fill"></div>
-          </div>
-          <span class="vv-sr-only" data-testid="vv-time">05:00 remaining</span>
-        </div>
         <div class="vv-hud-cell vv-hud-best">
           <span class="vv-hud-label">Best</span>
           <span class="vv-hud-value" data-testid="vv-best">0</span>
         </div>
-      </div>
-
-      <div class="vv-canvas-wrap">
-        <canvas
-          id="vv-canvas"
-          role="img"
-          aria-label="Vector Vortex tube: 24 lanes, player on the rim, shots moving inward, Crawlers moving outward"
-          tabindex="0"
-        ></canvas>
-        <p class="vv-viewport-warning" data-testid="vv-viewport-warning">
-          Larger play area recommended (below 960x540).
-        </p>
       </div>
 
       <div class="vv-hud-bottom" data-testid="vv-hud-bottom">

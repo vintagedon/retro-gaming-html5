@@ -1,19 +1,17 @@
 /*
  * Vector Vortex game layout.
  *
- * Game-owned shell layout (vv- namespace, Spec 02 deliverable 1). Selects
- * vv- classes and game elements only; every framework component keeps its
- * own published presentation. Colors are consumed from documented public
- * tokens (var(--gc-*)) so the frozen palette roles hold on every surface.
- * Lives in the overrides layer beneath the theme file so cascade precedence
- * is expressed by layer order, not selector weight.
+ * Game-owned layout (vv- namespace, Spec 03 gate 1). The playfield fills
+ * the viewport; the HUD floats over it as compact arcade chrome. Selects
+ * vv- classes and game elements only; colors are consumed from documented
+ * public tokens (var(--gc-*)). Lives in the overrides layer beneath the
+ * theme file so cascade precedence is expressed by layer order, not
+ * selector weight.
  */
 @layer overrides {
   :root {
     /* vv- game layout constants (not theme colors). */
-    --vv-safe-x: 16px;
-    --vv-safe-y: 12px;
-    --vv-max-shell: 1600px;
+    --vv-hud-inset: 12px;
   }
 
   * {
@@ -27,51 +25,67 @@
     color: var(--gc-text-primary);
     font-family: var(--gc-font-body);
     min-height: 100vh;
-    overflow-x: hidden;
+    overflow: hidden;
   }
 
   #vv-root {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    padding: var(--vv-safe-y) var(--vv-safe-x);
-    gap: 12px;
-    max-width: var(--vv-max-shell);
-    margin: 0 auto;
-  }
-
-  .vv-header h1 {
-    /* Fixed compact sizes (not viewport clamps) keep the non-canvas chrome
-       uniform across the supported viewports, which is what the canvas
-       height reserve below depends on. */
-    font-size: 20px;
-    margin: 0 0 6px;
-    color: var(--gc-accent);
-    letter-spacing: 0.04em;
-    font-weight: var(--gc-type-title-weight);
-  }
-
-  .vv-objective,
-  .vv-controls {
-    font-size: 12px;
-    line-height: 1.35;
-    margin: 0 0 3px;
-    color: var(--gc-text-muted);
+    position: fixed;
+    inset: 0;
   }
 
   .vv-main {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-    flex: 1;
-    min-height: 0;
+    position: absolute;
+    inset: 0;
   }
 
+  /* The playfield fills the viewport: no panel, no border, no padding. */
+  .vv-canvas-wrap {
+    position: absolute;
+    inset: 0;
+    background: #000;
+  }
+
+  #vv-canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    outline: none;
+  }
+
+  #vv-canvas:focus-visible,
+  #vv-canvas:focus {
+    outline: var(--gc-focus-width) solid var(--gc-focus-ring);
+    outline-offset: calc(-1 * var(--gc-focus-offset));
+  }
+
+  /* HUD: compact arcade chrome floating over the playfield. */
   .vv-hud-top {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
+    position: fixed;
+    top: var(--vv-hud-inset);
+    left: var(--vv-hud-inset);
+    right: var(--vv-hud-inset);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
     gap: 12px;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .vv-hud-bottom {
+    position: fixed;
+    bottom: var(--vv-hud-inset);
+    left: var(--vv-hud-inset);
+    right: var(--vv-hud-inset);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    pointer-events: none;
+    z-index: 2;
   }
 
   .vv-hud-cell {
@@ -97,26 +111,6 @@
     font-size: clamp(18px, 2vw, 24px);
   }
 
-  .vv-hud-meter {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-  }
-
-  /* Positional layout for the game-owned meter slot only; the component's
-     own presentation stays entirely the framework's. */
-  .vv-hud-meter > * {
-    flex: 1;
-    min-width: 0;
-  }
-
-  /* Depletion meter role flip at the final minute: the game toggles this
-     vv- class and the rule sets only the documented public fill token. */
-  .vv-meter--warning {
-    --gc-meter-fill: var(--gc-status-warning);
-  }
-
   .vv-lives {
     display: inline-flex;
     align-items: center;
@@ -133,86 +127,22 @@
     opacity: var(--gc-disabled-opacity);
   }
 
-  .vv-hud-bottom {
-    display: grid;
-    grid-template-columns: auto auto 1fr auto;
-    align-items: center;
-    gap: 16px;
-  }
-
   .vv-hud-status {
-    justify-self: center;
     font-size: var(--gc-type-label-size);
     letter-spacing: var(--gc-type-label-tracking);
     text-transform: var(--gc-type-label-transform);
     color: var(--gc-text-muted);
   }
 
-  .vv-sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  .vv-canvas-wrap {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: var(--gc-surface-canvas);
-    border: var(--gc-border-width) solid var(--gc-border-default);
-    border-radius: var(--gc-radius-panel);
-    padding: 8px;
-  }
-
-  #vv-canvas {
-    display: block;
-    /* 01c gate 1: size against available height so the smallest supported
-       viewport (1024x576) does not push controls below the fold. Width is
-       still capped at 960 for larger screens. 01c continuation gate 1: the
-       height reserve is the measured non-canvas chrome plus margin, so the
-       bottom edge of the lowest control stays inside the viewport at
-       1024x576 and 1280x720 alike. Spec 02 deliverable 2 re-measured the
-       chrome for the frozen HUD (top bar, bottom bar, compact header) at
-       its worst supported viewport (1024x576, where the controls paragraph
-       wraps to three lines): 296px, plus 16 margin by the same rule. */
-    width: min(100%, 960px, calc((100vh - 312px) * 16 / 9));
-    height: auto;
-    aspect-ratio: 16 / 9;
-    background: var(--gc-surface-canvas);
-    outline: none;
-  }
-
-  #vv-canvas:focus-visible,
-  #vv-canvas:focus {
-    outline: var(--gc-focus-width) solid var(--gc-focus-ring);
-    outline-offset: var(--gc-focus-offset);
-  }
-
-  .vv-viewport-warning {
-    position: absolute;
-    left: 50%;
-    bottom: 8px;
-    transform: translateX(-50%);
-    margin: 0;
-    font-size: 12px;
-    color: var(--gc-status-warning);
-    background: var(--gc-overlay-fill);
-    padding: 4px 10px;
-    border-radius: var(--gc-radius-small);
-    display: none;
-  }
-
   .vv-actions {
+    position: fixed;
+    top: var(--vv-hud-inset);
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+    z-index: 2;
   }
 
   .vv-actions[data-vv-bar="hidden"] {
@@ -372,12 +302,6 @@
       --gc-motion-fast: var(--gc-time-0);
       --gc-motion-base: var(--gc-time-0);
       --gc-motion-slow: var(--gc-time-0);
-    }
-  }
-
-  @media (max-width: 960px) {
-    .vv-viewport-warning {
-      display: block;
     }
   }
 }

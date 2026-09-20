@@ -1,10 +1,10 @@
 <!--
 ---
 title: "Vector Vortex Spec Defects Observed"
-description: "Spec defects observed while implementing Vector Vortex Spec 01 and its 01b and 01c amendments"
+description: "Spec defects observed while implementing Vector Vortex Spec 01 and its 01b and 01c amendments, and the Spec 03 supersession record"
 author: "VintageDon (https://github.com/vintagedon/)"
 date: "2026-09-18"
-version: "0.5.0"
+version: "0.6.0"
 status: "Active"
 tags:
   - type: defect-log
@@ -79,3 +79,6 @@ The Deliverable 3 plan text mentions "a fixed port fallback `http://127.0.0.1:81
 ## Mutation harness uses `addInitScript` and `window.__vv` flag preservation
 
 The plan text suggests either monkey-patching `window.__vv` from a separate `input.mutation.js` or using early-return guards. The implementation chose the early-return guard approach: each toggle is a small branch that the input adapter, frame runner, or renderer consults. The orchestrator (`main.js`) preserves any properties a test set via `addInitScript` by merging `window.__vv` with the seam object.
+## Supersession record: Spec 03 replaces the timed-survival contract (Spec 01 v3.0, superseded by Spec 03)
+
+Spec 03 (Tempest identity slice) replaces frozen clauses of Spec 01 v3.0 in one recorded supersession rather than as accumulating amendments. The brief defect this fixes: no specification in the series ever described what the player should see, so the executed build matched every written rule and did not look like the game. Superseded clause by clause: the 300-second run with its 18,000-tick boundary and final-tick outcome is replaced by wave-based play ending when a fixed spawn budget is exhausted and no enemies remain; the survival and accuracy bonuses are replaced by kill score only; the four elapsed-time director bands are replaced by one fixed spawn budget and interval; lives are carried per game across waves; one-lane-step-per-tick movement is replaced by tap-and-repeat; and the frozen monochrome presentation is replaced by a converging perspective projection with per-entity colour. Retained unchanged: 24 lanes, normalized depth direction, the 60 Hz fixed step with accumulator and catch-up cap, seeded RNG and serializable state, swept-interval collision with ascending stable-ID resolution, and the 30-tick damage grace. The full table lives in the tracked spec at `docs/specs/spec-03-vector-vortex-tempest-identity-slice.md`. Assertions for superseded behavior are replaced in the same gate that changes the behavior, so the suite never carries checked boxes the tree no longer demonstrates.
