@@ -207,11 +207,11 @@ Verify the integrated single-wave slice, including Start, wave completion, game 
 
 Update `vector-vortex/README.md`, `vector-vortex/AGENTS.md`, the one-pager, and the repository `README.md` to the delivered state, including the superseded contract and the games-carry-assets distinction.
 
-- [ ] The complete unit suite (`npm test`) and browser suite (`npm run test:e2e`) pass from `vector-vortex/` on the finished tree using the isolated publishing destinations established in gate 1.
-- [ ] The slice is published and reachable at `https://retrogaming.donfather.site/vector-vortex/`, and the served files match the committed source.
-- [ ] `threatmodel.md` exists and describes the deployed surface.
-- [ ] Every internal link in every Markdown file this branch touches resolves from a fresh clone, and no tracked file links into `reference-files/`.
-- [ ] The superseded Spec 03 is marked `deprecated` with a pointer to this specification and remains tracked.
+- [x] The complete unit suite (`npm test`) and browser suite (`npm run test:e2e`) pass from `vector-vortex/` on the finished tree using the isolated publishing destinations established in gate 1. 181 unit tests and 95 browser tests green on the final tree.
+- [x] The slice is published and reachable at `https://retrogaming.donfather.site/vector-vortex/`, and the served files match the committed source. `./publish.sh` digest `86fa5dcd0434045187f8c05117650262af92095a99ad2ecb7e527df92732c79c` equals the served marker; a full diff of the served tree against `game/` is clean.
+- [x] `threatmodel.md` exists and describes the deployed surface.
+- [x] Every internal link in every Markdown file this branch touches resolves from a fresh clone, and no tracked file links into `reference-files/`. `tests/core/links.test.js` enforces the scope continuously.
+- [x] The superseded Spec 03 is marked `deprecated` with a pointer to this specification and remains tracked. `docs/specs/spec-02-vector-vortex-topology-shift-and-polish.md` carries `superseded_by: spec-03-vector-vortex-tempest-identity-slice.md`.
 
 ## Constraints
 

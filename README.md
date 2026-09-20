@@ -44,11 +44,11 @@ The specification is the durable artifact and the tests are tracked evidence. Se
 
 Games are sequenced as a complexity ladder in two arcs. Each rung adds one capability so engine techniques accumulate instead of restarting.
 
-**Wireframe arc.** Vector games, contained Canvas 2D, zero image and audio files.
+**Wireframe arc.** Vector games, contained Canvas 2D. Geometry and effects are procedural by default; a game that ships curated assets records their licences and provenance per file.
 
 | Rung | Candidate | New capability |
 |------|-----------|----------------|
-| 1 | **Vector Vortex** | Fixed-step simulation, procedural geometry, scheduled topology change, first vector-FX vocabulary |
+| 1 | **Vector Vortex** | Fixed-step simulation, procedural geometry, perspective projection with per-entity colour, wave structure |
 | 2 | Lunar Lander | Continuous physics, fuel and thrust, telemetry HUD, landing evaluation |
 | 3 | Missile Command | Pointer targeting, limited resources, branching threats, chain reactions |
 | 4 | Armor Attack / Black Widow | Navigation and obstacles, or twin-stick control and denser enemy behavior |
@@ -65,7 +65,7 @@ A custom 3D wireframe game is the eventual capstone and graduates to a Three.js 
 | Area | Status | Description |
 |------|--------|-------------|
 | Repository | ✅ Active | Repo-mode lifecycle, spec-driven, tracked tests, public review |
-| Vector Vortex (rung 1) | ✅ MVP published | Spec 01 deterministic core merged; Spec 02 wireframe shell and MVP implemented on the vendored GameUI foundations (163 unit + 80 Playwright), preview published to retrogaming.donfather.site/vector-vortex/. Spec 03 (topology shift) is gated on MVP acceptance |
+| Vector Vortex (rung 1) | ✅ Tempest slice published | Specs 01 and 02 merged; Spec 03 rebuilt it as a recognizable Tempest slice: converging perspective web, per-entity colour, tap-and-repeat movement, an enemy that shoots back, wave-based play, five presentation states, and shipped font and audio with attribution (181 unit + 95 Playwright), published to retrogaming.donfather.site/vector-vortex/ |
 | Lunar Lander (rung 2) | ⬜ Planned | Chosen after Vector Vortex ships |
 
 An earlier experiment, Materialoids, exists in the tree from before this cadence. Its green-monochrome visual language is not a precedent; new games establish their own palette from first principles.
@@ -79,7 +79,7 @@ Each game is a self-contained static directory with no cross-game dependency.
 | Component | Implementation | Purpose |
 |-----------|----------------|---------|
 | Rendering | Canvas 2D by default; Phaser 4 when physics or scene management is needed; Three.js or WebGPU only for 3D | The renderer matches the game, not the monorepo |
-| Assets | Wireframe arc: procedural, zero files. Sprite arc: curated committed assets with a manifest | The pipeline matches the arc |
+| Assets | Procedural by default. The framework stays zero-raster; a game that ships curated assets records licence and provenance per file in `game/assets/ATTRIBUTION.md` | Discipline where it is the product, assets where the game needs them |
 | UI chrome | The shared browser-game UI framework, themed per game | Games serve as real consumer evidence for the framework |
 | Deployment | Azure Static Web Apps | Static HTML, JS, no server-side logic |
 | Preview | `retrogaming.donfather.site/<game>/` | Per-game subfolder; `publish.sh` wipes only its own folder |

@@ -6,7 +6,7 @@ author: "VintageDon (https://github.com/vintagedon/)"
 date: "2026-08-14"
 version: "1.1"
 status: "deprecated"
-superseded_by: "2026-08-16-retrohtml5-spec-03-vector-vortex-topology-shift-and-polish.md"
+superseded_by: "spec-03-vector-vortex-tempest-identity-slice.md"
 tags:
   - type: specification
   - domain: [game-design, implementation]
@@ -22,7 +22,7 @@ related_documents:
 
 # Vector Vortex Spec 02: Topology Shift and Polish
 
-> **Status:** Deprecated. The earlier numbering (this file as Spec 02) was realigned to a global per-repository counter in Spec 01 v3.0. The replacement lives in the central spec archive and is not in-repo. This file is preserved as the durable record of that earlier scope.
+> **Status:** Deprecated. The earlier numbering (this file as Spec 02) was realigned to a global per-repository counter in Spec 01 v3.0, and the topology-shift scope this file carried was superseded by the Tempest identity slice, tracked in-repo at [spec-03-vector-vortex-tempest-identity-slice](spec-03-vector-vortex-tempest-identity-slice.md). This file is preserved as the durable record of that earlier scope.
 
 # Vector Vortex Spec 02: Topology Shift and Polish
 
