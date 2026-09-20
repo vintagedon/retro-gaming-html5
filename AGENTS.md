@@ -39,6 +39,45 @@ Work is repo-mode and spec-driven. A unit of work is a specification under `docs
 5. **Pull request.** Open one pull request per spec. It carries the diff, the completed validation checklist, the exact commands that reproduce the validations, and links to the evidence captures. Review happens in the open.
 6. **Acceptance.** The maintainer's merge is acceptance. Agents commit and open pull requests; they never merge. Retained evidence is whatever the pull request references plus the committed consumer report.
 
+## Code Review Rules
+
+Rules for automated reviewers on pull requests in this repository. Kilo reads `REVIEW.md` at the repository root; Codex reads this section. Keep the two aligned.
+
+### Repository shape
+
+- A monorepo of independent browser games. Each game owns a top-level directory with its own `AGENTS.md`, `README.md`, `package.json`, tests, `publish.sh`, and servable `game/` tree. No cross-game code dependency, no shared runtime.
+- A pull request normally touches one game plus repository-level records. Review against that game's own `AGENTS.md` first, since conventions are per-game where they differ.
+- Flag cross-game coupling: a game importing from a sibling, reaching into a sibling's directory, or sharing state through the preview umbrella root.
+
+### Validation truth
+
+- A checked validation box whose behavior the tree does not demonstrate is the highest-value finding in any review here. Check the box against the test, and the test against what it actually asserts.
+- A test that names a discriminating mutation and passes with that mutation active is a false statement in the repository. Assertions comparing a pure function to itself, comparing two differently-constructed fixtures, or asserting only that something differed all fall here.
+- Verify claims in commit messages, pull request descriptions, and completion reports against the files. Archive, reconciliation, and record-update claims have been wrong here before.
+
+### Lifecycle contracts
+
+- Pause, blur, visibility change, restart, and focus behavior are established core contracts. A shell, HUD, or menu layered above them has repeatedly reintroduced a defect the layer below already fixed.
+- Review the combinations rather than each handler alone: pause then blur, pause then hide, pause then restart, focus a DOM control then press a gameplay key.
+
+### Runtime behavior
+
+- A passing suite does not mean the game works. Flag rendering that contradicts the rules, a control unusable at its specified rate, and elements off-screen or invisible at a supported viewport.
+- Each game owns `<game>/` and its own published subfolder; `publish.sh` writes outside the tree by design. Flag an ordinary test run that touches the shared preview root, a sibling's published directory, the umbrella root, or an operator path, and flag a publisher whose destination is not its own approved subfolder.
+
+### Severity and scope
+
+- Reserve the top severity for something that breaks play, corrupts state, writes somewhere it does not own, or couples two games together. Use the middle severity for a contract violation a player or a fresh clone would hit. Everything else is a suggestion.
+- Interior README and index staleness is reportable and is a suggestion. Group it into one finding rather than one per file.
+- Do not repeat what a check on the pull request already reports. This repository has no test workflow, so a reproduced failing test is a reportable finding rather than a duplicate; say how you reproduced it.
+- Do not comment on writing-style guide violations, dependency version bumps that do not alter runtime behavior, or missing tests the specification did not require.
+
+### Static-site constraints
+
+- No backend, no build step, relative paths only, Azure Static Web Apps compatible. Flag anything assuming otherwise.
+- Licensed reference packs under ignored `reference-files*/` directories are studied, never copied. Flag copied pack source.
+- Specifications are never deleted. A superseded one is marked `deprecated` with a pointer to its replacement.
+
 ## Specifications
 
 - Live under `docs/specs/`, tracked and public. Each new tracked directory carries an interior README.
