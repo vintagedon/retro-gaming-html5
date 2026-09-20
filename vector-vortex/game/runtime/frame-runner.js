@@ -134,5 +134,16 @@ export function createFrameRunner({ renderer, dom, onSnapshot, initialSeed = 1 }
     core.setState(next);
   }
 
-  return { start, stop, replaceCore, reset, advanceTicks, getSnapshot, dispatch, setState };
+  // Spec 02 shell clock handles: the shell owns when real time may tick.
+  // pauseClock stops accumulation outright; resumeClock mirrors the 01c
+  // guard by resuming only against an unpaused core.
+  function pauseClock() {
+    clock.pause();
+  }
+
+  function resumeClock() {
+    if (!core.snapshot().paused) clock.resume();
+  }
+
+  return { start, stop, replaceCore, reset, advanceTicks, getSnapshot, dispatch, setState, pauseClock, resumeClock };
 }

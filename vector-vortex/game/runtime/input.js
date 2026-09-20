@@ -34,7 +34,7 @@ function focusGateOpen() {
   return false;
 }
 
-export function createInputAdapter({ gameSurface, pauseButton, restartButton, dispatch, onBlur, onVisibility }) {
+export function createInputAdapter({ gameSurface, dispatch, onBlur, onVisibility, onPauseKey }) {
   let destroyed = false;
 
   function keydown(ev) {
@@ -82,11 +82,11 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
     else if (isFire) { if (focused) dispatch({ type: 'fire-down' }); }
     else if (isPause) {
       if (focused) {
-        // 01c continuation gate 1: keyboard pause clears held input, same
-        // as the pause button click path. Holding movement or fire through
-        // P or Escape must not resume those actions without a fresh press.
-        clearHeldInput();
-        dispatch({ type: 'pause' });
+        // Spec 02: the pause key routes through the shell, which clears
+        // held input, pauses the core and clock, and opens the pause
+        // surface with focus containment. The old direct pause dispatch
+        // and canvas refocus are superseded by the shell's focus flow.
+        if (typeof onPauseKey === 'function') onPauseKey();
       }
     }
   }
@@ -131,41 +131,11 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
     }
   }
 
-  function onPauseClick(ev) {
-    // When the test mutation is on, preventDefault was called on the keydown
-    // event for Space, which would normally suppress the button's synthesized
-    // click. However, a real mouse click on the button is still valid; this
-    // handler dispatches the action either way. We deliberately do NOT gate
-    // the click handler on preventSpaceAtWindow so a real mouse click still
-    // pauses. The mutation test relies on the keydown default suppression
-    // not producing a click in the first place (Chromium honors
-    // preventDefault on Space for buttons).
-    ev.preventDefault();
-    // 01c gate 1: clear held input BEFORE dispatching pause, so resuming
-    // with a key still down does not immediately move or fire.
-    clearHeldInput();
-    dispatch({ type: 'pause' });
-    if (gameSurface && typeof gameSurface.focus === 'function') {
-      // Keep focus on the canvas so keyboard movement works post-pause.
-      gameSurface.focus();
-    }
-  }
-
-  function onRestartClick(ev) {
-    ev.preventDefault();
-    dispatch({ type: 'restart' });
-    if (gameSurface && typeof gameSurface.focus === 'function') {
-      gameSurface.focus();
-    }
-  }
-
   window.addEventListener('keydown', keydown);
   window.addEventListener('keyup', keyup);
   window.addEventListener('blur', onWindowBlur);
   window.addEventListener('focus', onWindowFocus);
   document.addEventListener('visibilitychange', onVisibilityChange);
-  if (pauseButton) pauseButton.addEventListener('click', onPauseClick);
-  if (restartButton) restartButton.addEventListener('click', onRestartClick);
 
   function destroy() {
     destroyed = true;
@@ -174,8 +144,6 @@ export function createInputAdapter({ gameSurface, pauseButton, restartButton, di
     window.removeEventListener('blur', onWindowBlur);
     window.removeEventListener('focus', onWindowFocus);
     document.removeEventListener('visibilitychange', onVisibilityChange);
-    if (pauseButton) pauseButton.removeEventListener('click', onPauseClick);
-    if (restartButton) restartButton.removeEventListener('click', onRestartClick);
   }
 
   return { destroy, clearHeldInput };

@@ -36,19 +36,23 @@ test('DOM status values are projections, no duplicate calculation', async ({ pag
   const projected = await page.evaluate(() => {
     const s = window.__vv.getSnapshot();
     return {
-      snapshot: { score: s.score, lives: s.lives, elapsed: s.elapsedTicks, hits: s.hits, shotsSpawned: s.shotsSpawned },
+      snapshot: { score: s.score, lives: s.lives, remaining: s.remainingTicks },
       dom: {
         score: Number(document.querySelector('[data-testid="vv-score"]').textContent),
-        lives: Number(document.querySelector('[data-testid="vv-lives"]').textContent),
-        time: document.querySelector('[data-testid="vv-time"]').textContent
+        livesLabel: document.querySelector('[data-testid="vv-lives"]').getAttribute('aria-label'),
+        time: document.querySelector('[data-testid="vv-time"]').textContent,
+        meterNow: Number(document.getElementById('vv-meter').getAttribute('aria-valuenow'))
       }
     };
   });
   expect(projected.dom.score).toBe(projected.snapshot.score);
-  expect(projected.dom.lives).toBe(projected.snapshot.lives);
-  const totalSeconds = Math.floor(projected.snapshot.elapsed / 60);
-  const expected = `${totalSeconds < 10 ? '0' : ''}${Math.floor(totalSeconds / 60)}:${(totalSeconds % 60) < 10 ? '0' : ''}${totalSeconds % 60}`;
-  expect(projected.dom.time).toBe(expected);
+  expect(projected.dom.livesLabel).toBe(`Lives: ${projected.snapshot.lives}`);
+  const totalSeconds = Math.floor(projected.snapshot.remaining / 60);
+  const mm = Math.floor(totalSeconds / 60);
+  const ss = totalSeconds % 60;
+  const expected = `${mm < 10 ? '0' : ''}${mm}:${ss < 10 ? '0' : ''}${ss}`;
+  expect(projected.dom.time).toBe(`${expected} remaining`);
+  expect(projected.dom.meterNow).toBe(projected.snapshot.remaining);
 });
 
 test('MUTATION: skipFrameRunnerRebind leaves the orphaned core visible through the seam', async ({ page }) => {

@@ -65,7 +65,7 @@ A custom 3D wireframe game is the eventual capstone and graduates to a Three.js 
 | Area | Status | Description |
 |------|--------|-------------|
 | Repository | ✅ Active | Repo-mode lifecycle, spec-driven, tracked tests, public review |
-| Vector Vortex (rung 1) | 🟡 Mechanics slice built | Spec 01 deterministic core playable implemented and tested (114 unit + 26 Playwright). Spec 02 (topology shift) is a later work unit |
+| Vector Vortex (rung 1) | ✅ MVP published | Spec 01 deterministic core merged; Spec 02 wireframe shell and MVP implemented on the vendored GameUI foundations (163 unit + 80 Playwright), preview published to retrogaming.donfather.site/vector-vortex/. Spec 03 (topology shift) is gated on MVP acceptance |
 | Lunar Lander (rung 2) | ⬜ Planned | Chosen after Vector Vortex ships |
 
 An earlier experiment, Materialoids, exists in the tree from before this cadence. Its green-monochrome visual language is not a precedent; new games establish their own palette from first principles.

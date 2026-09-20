@@ -4,13 +4,14 @@
 // D3.6: disabling the input adapter or the frame runner must fail them.
 
 import { test, expect } from '@playwright/test';
+import { startRun } from './helpers.js';
 
 test.use({ viewport: { width: 1280, height: 720 } });
 
 test('window blur stops authoritative tick advancement via the real rAF path (D3.6)', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
-  await page.locator('#vv-canvas').focus();
+  await startRun(page);
   // Let the rAF loop run normally for one second to confirm baseline.
   const before = await page.evaluate(() => window.__vv.getSnapshot().elapsedTicks);
   await page.waitForTimeout(1000);
@@ -33,7 +34,7 @@ test('window blur stops authoritative tick advancement via the real rAF path (D3
 test('visibilitychange to hidden stops tick advancement via the real rAF path (D3.6)', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
-  await page.locator('#vv-canvas').focus();
+  await startRun(page);
   const before = await page.evaluate(() => window.__vv.getSnapshot().elapsedTicks);
   await page.waitForTimeout(500);
   const afterBaseline = await page.evaluate(() => window.__vv.getSnapshot().elapsedTicks);
@@ -61,7 +62,7 @@ test('MUTATION: disabling the input adapter prevents blur from stopping tick adv
   await page.addInitScript(() => { window.__vv = Object.assign(window.__vv || {}, { disableInputAdapter: true }); });
   await page.goto('/');
   await page.waitForFunction(() => window.__vv && typeof window.__vv.advanceTicks === 'function');
-  await page.locator('#vv-canvas').focus();
+  await startRun(page);
   // Without an input adapter, the blur handler never fires; ticks keep advancing.
   const before = await page.evaluate(() => window.__vv.getSnapshot().elapsedTicks);
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
